@@ -119,6 +119,31 @@ def _es_cro_suelta(rel: Any) -> bool:
     return texto.startswith("cro/") and texto.endswith(".cro")
 
 
+def _raiz_de_entradas_fa(entradas: Any) -> Path | None:
+    """Raíz común de un ``entradas_fa`` que sea un árbol de ficheros ya volcado en disco.
+
+    ``nucleo.construir.candidata`` no sabe inyectar entradas sueltas, pero sí sabe volcar una
+    carpeta ``extra/`` cuyo árbol ES el de ``romfs``. Si cada ``(ruta, path)`` cumple que
+    ``path`` termina en ``ruta`` y todas comparten la misma raíz, esa raíz vale como ``extra``.
+    Si no (bytes en memoria, o rutas que no comparten raíz), se devuelve None y el llamador lo
+    reporta como pendiente: nunca se tira en silencio.
+    """
+    if not entradas:
+        return None
+    raices: set[str] = set()
+    for rel, valor in entradas.items():
+        if not isinstance(valor, Path):
+            return None
+        relativo = str(rel).replace("\\", "/").strip("/")
+        absoluto = str(valor).replace("\\", "/")
+        if not relativo or not absoluto.endswith("/" + relativo):
+            return None
+        raices.add(absoluto[: -(len(relativo) + 1)])
+    if len(raices) != 1:
+        return None
+    return Path(next(iter(raices)))
+
+
 def _aportacion_a_dict(ident: str, valor: Any) -> tuple[Any, list[str]]:
     """Traduce la ``Aportacion`` de un objetivo a la forma que entiende el constructor.
 
@@ -135,7 +160,9 @@ def _aportacion_a_dict(ident: str, valor: Any) -> tuple[Any, list[str]]:
         return valor, []
     romfs = dict(getattr(valor, "romfs_sueltos", None) or {})
     pendientes = []
-    if getattr(valor, "entradas_fa", None):
+    entradas_fa = dict(getattr(valor, "entradas_fa", None) or {})
+    extra = _raiz_de_entradas_fa(entradas_fa)
+    if entradas_fa and extra is None:
         pendientes.append("entradas_fa")
     if getattr(valor, "literales_cro", None):
         pendientes.append("literales_cro")
@@ -143,11 +170,95 @@ def _aportacion_a_dict(ident: str, valor: Any) -> tuple[Any, list[str]]:
         pendientes.append("romfs_sueltos que no son cro/*.cro")
     aporte = {
         "objetivo": ident,
-        "extra": None,
+        "extra": extra,
         "eventos": dict(getattr(valor, "eventos", None) or {}),
         "cro": [ruta for rel, ruta in sorted(romfs.items()) if _es_cro_suelta(rel)],
     }
     return aporte, pendientes
+
+
+#: Rutas del `activos.toml` de `juego_principal` que delatan una capa del menú.
+_RUTAS_MENU: tuple[str, ...] = ("menu/", "movie/", "message/", "import/", "patchscript/", "cro/ina_menu.cro")
+#: Ficheros del ExeFS que pertenecen al juego principal.
+_EXEFS_MENU: tuple[str, ...] = ("banner.bnr", "icon.icn")
+#: Ficheros que identifican una carpeta de `work/` como capa y que se leen buscando esas rutas.
+_FICHEROS_DE_CAPA: tuple[str, ...] = ("apply.py", "capa.toml", "report.json", "ownership.json")
+#: Capas conocidas del menú que NO dejan rastro de rutas (producen imágenes que coloca otra
+#: capa). Se listan a mano para que el histórico sea reproducible y no dependa de un grep.
+_CAPAS_MENU_CONOCIDAS: tuple[str, ...] = ("v54/pantalla_inicio",)
+#: Tope de motivos anotados por capa: el histórico es un índice, no un inventario.
+_MAX_MOTIVOS = 12
+
+
+def _ahora() -> str:
+    from ie123kit.nucleo import util
+
+    return util.ahora_iso()
+
+
+def _relativa(raiz: Path, ruta: Path) -> str:
+    """Ruta relativa a la raíz en formato POSIX; absoluta si cae fuera."""
+    try:
+        return ruta.relative_to(raiz).as_posix()
+    except ValueError:
+        return ruta.as_posix()
+
+
+def _es_ruta_del_menu(rel: str) -> bool:
+    return rel.startswith(_RUTAS_MENU) or rel.rpartition("/")[2] in _EXEFS_MENU
+
+
+def _motivos_de_menu(capa: Path) -> list[str]:
+    """Por qué esta capa toca el juego principal (lista vacía si no lo toca)."""
+    motivos: list[str] = []
+    extra = capa / "extra"
+    if extra.is_dir():
+        for fichero in sorted(extra.rglob("*")):
+            if len(motivos) >= _MAX_MOTIVOS:
+                break
+            if not fichero.is_file():
+                continue
+            rel = fichero.relative_to(extra).as_posix()
+            if _es_ruta_del_menu(rel):
+                motivos.append(f"extra/{rel}")
+    for nombre in _FICHEROS_DE_CAPA:
+        fichero = capa / nombre
+        if not fichero.is_file():
+            continue
+        try:
+            texto = fichero.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        for aguja in (*_RUTAS_MENU, *_EXEFS_MENU):
+            if aguja in texto and len(motivos) < _MAX_MOTIVOS:
+                motivos.append(f"{nombre}: {aguja}")
+    return list(dict.fromkeys(motivos))
+
+
+def _es_capa(carpeta: Path) -> bool:
+    return (carpeta / "extra").is_dir() or any((carpeta / n).is_file() for n in _FICHEROS_DE_CAPA)
+
+
+def _capas_del_menu(dir_capas: Path) -> list[tuple[Path, list[str]]]:
+    """Capas de `work/ie1/capas` (dos niveles) que tocan el juego principal, ordenadas."""
+    if not dir_capas.is_dir():
+        return []
+    candidatas: list[Path] = []
+    for tanda in sorted(p for p in dir_capas.iterdir() if p.is_dir()):
+        candidatas.append(tanda)
+        candidatas.extend(sorted(p for p in tanda.iterdir() if p.is_dir()))
+    salida: list[tuple[Path, list[str]]] = []
+    for carpeta in candidatas:
+        rel = carpeta.relative_to(dir_capas).as_posix()
+        conocida = rel in _CAPAS_MENU_CONOCIDAS
+        if not conocida and not _es_capa(carpeta):
+            continue
+        motivos = _motivos_de_menu(carpeta)
+        if conocida:
+            motivos.append("capa conocida del menú (declarada en _CAPAS_MENU_CONOCIDAS)")
+        if motivos:
+            salida.append((carpeta, motivos))
+    return salida
 
 
 def _capa_vacia(aporte: dict[str, Any]) -> bool:
@@ -237,16 +348,42 @@ class ServicioToolkit:
             )
         return juego
 
-    def _refs(self, juego: JuegoBase, *, progreso: Any = None, cancel: CancelToken | None = None) -> list[Any]:
-        """Activos del objetivo: registro cacheado si se puede, si no el propio juego."""
+    def _del_registro(self, juego: JuegoBase, *, progreso: Any = None,
+                      cancel: CancelToken | None = None) -> list[Any]:
+        """Activos escaneados del `archive.fa` base; lista vacía si no se puede escanear.
+
+        Sin ROM (la CI) o con el escaneo cancelado no hay registro, y eso NO es un error:
+        lo que aporte el juego por su cuenta se sigue devolviendo.
+        """
         try:
             from ie123kit.servicio import registro_activos
 
-            registro = registro_activos.obtener(self.ws, juego, progreso=progreso, cancel=cancel)
-            return list(registro.activos)
+            return list(registro_activos.obtener(self.ws, juego, progreso=progreso, cancel=cancel).activos)
         except Exception:
+            return []
+
+    def _refs(self, juego: JuegoBase, *, progreso: Any = None, cancel: CancelToken | None = None) -> list[Any]:
+        """Activos del objetivo: los del `archive.fa` MÁS los que aporta el propio juego.
+
+        Son dos conjuntos complementarios, no dos formas de obtener el mismo: el registro
+        escanea el `archive.fa` y el juego aporta lo que vive FUERA de él (`cro/*.cro`, los
+        `.SAD` sueltos, `banner.bnr`/`icon.icn` del ExeFS). Coger solo uno dejaba la mitad
+        del inventario invisible. Se deduplica por `AssetRef.id` y manda el registro.
+        """
+        refs: list[Any] = self._del_registro(juego, progreso=progreso, cancel=cancel)
+        try:
             salida = juego.activos(self.ws)
-            return list(salida.datos.get("activos", ())) if isinstance(salida, Resultado) else list(salida)
+            propios = list(salida.datos.get("activos", ())) if isinstance(salida, Resultado) else list(salida)
+        except Exception:
+            propios = []
+        vistos = {getattr(r, "id", None) for r in refs}
+        for ref in propios:
+            ident = getattr(ref, "id", None)
+            if ident is not None and ident in vistos:
+                continue
+            vistos.add(ident)
+            refs.append(ref)
+        return refs
 
     def _resolver(self, juego: JuegoBase, ident: Any) -> Any | None:
         """Convierte un id de activo en su AssetRef; devuelve None si no existe."""
@@ -258,6 +395,106 @@ class ServicioToolkit:
         return None
 
     # -- órdenes de proyecto ------------------------------------------------
+
+    def init(self, rom_3ds: str | Path | None = None, roms: dict[str, Any] | None = None, *,
+             simular: bool = False,
+             progreso: Callable[[Progreso], None] | None = None,
+             cancel: CancelToken | None = None) -> Resultado:
+        """Prepara `work/<objetivo>/` y `translation/<objetivo>/` de los SIETE objetivos.
+
+        `juego_principal` es un ámbito de primera clase como `shared`, `ie1`, `ie2` e `ie3`:
+        su `work/juego_principal/` se crea aquí, no a mano. Las rutas de ROM que se pasen se
+        anotan en `ie123.local.toml` (ignorado por git); nunca se copia contenido (Norma 2).
+        Idempotente: repetirlo no cambia nada y `datos["creadas"]` sale vacío.
+        """
+        t0 = time.perf_counter()
+        try:
+            objetivos = sorted(OBJETIVOS)
+            if progreso is not None:
+                progreso(Progreso("init", 0, 2, "carpetas"))
+            if simular:
+                creadas = [
+                    c for objetivo in objetivos
+                    for c in self._carpetas_de(objetivo) if not Path(c).is_dir()
+                ]
+            else:
+                creadas = [Path(c) for c in self.ws.preparar_todo(objetivos)]
+
+            rutas: dict[str, str] = {}
+            if rom_3ds:
+                rutas["3ds_jp"] = str(rom_3ds)
+            for nombre, ruta in (roms or {}).items():
+                if ruta:
+                    rutas[str(nombre)] = str(ruta)
+            if progreso is not None:
+                progreso(Progreso("init", 1, 2, "ie123.local.toml"))
+            local = self.ws.escribir_local({"roms": rutas}) if rutas and not simular else None
+
+            datos = {
+                "objetivos": objetivos,
+                "creadas": [str(c) for c in creadas],
+                "roms": rutas,
+                "ie123_local_toml": str(local) if local is not None else "",
+                "simulado": bool(simular),
+            }
+            artefactos = tuple(str(c) for c in creadas) + ((str(local),) if local is not None else ())
+            if progreso is not None:
+                progreso(Progreso("init", 2, 2, "hecho"))
+            return self._cronometrar(t0, Resultado.correcto(datos=datos, artefactos=artefactos))
+        except Exception as exc:
+            return self._cronometrar(t0, Resultado.fallo([_incidencia("NOT_SUPPORTED", f"init: {exc}")]))
+
+    def _carpetas_de(self, objetivo: str) -> tuple[Path, ...]:
+        """Carpetas que `init` crearía para ese objetivo (sin crearlas)."""
+        d = self.ws.dirs(objetivo)
+        return (Path(d.capas), Path(d.qa), Path(d.exportaciones), Path(self.ws.dir_traduccion(objetivo)))
+
+    def migrar_juego_principal(self, simular: bool = True, *,
+                               progreso: Callable[[Progreso], None] | None = None,
+                               cancel: CancelToken | None = None) -> Resultado:
+        """Anota en `work/juego_principal/historico.json` qué capas de `work/ie1/capas` tocan el menú.
+
+        NO MUEVE NADA, y por eso `simular=False` responde NOT_SUPPORTED: esas capas calculan la
+        raíz del repo subiendo niveles desde su propio fichero y algunas se importan por
+        `importlib` desde su sitio actual (la V37); moverlas las rompe en silencio. El histórico
+        es un índice que APUNTA a donde siguen estando.
+        """
+        t0 = time.perf_counter()
+        try:
+            if cancel is not None:
+                cancel.comprobar()
+            capas = _capas_del_menu(Path(self.ws.dirs("ie1").capas))
+            if progreso is not None:
+                progreso(Progreso("migrar_juego_principal", len(capas), len(capas) or 1, "detectadas"))
+            destino = Path(self.ws.dirs("juego_principal").historico)
+            documento = {
+                "esquema": 1,
+                "objetivo": "juego_principal",
+                "generado_en": _ahora(),
+                "origen": "work/ie1/capas",
+                "movidas": False,
+                "nota": ("Índice de solo lectura: las capas SIGUEN en work/ie1/capas. No se mueven "
+                         "porque sus rutas relativas y sus importlib dependen de su sitio actual."),
+                "capas": [
+                    {"ruta": _relativa(self.ws.raiz, ruta), "motivos": motivos}
+                    for ruta, motivos in capas
+                ],
+            }
+            destino.parent.mkdir(parents=True, exist_ok=True)
+            destino.write_text(json.dumps(documento, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            datos = {"historico": str(destino), "capas": documento["capas"], "movidas": False,
+                     "simulado": bool(simular)}
+            if simular:
+                return self._cronometrar(t0, Resultado.correcto(datos=datos, artefactos=(str(destino),)))
+            return self._cronometrar(t0, Resultado.no_soportado(
+                "migrar-juego-principal: mover las capas de work/ie1/capas no está soportado "
+                "(sus rutas relativas e importlib dependen de su sitio actual); el histórico queda escrito",
+                datos=datos, artefactos=(str(destino),),
+            ))
+        except Exception as exc:
+            return self._cronometrar(
+                t0, Resultado.fallo([_incidencia("NOT_SUPPORTED", f"migrar-juego-principal: {exc}")])
+            )
 
     def objetivos(self, *, progreso: Callable[[Progreso], None] | None = None,
                   cancel: CancelToken | None = None) -> Resultado:
