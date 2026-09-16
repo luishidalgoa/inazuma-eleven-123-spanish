@@ -300,3 +300,104 @@ def test_enviar_trabajo_escribe_eventos_jsonl(proyecto_sintetico, juego_falso, t
     assert lineas
     for linea in lineas:
         assert esquemas.validar(linea, "evento_trabajo") == [], linea
+
+
+# --- F2.3: el inventario funde el escaneo del archive.fa con lo que aporta el juego ---
+
+
+def _juego_con_activos_fuera_del_fa():
+    """Juego falso que, como harán ie1 y juego_principal, aporta lo que NO vive en el archive.fa.
+
+    Contrato de F2.3: `activos()` devuelve SOLO las CRO sueltas, los `.SAD` y el ExeFS; el
+    `archive.fa` lo escanea el registro. El servicio tiene que entregar la unión de ambos.
+    """
+    from juego_falso import JuegoFalso
+
+    from ie123kit.nucleo.tipos import AssetRef, componer_id
+
+    def ref(tipo: str, ruta: str) -> AssetRef:
+        return AssetRef(id=componer_id(OBJETIVO, tipo, ruta), objetivo=OBJETIVO, tipo=tipo,
+                        ruta_romfs=ruta, cadena_contenedores=(), tamano=1, editable=True)
+
+    class JuegoConActivosFuera(JuegoFalso):
+        FUERA = (ref("literal_cro", "cro/ina_menu.cro"), ref("binario", "exefs/icon.icn"))
+
+        def activos(self, ws, tipo=None, filtro=None):
+            # Repite a propósito el PRIMER activo del archive.fa: el servicio lo deduplica.
+            repetido = super().activos(ws)[:1]
+            refs = [*repetido, *self.FUERA]
+            if tipo is not None:
+                refs = [r for r in refs if r.tipo == tipo]
+            return refs
+
+    return JuegoConActivosFuera()
+
+
+def test_activos_funde_el_registro_con_lo_que_aporta_el_juego(proyecto_sintetico) -> None:
+    from ie123kit.servicio.api import ServicioToolkit, descubrir_juegos
+
+    juego = _juego_con_activos_fuera_del_fa()
+    servicio = ServicioToolkit(proyecto_sintetico, juegos=descubrir_juegos(extra={OBJETIVO: juego}))
+
+    res = servicio.activos(OBJETIVO)
+
+    _ok_serializable(res)
+    assert res.ok
+    ids = [a["id"] for a in res.datos["activos"]]
+    assert len(ids) == len(set(ids)), f"hay ids repetidos: {ids}"
+    # Lo del archive.fa (por el registro) y lo de fuera (por el juego), en ese orden.
+    assert any(a["ruta_romfs"].startswith("falso/") for a in res.datos["activos"])
+    rutas = [a["ruta_romfs"] for a in res.datos["activos"]]
+    assert "cro/ina_menu.cro" in rutas
+    assert "exefs/icon.icn" in rutas
+    assert rutas.index("cro/ina_menu.cro") > max(i for i, r in enumerate(rutas) if r.startswith("falso/"))
+
+
+def test_un_id_de_fuera_del_archive_fa_se_resuelve(proyecto_sintetico) -> None:
+    """Sin la fusión, un id que solo aporta el juego era «activo desconocido» para el servicio."""
+    from ie123kit.servicio.api import ServicioToolkit, descubrir_juegos
+
+    juego = _juego_con_activos_fuera_del_fa()
+    servicio = ServicioToolkit(proyecto_sintetico, juegos=descubrir_juegos(extra={OBJETIVO: juego}))
+
+    for ref in juego.FUERA:
+        assert servicio._resolver(juego, ref.id) is not None, ref.id
+    assert servicio._resolver(juego, "falso:literal_cro:cro/no_existe.cro") is None
+
+
+def test_entradas_fa_de_un_arbol_en_disco_se_colapsan_a_extra(
+        servicio, proyecto_sintetico, monkeypatch) -> None:
+    """`entradas_fa` con una raíz común ES una carpeta `extra/`: ya no se rechaza ni se tira."""
+    from ie123kit.nucleo.juego import Aportacion
+
+    raiz = proyecto_sintetico.raiz / "work" / "juego_principal" / "exportaciones" / "menu"
+    entradas = {}
+    for rel in ("menu/uno.ctpk", "message/dos.str"):
+        destino = raiz / rel
+        destino.parent.mkdir(parents=True, exist_ok=True)
+        destino.write_bytes(b"x")
+        entradas[rel] = destino
+    monkeypatch.setattr(type(servicio.juegos[OBJETIVO]), "aportaciones",
+                        lambda self, ws, capas=None, **kw: Aportacion(entradas_fa=entradas),
+                        raising=False)
+
+    kw = _kw_de_construir(servicio, proyecto_sintetico, monkeypatch, [])
+
+    assert kw["aportaciones"] == [
+        {"objetivo": OBJETIVO, "extra": raiz, "eventos": {}, "cro": []},
+    ]
+
+
+def test_entradas_fa_sin_raiz_comun_se_sigue_reportando(servicio, proyecto_sintetico,
+                                                        monkeypatch) -> None:
+    """Bytes en memoria o rutas sin raíz común: se dice, no se tira en silencio."""
+    from ie123kit.nucleo.juego import Aportacion
+
+    monkeypatch.setattr(type(servicio.juegos[OBJETIVO]), "aportaciones",
+                        lambda self, ws, capas=None, **kw: Aportacion(entradas_fa={"menu/uno.ctpk": b"x"}),
+                        raising=False)
+
+    res = servicio.construir(_base_lista(proyecto_sintetico))
+
+    _ok_serializable(res)
+    assert not res.ok and "entradas_fa" in res.incidencias[0].mensaje

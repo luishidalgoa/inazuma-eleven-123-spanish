@@ -1,0 +1,134 @@
+# Catálogo de las 21 películas de IE1 (Norma 2: solo rutas e identificadores, ningún dato extraído).
+#
+# ruta_romfs      ruta dentro del contenedor/RomFS del .moflex de la recopilación 3DS.
+# subtitulos_dat  pista de subtítulos del juego (ticks de 30 Hz, nucleo.media.subtitulos_dat).
+# fotogramas      recuento observado al reconstruir la capa de cinemáticas; solo informativo.
+#
+# am0102 es la única película con variante visual española propia.
+
+[[pelicula]]
+id = "op00"
+ruta_romfs = "inazuma1/data_iz/movie/op00.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/op00.dat"
+fotogramas = 2118
+
+[[pelicula]]
+id = "am0101"
+ruta_romfs = "inazuma1/data_iz/movie/am0101.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am0101.dat"
+fotogramas = 959
+
+[[pelicula]]
+id = "am0102"
+ruta_romfs = "inazuma1/data_iz/movie/am0102.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am0102.dat"
+fotogramas = 361
+
+[[pelicula]]
+id = "am0201"
+ruta_romfs = "inazuma1/data_iz/movie/am0201.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am0201.dat"
+fotogramas = 624
+
+[[pelicula]]
+id = "am0301"
+ruta_romfs = "inazuma1/data_iz/movie/am0301.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am0301.dat"
+fotogramas = 216
+
+[[pelicula]]
+id = "am0401"
+ruta_romfs = "inazuma1/data_iz/movie/am0401.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am0401.dat"
+fotogramas = 2253
+
+[[pelicula]]
+id = "am0501"
+ruta_romfs = "inazuma1/data_iz/movie/am0501.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am0501.dat"
+fotogramas = 1932
+
+[[pelicula]]
+id = "am0601"
+ruta_romfs = "inazuma1/data_iz/movie/am0601.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am0601.dat"
+fotogramas = 179
+
+[[pelicula]]
+id = "am0602"
+ruta_romfs = "inazuma1/data_iz/movie/am0602.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am0602.dat"
+fotogramas = 129
+
+[[pelicula]]
+id = "am0603"
+ruta_romfs = "inazuma1/data_iz/movie/am0603.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am0603.dat"
+fotogramas = 216
+
+[[pelicula]]
+id = "am0604"
+ruta_romfs = "inazuma1/data_iz/movie/am0604.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am0604.dat"
+fotogramas = 92
+
+[[pelicula]]
+id = "am0605"
+ruta_romfs = "inazuma1/data_iz/movie/am0605.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am0605.dat"
+fotogramas = 1264
+
+[[pelicula]]
+id = "am0701"
+ruta_romfs = "inazuma1/data_iz/movie/am0701.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am0701.dat"
+fotogramas = 1128
+
+[[pelicula]]
+id = "am0801"
+ruta_romfs = "inazuma1/data_iz/movie/am0801.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am0801.dat"
+fotogramas = 264
+
+[[pelicula]]
+id = "am0901"
+ruta_romfs = "inazuma1/data_iz/movie/am0901.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am0901.dat"
+fotogramas = 2118
+
+[[pelicula]]
+id = "am1001"
+ruta_romfs = "inazuma1/data_iz/movie/am1001.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am1001.dat"
+fotogramas = 384
+
+[[pelicula]]
+id = "am1101"
+ruta_romfs = "inazuma1/data_iz/movie/am1101.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am1101.dat"
+fotogramas = 317
+
+[[pelicula]]
+id = "am1201"
+ruta_romfs = "inazuma1/data_iz/movie/am1201.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am1201.dat"
+fotogramas = 720
+
+[[pelicula]]
+id = "am1301"
+ruta_romfs = "inazuma1/data_iz/movie/am1301.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am1301.dat"
+fotogramas = 492
+
+[[pelicula]]
+id = "am1401"
+ruta_romfs = "inazuma1/data_iz/movie/am1401.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am1401.dat"
+fotogramas = 756
+
+[[pelicula]]
+id = "am1501"
+ruta_romfs = "inazuma1/data_iz/movie/am1501.moflex"
+subtitulos_dat = "inazuma1/data_iz/movie/txt/am1501.dat"
+fotogramas = 2208
+

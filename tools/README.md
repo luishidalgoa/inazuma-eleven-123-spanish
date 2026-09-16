@@ -27,6 +27,11 @@ la CLI no tiene lógica propia. Opciones globales: `--proyecto RUTA` (raíz del 
 ie123 construir --base probe_ie1_v66 --capas work/ie1/capas/v67/titulo_logo --salida probe_ie1_v67
 ie123 parche --rom-base "Roms/shared/....3ds" --rom-parcheada build/123_es.3ds --salida patch/x.xdelta
 ie123 doctor
+ie123 proyecto init --rom3ds "Roms/shared/....3ds" --nds-es-ie1 "Roms/ie1/....nds"
+ie123 proyecto migrar-juego-principal
+ie123 objetivos
+ie123 juego_principal activos --json
+ie123 work limpiar          # --borrar para borrar de verdad
 ```
 
 - `construir` construye una candidata de TODA la recopilación (`--objetivos ie1,juego_principal`,
@@ -34,13 +39,27 @@ ie123 doctor
 - `parche` genera el `.xdelta` (único entregable distribuible) con las mismas banderas que
   `tools/build_patch.ps1`.
 - `doctor` comprueba el entorno local (sin red y sin exigir ROM).
+- `proyecto init` crea `work/<objetivo>/{capas,qa,exportaciones}` y `translation/<objetivo>/` de los
+  siete objetivos, `work/juego_principal/` incluido, y anota en `ie123.local.toml` las RUTAS de ROM
+  que se le pasen (nunca su contenido). Es idempotente; `--simular` solo informa.
+- `proyecto migrar-juego-principal` escribe `work/juego_principal/historico.json` con las capas de
+  `work/ie1/capas` que tocan el menú. **No mueve nada** (sus rutas relativas e `importlib` dependen de
+  su sitio), así que `--no-simular` responde `5` y deja el histórico escrito igual.
+- `objetivos` lista los siete objetivos con su id, prefijos y capacidades.
+- `<objetivo> activos [--tipo T] [--filtro P]` es el inventario: las entradas del `archive.fa` MÁS lo
+  que vive fuera de él (`cro/*.cro`, `.SAD`, `banner.bnr`/`icon.icn`). Las rutas de `solo_lectura`
+  (las fuentes del bloqueo v20) salen listadas con `editable: false`.
+- `work limpiar [--borrar]` lista (o borra) lo regenerable de los cinco ámbitos de `work/`.
+- `--json` y `--proyecto` valen antes y después del verbo: `ie123 --json ie1 activos` y
+  `ie123 ie1 activos --json` son lo mismo.
+- Alias en inglés ya disponibles: `build`, `patch`, `targets`, `project`, `assets`, `clean`
+  (la tabla completa de equivalencias llega en F2.4).
 
 Códigos de salida: `0` ok · `1` incidencias de validación · `2` uso incorrecto · `3` violación del
 bloqueo tipográfico · `4` falta una herramienta externa · `5` operación no soportada.
 
-> F2.2 adelanta solo estos tres verbos porque son los que el gate de la subfase ejecuta literalmente.
-> El resto (`proyecto`, `objetivos`, `extraer`, `verificar`, `instalar`, `work limpiar`, `compat` y las
-> acciones por objetivo) y los alias en inglés llegan en F2.4; ver `docs/toolkit/ESPECIFICACION.md`.
+> Quedan para F2.4 `extraer`, `verificar`, `instalar` y `compat`, y la tabla completa de alias en
+> inglés; ver `docs/toolkit/ESPECIFICACION.md`.
 
 ### Tests
 
@@ -135,7 +154,7 @@ ruff y black. El paquete los usa mediante re-exports perezosos que no copian có
 | `harvest_log.py` | `ie123kit._legado.harvest_log` | `nucleo.construir.registro_azahar` | fachada |
 | `ie1_keyboard.py` | `ie123kit.ie1.graficos.teclado` | — | alias directo |
 | `legacy_sprite.py` | `ie123kit.nucleo.graficos.pac_sprite` | — | alias directo |
-| `limpiar_work.py` | `ie123kit._legado.limpiar_work` | `nucleo.construir.limpieza` | fachada |
+| `limpiar_work.py` | `ie123kit._legado.limpiar_work` | `nucleo.construir.limpieza` | fachada (hoy: `ie123 work limpiar [--borrar]`) |
 | `lz10.py` | `ie123kit.nucleo.compresion.lz10` | — | alias directo sin CLI (autotest: `python -m ie123kit.nucleo.compresion.lz10`) |
 | `mods_to_moflex.py` | `ie123kit._legado.mods_to_moflex` | `nucleo.media.moflex` + `nucleo.media.subtitulos_dat` | fachada |
 | `nds_unpack.py` | `ie123kit._legado.nds_unpack` | `nucleo.contenedores.nds_rom` | fachada |

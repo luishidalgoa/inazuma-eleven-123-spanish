@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
+from ie123kit.nucleo.config import herramientas
 from ie123kit.nucleo.media import moflex
 
 
@@ -65,3 +66,49 @@ def test_convert_sin_fuente_con_subtitulos(tmp_path, monkeypatch):
 def test_convert_sin_mobipeg(tmp_path):
     with pytest.raises(FileNotFoundError):
         moflex.convert(tmp_path / "a.mods", tmp_path / "a.moflex", tmp_path / "nada", 28)
+
+
+def _proceso(codigo):
+    return type("P", (), {"returncode": codigo, "stdout": b"", "stderr": b""})()
+
+
+def test_exportar_mp4_sin_ffmpeg(tmp_path, monkeypatch):
+    monkeypatch.setattr(herramientas, "localizar", lambda nombre, **k: None)
+    entrada = tmp_path / "v.moflex"
+    entrada.write_bytes(_descriptor(0x16))
+    with pytest.raises(herramientas.HerramientaAusente) as exc:
+        moflex.exportar_mp4(entrada, tmp_path / "v.mp4")
+    assert exc.value.codigo == "HERRAMIENTA_AUSENTE"
+
+
+def test_exportar_mp4_con_doble(tmp_path, monkeypatch):
+    falso = tmp_path / "ffmpeg.exe"
+    falso.write_bytes(b"")
+    monkeypatch.setattr(herramientas, "localizar", lambda nombre, **k: falso)
+    entrada = tmp_path / "v.moflex"
+    entrada.write_bytes(_descriptor(0x16))
+    salida = tmp_path / "fuera" / "v.mp4"
+    ordenes = []
+
+    def _run(orden, **kwargs):
+        ordenes.append(orden)
+        salida.write_bytes(b"mp4")
+        return _proceso(0)
+
+    monkeypatch.setattr(moflex.subprocess, "run", _run)
+    informe = moflex.exportar_mp4(entrada, salida)
+    assert informe["salida"] == str(salida) and informe["bytes"] == 3
+    assert ordenes[0][0] == str(falso) and str(entrada) in ordenes[0]
+
+
+def test_exportar_mp4_falla(tmp_path, monkeypatch):
+    falso = tmp_path / "ffmpeg.exe"
+    falso.write_bytes(b"")
+    monkeypatch.setattr(herramientas, "localizar", lambda nombre, **k: falso)
+    entrada = tmp_path / "v.moflex"
+    entrada.write_bytes(_descriptor(0x16))
+    monkeypatch.setattr(moflex.subprocess, "run", lambda *a, **k: _proceso(1))
+    with pytest.raises(RuntimeError, match="ffmpeg"):
+        moflex.exportar_mp4(entrada, tmp_path / "v.mp4")
+    with pytest.raises(FileNotFoundError):
+        moflex.exportar_mp4(tmp_path / "nada.moflex", tmp_path / "v.mp4")

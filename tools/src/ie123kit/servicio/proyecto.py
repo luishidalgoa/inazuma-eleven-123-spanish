@@ -12,6 +12,7 @@ import os
 import re
 import shutil
 import tomllib
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -40,6 +41,44 @@ def _leer_toml(ruta: Path) -> dict[str, Any]:
         return {}
     with ruta.open("rb") as fh:
         return tomllib.load(fh)
+
+
+def _valor_toml(valor: Any) -> str:
+    """Literal TOML de un valor simple (cadena, ruta, bool, número o lista de esos)."""
+    if isinstance(valor, bool):
+        return "true" if valor else "false"
+    if isinstance(valor, (int, float)):
+        return str(valor)
+    if isinstance(valor, (list, tuple)):
+        return "[" + ", ".join(_valor_toml(v) for v in valor) + "]"
+    texto = str(valor).replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{texto}"'
+
+
+def _volcar_toml(datos: Mapping[str, Any]) -> str:
+    """Vuelca un TOML plano de secciones (`[seccion] clave = valor`).
+
+    No hay `tomllib.dumps` en la biblioteca estándar y `ie123.local.toml` solo guarda
+    rutas y ajustes simples: no se añade una dependencia por esto.
+    """
+    lineas = ["# Generado por `ie123 proyecto init`. Rutas de ESTA máquina; git lo ignora.",
+              "# Nunca contenido extraído de una ROM (Norma 2): solo rutas.", ""]
+    _volcar_tabla(datos, (), lineas)
+    return "\n".join(lineas).rstrip("\n") + "\n"
+
+
+def _volcar_tabla(datos: Mapping[str, Any], prefijo: tuple[str, ...], lineas: list[str]) -> None:
+    """Vuelca una tabla TOML y, después, sus subtablas (`[a]`, `[a.b]`…)."""
+    if prefijo:
+        lineas.append("[" + ".".join(prefijo) + "]")
+    for clave, valor in datos.items():
+        if not isinstance(valor, dict):
+            lineas.append(f"{clave} = {_valor_toml(valor)}")
+    if prefijo:
+        lineas.append("")
+    for clave, valor in datos.items():
+        if isinstance(valor, dict):
+            _volcar_tabla(valor, (*prefijo, clave), lineas)
 
 
 def _en(d: dict[str, Any], camino: tuple[str, ...]) -> Any:
@@ -71,6 +110,8 @@ class DirsObjetivo:
     qa: Path
     exportaciones: Path
     registro: Path
+    #: Histórico de capas antiguas que tocan el objetivo (hoy solo `juego_principal`).
+    historico: Path = Path("historico.json")
 
 
 @dataclass(frozen=True)
@@ -140,6 +181,7 @@ class Workspace:
             qa=base / "qa",
             exportaciones=base / "exportaciones",
             registro=base / "registro.json",
+            historico=base / "historico.json",
         )
 
     def preparar(self, objetivo: str) -> DirsObjetivo:
@@ -148,6 +190,62 @@ class Workspace:
         for carpeta in (d.capas, d.qa, d.exportaciones):
             carpeta.mkdir(parents=True, exist_ok=True)
         return d
+
+    def dir_traduccion(self, objetivo: str) -> Path:
+        """Carpeta de `translation/` del objetivo (`ie2.comun` -> `translation/ie2/shared`)."""
+        partes = objetivo.split(".")
+        if len(partes) == 2:
+            sub = _COMUN_EN_WORK if partes[1] == "comun" else partes[1]
+            return self.translation / partes[0] / sub
+        return self.translation / objetivo
+
+    def preparar_todo(self, objetivos: Iterable[str]) -> list[Path]:
+        """Crea `work/<objetivo>/{capas,qa,exportaciones}` y `translation/<objetivo>/`.
+
+        Idempotente: devuelve SOLO las carpetas que ha tenido que crear, para que
+        `ServicioToolkit.init` pueda decir qué ha cambiado y qué ya estaba.
+        """
+        creadas: list[Path] = []
+        for objetivo in objetivos:
+            d = self.dirs(objetivo)
+            for carpeta in (d.capas, d.qa, d.exportaciones, self.dir_traduccion(objetivo)):
+                if not carpeta.is_dir():
+                    creadas.append(carpeta)
+                carpeta.mkdir(parents=True, exist_ok=True)
+        return creadas
+
+    # -- configuración local ----------------------------------------------
+    @property
+    def ruta_local(self) -> Path:
+        """`ie123.local.toml`: rutas de la máquina, ignorado por git (nunca contenido de ROM)."""
+        return self.raiz / "ie123.local.toml"
+
+    def escribir_local(self, ajustes: Mapping[str, Mapping[str, Any]]) -> Path:
+        """Fusiona `ajustes` en `ie123.local.toml` (sección -> clave -> valor) y lo reescribe.
+
+        Solo se guardan RUTAS, jamás contenido extraído (Norma 2). Las claves que no
+        aparecen en `ajustes` se conservan tal cual.
+        """
+        actual = _leer_toml(self.ruta_local)
+        for seccion, valores in ajustes.items():
+            destino = actual.get(seccion)
+            if not isinstance(destino, dict):
+                destino = {}
+                actual[seccion] = destino
+            for clave, valor in valores.items():
+                if valor is not None:
+                    destino[clave] = valor
+        self.ruta_local.write_text(_volcar_toml(actual), encoding="utf-8")
+        # El Workspace ya abierto tiene que ver lo que se acaba de escribir.
+        for seccion, valores in actual.items():
+            if not isinstance(valores, dict):
+                continue
+            previo = self.local.get(seccion)
+            if not isinstance(previo, dict):
+                previo = {}
+                self.local[seccion] = previo
+            previo.update(valores)
+        return self.ruta_local
 
     def objetivos_habilitados(self) -> tuple[str, ...]:
         valor = _en(self.proyecto, ("objetivos", "habilitados"))
