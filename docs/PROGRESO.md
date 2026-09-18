@@ -1,3 +1,13 @@
+> Actualización 2026-09-18: estado de IE2 (Tormenta de Fuego), candidata v22
+>
+> Candidata de trabajo `probe_ie2_v22` (sobre v21): diálogo IE2 emparejado con la NDS española,
+> ventana de diálogo ancha (tres parches de `ina_main2.cro`), páginas de 131 B como máximo y saltos
+> rehechos a 37 caracteres por línea; nombres compactos con bigramas, rótulos, tablas, literales del
+> CRO, teclado latino, gráficos de menús y partido, vídeos subtitulados, ayuda y menús/objetivos.
+> Validación offline; la prueba en emulador sigue el protocolo QA. Los scripts de las capas (solo
+> código) están en [`capas/`](../capas/README.md) con el orden de construcción; los límites, en
+> [`FURIGANA_LECCIONES.md`](FURIGANA_LECCIONES.md) y [`SKILL_volcado-rom-nds.md`](SKILL_volcado-rom-nds.md).
+
 > Actualización 2026-09-11: v33, partidos de historia, rótulos, CRO, datos y texturas
 >
 > Candidata `work/shared/candidatas/probe_ie1_v33/archive.fa` (SHA-256
