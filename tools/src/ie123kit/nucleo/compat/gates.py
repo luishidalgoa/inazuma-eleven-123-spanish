@@ -12,10 +12,9 @@ Con ``--golden`` (necesita ``work/``), además:
 - ``capa_referencia``: la capa ``graficos/titulo_logo`` se regenera byte a byte;
 - ``candidatas``: hashes de ``base_3ds`` y de la candidata vigente;
 - ``referencia``: base + capa con ``build_ui_revision.py`` da ``ARCHIVE_REFERENCIA`` y la CRO de la base;
-- ``bloqueo_candidata``: bloqueo tipográfico de la candidata vigente. Hoy falla por una decisión
-  pendiente del usuario (#80: los ``FONT_HASHES`` son los de la v20). Mientras ``BLOQUEO_PENDIENTE``
-  sea True se informa como fallo conocido (``conocido=True``) y no cuenta para el código de salida;
-  no se toca ningún fichero bloqueado.
+- ``bloqueo_candidata``: bloqueo tipográfico de la candidata vigente. Desde el 2026-09-19 (#80) los
+  ``FONT_HASHES`` son los de ``probe_ie2_v34`` y el gate debe pasar. ``BLOQUEO_PENDIENTE`` solo existe
+  para marcar un fallo como conocido si en el futuro hubiera otra decisión pendiente; hoy es False.
 """
 
 from __future__ import annotations
@@ -27,8 +26,8 @@ from pathlib import Path
 
 __all__ = ["BLOQUEO_PENDIENTE", "comprobar"]
 
-#: Decisión #80 pendiente: el bloqueo de la candidata vigente falla por hashes v20 desactualizados.
-BLOQUEO_PENDIENTE = True
+#: #80 resuelto (2026-09-19): el bloqueo aprueba las fuentes de probe_ie2_v34; un fallo ya es real.
+BLOQUEO_PENDIENTE = False
 
 
 def _gate(nombre: str, ok: bool, detalle: str = "", conocido: bool = False) -> dict:

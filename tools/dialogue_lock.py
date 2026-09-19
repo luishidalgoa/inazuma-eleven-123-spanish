@@ -1,12 +1,13 @@
-"""User-approved v20 dialogue appearance. No opt-out build switch."""
+"""User-approved dialogue appearance (v20 layout; fonts of probe_ie2_v34, approved 2026-09-19, #80).
+No opt-out build switch."""
 import hashlib
 import inspect
 from pathlib import Path
 
 FONT_HASHES = {
-    'font/FONT12.bcfnt': 'db74945637301e74d8d36248626b4cc3e88c794a33e3d439dbb7ab813e9ff2e3',
-    'font/FONT12T.bcfnt': '71c37509f0eec6c092ea75f373667b0bf1f19389c45b1741a89a8f53270164ab',
-    'font/FONT8.bcfnt': 'b05e64c84cb564a98bea87cbdc94454f14f3df17e78252edf5a32be43ce454dd',
+    'font/FONT12.bcfnt': '2e2312671b0b136d3059b401d626050180ad7311b6f29fef7604116a3c5cc88e',
+    'font/FONT12T.bcfnt': 'eb2a12cc633cb134cb1e668efef75eb57960cc52a6620e348ff4559bf8d35d8d',
+    'font/FONT8.bcfnt': 'bec491a0eedbe6c87454b68da3a7097e7d37730301fbec1f52e53fdc812be7db',
     'inazuma1/data_iz/font/FONT12.NFTR': 'b43cfc73407c928272a001f04b85380976348e30da528b5938a3e45b87ea85c7',
     'inazuma1/data_iz/font/FONT8.NFTR': '6f683a8cef209d6e9eb9b31be5cadaad5eb90bf5ccd5e5c01c40afdf89984865',
 }

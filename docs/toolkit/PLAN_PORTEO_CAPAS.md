@@ -73,10 +73,11 @@ Nada de esto es trivial; por eso no se portea nada en la F2.3.
 
 ## Decisiones que necesita el usuario
 
-1. **Hashes del bloqueo v20.** `FONT_HASHES` de `tools/dialogue_lock.py` corresponden a las fuentes v20;
-   las vigentes (espaciado autorizado el 2026-09-16 y registro de bigramas) ya no coinciden, así que
-   `ie123 construir` rechaza cualquier base actual con `BLOQUEO_V20`. Los tests que lo detectan están en
-   `xfail` explícito. Actualizar esos hashes (y `congelados.sha256`) es decisión del usuario.
+1. **Hashes del bloqueo (resuelto el 2026-09-19, #80).** El usuario autorizó actualizar las huellas a las
+   fuentes de `probe_ie2_v34` («sí, actualiza las huellas a la actual versión que tiene un motor de textos de
+   calidad»). `FONT_HASHES` de `tools/dialogue_lock.py` son ahora FONT12/FONT12T/FONT8 de v34 y las NFTR de
+   IE1 (sin cambios); `congelados.sha256` se recapturó y los dos `xfail` se quitaron. Cualquier cambio
+   posterior de fuentes vuelve a necesitar una petición explícita del usuario.
 2. **Registro de bigramas agotado** (queda ~1 código libre). Antes de portear #3/#4 hay que decidir cómo
    se liberan códigos para IE3.
 3. **Candidata vigente de los gates.** `golden.CANDIDATA_VIGENTE = probe_ie2_v34`. Si se borra, se cambia
