@@ -238,6 +238,34 @@ def test_aportaciones_de_una_capa_sintetica(juego: JuegoIE1, ws: Workspace) -> N
     assert set(aportacion.romfs_sueltos) == {"cro/ina_main1.cro"}
 
 
+def test_aportaciones_por_tema_sin_historial(juego: JuegoIE1, ws: Workspace) -> None:
+    """Disposición por tema (docs/ARQUITECTURA.md): historial/ no aporta nada."""
+    capas = ws.work / "ie1" / "capas"
+    for rel, nombre in (("graficos/logo", "a.arc"), ("historial/graficos/v10_logo", "viejo.arc")):
+        (capas / rel / "extra").mkdir(parents=True)
+        (capas / rel / "extra" / nombre).write_bytes(b"ARC")
+    assert set(juego.aportaciones(ws).entradas_fa) == {"a.arc"}
+
+
+def test_capa_nueva_va_a_su_tema(juego: JuegoIE1, ws: Workspace) -> None:
+    capa = juego._preparar_capa(ws, "eventos")
+    assert capa.parent == ws.work / "ie1" / "capas" / "dialogo"
+    assert capa.name.startswith("eventos_")
+    assert 'tema = "dialogo"' in (capa / "capa.toml").read_text(encoding="utf-8")
+
+
+def test_dos_capas_en_el_mismo_minuto_no_se_mezclan(juego: JuegoIE1, ws: Workspace) -> None:
+    primera, segunda = juego._preparar_capa(ws, "gui"), juego._preparar_capa(ws, "gui")
+    assert primera != segunda and primera.is_dir() and segunda.is_dir()
+
+
+def test_aportaciones_incluyen_todo_romfs_de_la_capa(juego: JuegoIE1, ws: Workspace) -> None:
+    capa = ws.work / "ie1" / "capas" / "media" / "cinematicas_20260101_0000"
+    (capa / "romfs" / "movie").mkdir(parents=True)
+    (capa / "romfs" / "movie" / "op.moflex").write_bytes(b"MOFLEX")
+    assert set(juego.aportaciones(ws).romfs_sueltos) == {"movie/op.moflex"}
+
+
 def test_aportaciones_sin_capas(juego: JuegoIE1, ws: Workspace) -> None:
     aportacion = juego.aportaciones(ws)
     assert aportacion.entradas_fa == {} and aportacion.eventos == {} and aportacion.romfs_sueltos == {}

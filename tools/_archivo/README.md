@@ -24,19 +24,19 @@ Antes de rescatar cualquier idea de aquí, lee [`docs/FURIGANA_LECCIONES.md`](..
 | `tr_prepare.py` | Flujo de lotes IA de 2026-06-14 ya terminado, con rutas rotas. | Validaciones de `ie123 textos importar` (fase 2): %NF fuera y conteo de `\f` |
 | `tr_merge.py` | Mitad de fusión del mismo flujo. | Validación «solo rellenar pendiente o vacío» del importador de textos (fase 2) |
 | `align_events.py` | Alineador por orden (Needleman-Wunsch), fallido. | Emparejamiento por ID; ver [#36](https://github.com/luishidalgoa/inazuma-eleven-123-spanish/issues/36). `dialogue_runs`/`is_furigana` siguen en la fachada `_legado` de pkb_unpack |
-| `audit_ie1_voiced_text.py` | Sustituido por la auditoría por ID. Sin importadores. | `work/ie1/capas/v51/voces/auditoria.py`; regla documentada en `ie1/media/voces.py` |
+| `audit_ie1_voiced_text.py` | Sustituido por la auditoría por ID. Sin importadores. | `work/ie1/capas/media/voces/auditoria.py`; regla documentada en `ie1/media/voces.py` |
 | `verify_build.py` | Comprobaciones SAME_SIZE de la era v27. Sin llamadores. | `tools/verify_candidate.py` (sigue como shim de `ie123kit._legado.verify_candidate`) |
 | `verify_v21.py` | Aserciones puntuales contra v21, que ya no existe. | `tools/verify_candidate.py` (sigue como shim de `ie123kit._legado.verify_candidate`) |
-| `fix_ie1_title_logo.py` | Rehecho por capas posteriores; tenía una ruta fija a Downloads. | Capas v60/v62/v63 y `work/ie1/capas/v67/titulo_logo` |
+| `fix_ie1_title_logo.py` | Rehecho por capas posteriores; tenía una ruta fija a Downloads. | Capas v60/v62/v63 y `work/ie1/capas/graficos/titulo_logo` |
 | `compact_typography.py` | Experimentos v4/v8 superados por el bloqueo v20. | Bloqueo tipográfico v20 (`tools/dialogue_lock.py`, `AGENTS.md`) |
-| `build_match_content_patch.py` | Produjo mch v23-v27. | `work/ie1/capas/v33/mch_story` y `work/ie1/capas/v55/pachangas`; invariantes a `ie1/texto/mch.py` (fase 2) |
-| `build_mch_patch.py` | Variante solo Royal (v21), contenida en la anterior. | `work/ie1/capas/v33/mch_story` y `work/ie1/capas/v55/pachangas` |
-| `build_3ds.py` | Constructor in situ de la etapa 8 (parches v1-v9). | `work/ie1/capas/v33/_final/build_rom.py` + `tools/build_ui_revision.py` + `tools/verify_candidate.py` |
-| `build_3ds_var.py` | **PELIGROSO: no reutilizar.** Sin SKIP_CRO/NO_CODE_PATCH aplica parches fallidos. | `work/ie1/capas/v33/_final/build_rom.py` + `tools/build_ui_revision.py` + `tools/verify_candidate.py` |
+| `build_match_content_patch.py` | Produjo mch v23-v27. | `work/ie1/capas/historial/dialogo/v33_mch_story` y `work/ie1/capas/historial/dialogo/v55_pachangas`; invariantes a `ie1/texto/mch.py` (fase 2) |
+| `build_mch_patch.py` | Variante solo Royal (v21), contenida en la anterior. | `work/ie1/capas/historial/dialogo/v33_mch_story` y `work/ie1/capas/historial/dialogo/v55_pachangas` |
+| `build_3ds.py` | Constructor in situ de la etapa 8 (parches v1-v9). | `work/ie1/capas/historial/candidata/v33_final/build_rom.py` + `tools/build_ui_revision.py` + `tools/verify_candidate.py` |
+| `build_3ds_var.py` | **PELIGROSO: no reutilizar.** Sin SKIP_CRO/NO_CODE_PATCH aplica parches fallidos. | `work/ie1/capas/historial/candidata/v33_final/build_rom.py` + `tools/build_ui_revision.py` + `tools/verify_candidate.py` |
 | `build_fontui.py` | **PELIGROSO: no reutilizar.** Diagnóstico v7 con efectos al importar; pasa FONT12T por el editor 4bpp incompatible. | Bloqueo tipográfico v20 (`tools/font_patch.py`, `tools/dialogue_lock.py`) |
-| `ui_insert.py` | **PELIGROSO: no reutilizar.** Escribía unitbase +0 en ASCII sin NUL. | Regla +16/NUL: [#16](https://github.com/luishidalgoa/inazuma-eleven-123-spanish/issues/16), `work/ie1/capas/v36/nombres` |
+| `ui_insert.py` | **PELIGROSO: no reutilizar.** Escribía unitbase +0 en ASCII sin NUL. | Regla +16/NUL: [#16](https://github.com/luishidalgoa/inazuma-eleven-123-spanish/issues/16), `work/ie1/capas/historial/nombres/v36_nombres` |
 | `probe_ie1_spacing.py` | Experimento v18 retirado; sus fuentes chocan con el bloqueo v20. | Bloqueo tipográfico v20 (`tools/dialogue_lock.py`, `AGENTS.md`) |
-| `build_ie1_movies.py` | Sustituido: las 21 películas de v66/v67 son idénticas a su `extra/`. | `work/ie1/capas/v58/cinematicas/build.py` |
+| `build_ie1_movies.py` | Sustituido: las 21 películas de v66/v67 son idénticas a su `extra/`. | `work/ie1/capas/media/cinematicas/build.py` |
 | `reorganizar_proyecto.py` | Migración del 2026-09-16 ya aplicada. | Ninguno (la migración a juego_principal será una acción aparte que copia) |
 | `tests/test_compact_typography.py` | Prueba un módulo archivado; ya se saltaba por faltar `work/fa_extract`. | Ninguno |
 | `tests/test_validate_inputs.py` | Prueba `validate.py`, que queda en cuarentena. | `ie123kit/_legado/validate.py` (F1.4) |

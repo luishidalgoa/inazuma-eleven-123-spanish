@@ -33,7 +33,7 @@ FIJOS = [
     'shared/releases/release_v35/base_rebuilt.3ds', 'shared/releases/release_v35/roundtrip_v35.3ds',
     # Protegido por PROTEGIDOS (toda carpeta `fuentes` lo está); se deja escrito para que se vea
     # que era un objetivo histórico y por qué ya no se lista.
-    'ie1/capas/v58/cinematicas/fuentes', 'ie1/legacy/pending/renders', 'ie1/legacy/pending/audit',
+    'ie1/capas/media/cinematicas/fuentes', 'ie1/legacy/pending/renders', 'ie1/legacy/pending/audit',
 ]
 CANDIDATAS_A_CONSERVAR = 2
 

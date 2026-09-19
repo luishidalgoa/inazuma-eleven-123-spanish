@@ -67,14 +67,14 @@ def test_construir_json_devuelve_cero_e_imprime_el_resultado(falso, capsys) -> N
     esperado = Resultado.correcto(datos={"archive": "x/archive.fa", "archive_sha256": "ab" * 32})
     servicio = falso(esperado)
     codigo = cli.main(["--json", "construir", "--base", "probe_ie1_v66",
-                       "--capas", "work/ie1/capas/v67/titulo_logo", "--salida", "probe_ie1_v67"])
+                       "--capas", "work/ie1/capas/graficos/titulo_logo", "--salida", "probe_ie1_v67"])
     assert codigo == 0
     datos = json.loads(capsys.readouterr().out)
     assert datos == esperado.to_json()
     nombre, (solicitud,), _ = servicio.llamadas[0]
     assert nombre == "construir"
     assert solicitud.base == "probe_ie1_v66"
-    assert solicitud.capas == ("work/ie1/capas/v67/titulo_logo",)
+    assert solicitud.capas == ("work/ie1/capas/graficos/titulo_logo",)
     assert solicitud.salida == "probe_ie1_v67"
     assert solicitud.objetivos == ()
 

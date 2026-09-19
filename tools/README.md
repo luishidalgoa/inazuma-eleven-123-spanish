@@ -24,7 +24,7 @@ la CLI no tiene lógica propia. Opciones globales: `--proyecto RUTA` (raíz del 
 (imprime el `Resultado` serializado en UTF-8).
 
 ```
-ie123 construir --base probe_ie1_v66 --capas work/ie1/capas/v67/titulo_logo --salida probe_ie1_v67
+ie123 construir --base probe_ie2_v34 --capas work/ie1/capas/graficos/titulo_logo --salida probe_ie2_v35
 ie123 parche --rom-base "Roms/shared/....3ds" --rom-parcheada build/123_es.3ds --salida patch/x.xdelta
 ie123 doctor
 ie123 proyecto init --rom3ds "Roms/shared/....3ds" --nds-es-ie1 "Roms/ie1/....nds"
@@ -74,10 +74,13 @@ bloqueo tipográfico · `4` falta una herramienta externa · `5` operación no s
     → `unidad/graficos/test_formatos_ui.py`. Todos pasan por ruff.
   - `arquitectura/`: reglas de importación del paquete (ver [`docs/ARQUITECTURA.md`](../docs/ARQUITECTURA.md)).
   - `compat/`: mapa de shims, superficie pública, identidad de módulos y golden de candidatas.
-  - `requiere_rom/`: `test_capa_v67.py` (regenera `work/ie1/capas/v67/titulo_logo`),
-    `test_candidata_v67.py` (`build_ui_revision.py` y `ie123kit.nucleo.construir.candidata`, desde
-    `probe_ie1_v66`, reproducen el `archive.fa` de sha256
-    `72ef7133924e981e4736e240368f716140ca35f62a5c131d7f01c1ead9cffa91` y la CRO de v67) y
+  - `requiere_rom/`: `test_capa_referencia.py` (regenera en un temporal el `.arc` de
+    `work/ie1/capas/graficos/titulo_logo` sobre `work/shared/base_3ds`),
+    `test_candidata_referencia.py` (`build_ui_revision.py` y `ie123kit.nucleo.construir.candidata`, desde
+    `work/shared/base_3ds/romfs`, dan el `archive.fa` de sha256 `golden.ARCHIVE_REFERENCIA`
+    `6f23e4d5…d7f1` y solo cambian `title_t.arc`), `test_cli_construir_parche.py` (la CLI reaplica la capa
+    sobre la candidata vigente `probe_ie2_v34`; en xfail mientras `FONT_HASHES` no sean las fuentes
+    vigentes) y
     `test_clon_limpio.py` (un `git worktree` limpio conserva los hashes de los bloqueados y pasa
     `test_dialogue_lock`).
 
@@ -203,9 +206,9 @@ y sustitutos en [`_archivo/README.md`](_archivo/README.md).
 - `setup_mobipeg.ps1`: descarga y verifica la versión portátil x86 de mobipeg 2.1.
 - `mods_to_moflex.py`: convierte una película `.mods` de DS, incrusta su pista
   española `.dat` y restaura la orientación MOFLEX `0x16` de la recopilación.
-- `work/ie1/capas/v58/cinematicas/build.py`: genera las 21 cinemáticas europeas de IE1
+- `work/ie1/capas/media/cinematicas/build.py`: genera las 21 cinemáticas europeas de IE1
   (sustituye a `build_ie1_movies.py`, archivado en `_archivo/`; ver [`_archivo/README.md`](_archivo/README.md)).
-- `work/ie1/capas/v67/titulo_logo` (sustituye a `fix_ie1_title_logo.py`, archivado en `_archivo/`): aísla el wordmark europeo y sustituye el rótulo
+- `work/ie1/capas/graficos/titulo_logo` (sustituye a `fix_ie1_title_logo.py`, archivado en `_archivo/`): aísla el wordmark europeo y sustituye el rótulo
   rectangular anterior conservando el balón y el rayo animados del juego.
 - `setup_vgmstream.ps1` + `validate_ie1_media.py` (archivado en F1.4; sus reglas viven en
   `ie123kit.ie1.verificar`): preparan el decodificador
@@ -277,7 +280,7 @@ y sustitutos en [`_archivo/README.md`](_archivo/README.md).
 - `verify_candidate.py` — verificación estática de una candidata frente a su base:
   entradas de las capas, resto del archivo y fuentes idénticos, eventos SSD y
   literales del CRO permitidos, bloqueo tipográfico.
-- `work/ie1/capas/v33/mch_story` y `work/ie1/capas/v55/pachangas` (sustituyen a
+- `work/ie1/capas/historial/dialogo/v33_mch_story` y `work/ie1/capas/historial/dialogo/v55_pachangas` (sustituyen a
   `build_match_content_patch.py`, archivado en `_archivo/`) — pachangas, cadena de partidos y nombres de
   `team.pkb`/`teamtitle.dat`/`clubinfo.dat`.
 - Detalle de la tanda actual y orden completa: `docs/IE1_V29_TANDA.md`.
@@ -287,7 +290,7 @@ y sustitutos en [`_archivo/README.md`](_archivo/README.md).
 > [`../docs/DESARROLLO.md`](../docs/DESARROLLO.md).
 
 > **Pipeline HISTÓRICO v27.** `build_3ds_var.py` está archivado en `_archivo/` (ver [`_archivo/README.md`](_archivo/README.md)).
-> Cadena vigente: `work/ie1/capas/v33/_final/build_rom.py` (ROM IE1), `build_ui_revision.py`
+> Cadena vigente: `work/ie1/capas/historial/candidata/v33_final/build_rom.py` (ROM IE1), `build_ui_revision.py`
 > (candidatas `work/shared/candidatas/probe_ie1_vNN`) y `verify_candidate.py`.
 
 Secuencia histórica (CSV → ROM jugable), con los **flags de la build v27**:

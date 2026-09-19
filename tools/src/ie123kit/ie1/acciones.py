@@ -5,7 +5,7 @@ Reglas de la casa que este módulo hace cumplir y nunca relaja:
 - ningún método lanza: todo sale como :class:`~ie123kit.nucleo.tipos.Resultado` con
   incidencias de código estable;
 - ``simular=True`` (el defecto) no escribe ni un byte; con ``simular=False`` se escribe
-  SIEMPRE una capa NUEVA en ``work/ie1/capas/<vNN>/<linea>_<aaaammdd_hhmm>/``, jamás
+  SIEMPRE una capa NUEVA en ``work/ie1/capas/<tema>/<linea>_<aaaammdd_hhmm>/``, jamás
   dentro de una candidata ya construida;
 - todo lo que caiga bajo ``[romfs].solo_lectura`` (las fuentes) se rechaza con
   ``BLOQUEO_V20``: el perfil tipográfico v20 está bloqueado para toda la recopilación;
@@ -49,6 +49,9 @@ _AVANCE_PX = 11
 _BASE_ROMFS = ("shared", "base_3ds", "romfs")
 _PACKS = {"eve": "events", "mch": "events_mch"}
 _RX_VERSION = re.compile(r"(\d+)\s*$")
+#: Tema de ``work/ie1/capas/<tema>/`` para cada línea de capa que generan estas acciones.
+_TEMA_DE_LINEA = {"gui": "graficos", "eventos": "dialogo", "tablas": "nombres", "cro": "menus_cro",
+                  "cinematicas": "media", "voces": "media"}
 
 
 # --------------------------------------------------------------------------- utilidades
@@ -187,17 +190,29 @@ class JuegoIE1(JuegoBase):
         return f"v{(max(numeros) + 1) if numeros else 1}"
 
     def _preparar_capa(self, ws: Any, linea: str) -> Path:
-        """Crea una capa NUEVA de ``work/ie1/capas/<vNN>/<linea>_<marca>/`` con su ``capa.toml``."""
+        """Crea una capa NUEVA de ``work/ie1/capas/<tema>/<linea>_<marca>/`` con su ``capa.toml``.
+
+        El tema sale de :data:`_TEMA_DE_LINEA` (docs/ARQUITECTURA.md); la versión (la próxima
+        candidata) ya no va en la ruta sino en ``capa.toml``.
+        """
         version = self._siguiente_version(ws)
+        tema = _TEMA_DE_LINEA.get(linea, "graficos")
         try:
             capas = Path(ws.dirs("ie1").capas)
         except Exception:  # noqa: BLE001 - workspace sin dirs(): ruta canónica de la arquitectura
             capas = Path(ws.work) / "ie1" / "capas"
-        destino = capas / version / f"{linea}_{_marca()}"
-        destino.mkdir(parents=True, exist_ok=True)
+        # Siempre una carpeta NUEVA: dos importaciones en el mismo minuto no se mezclan (_2, _3…).
+        nombre = f"{linea}_{_marca()}"
+        destino = capas / tema / nombre
+        sufijo = 1
+        while destino.exists():
+            sufijo += 1
+            destino = capas / tema / f"{nombre}_{sufijo}"
+        destino.mkdir(parents=True)
         meta = (
             "[capa]\n"
             'objetivo = "ie1"\n'
+            f'tema = "{tema}"\n'
             f'version = "{version}"\n'
             f'linea = "{destino.name}"\n'
             'descripcion = "capa generada por ie123kit.ie1.acciones"\n'
@@ -865,9 +880,14 @@ class JuegoIE1(JuegoBase):
                 directorio = capa.aqui / carpeta
                 if directorio.is_dir() and any(directorio.glob("*.ssd")):
                     aportacion.eventos[pack] = directorio
-            cro = capa.aqui / "romfs" / "cro" / "ina_main1.cro"
-            if cro.is_file():
-                aportacion.romfs_sueltos["cro/ina_main1.cro"] = cro
+            # Todo lo de romfs/ de la capa (CRO, y también MOFLEX y SAD que escriben las importaciones
+            # de cinemáticas y voces): lo que el constructor aún no sepa aplicar lo marca pendiente
+            # el servicio, en vez de perderse aquí sin aviso.
+            romfs = capa.aqui / "romfs"
+            if romfs.is_dir():
+                for fichero in sorted(romfs.rglob("*")):
+                    if fichero.is_file():
+                        aportacion.romfs_sueltos[fichero.relative_to(romfs).as_posix()] = fichero
             _avance(progreso, "aportaciones", indice, len(rutas), capa.aqui.name)
         return aportacion
 
@@ -878,10 +898,9 @@ class JuegoIE1(JuegoBase):
         except Exception:  # noqa: BLE001 - workspace sin dirs()
             raiz_capas = Path(ws.work) / "ie1" / "capas"
         if capas is None:
-            if not raiz_capas.is_dir():
-                return []
-            return [p for version in sorted(raiz_capas.iterdir()) if version.is_dir()
-                    for p in sorted(version.iterdir()) if p.is_dir()]
+            from ie123kit.nucleo.construir.capas import listar_capas
+
+            return listar_capas(raiz_capas)
         nombres = list(capas.keys()) if isinstance(capas, Mapping) else list(capas)
         rutas: list[Path] = []
         for nombre in nombres:

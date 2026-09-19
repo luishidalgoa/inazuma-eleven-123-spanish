@@ -1,8 +1,8 @@
-"""Equivalencia: el PLAN de la capa v67 pasado por texturas.apply_plan da el mismo .arc.
+"""Equivalencia: el PLAN de la capa titulo_logo (antes v67) pasado por texturas.apply_plan da el mismo .arc.
 
 Tercer punto del issue #48: la primitiva nueva tiene que reproducir byte a byte lo que ya
 produjo la capa, no solo «algo parecido». Se reconstruye aquí el plan de
-``work/ie1/capas/v67/titulo_logo/apply.py`` (una sola entrada, la textura
+``work/ie1/capas/graficos/titulo_logo/apply.py`` (una sola entrada, la textura
 ``ie01_title_t_tlogo.tga``, caja (0, 0, 352, 112), logo recortado por el bbox de su alfa,
 escalado LANCZOS con 1 px de margen por lado, centrado sobre un lienzo RGBA transparente y con
 el RGB de los píxeles de alfa 0 puesto a negro) y se compara con ``extra/`` .
@@ -31,7 +31,10 @@ from ie123kit.nucleo.graficos import texturas
 
 pytestmark = pytest.mark.requiere_rom
 
-CAPA = "work/ie1/capas/v67/titulo_logo"
+CAPA = "work/ie1/capas/graficos/titulo_logo"
+# probe_ie1_v66 se borró. El title_t.arc de la capa solo difiere del de la base extraída en la
+# textura del logo (golden.regenerar_capa lo comprueba), así que la base es work/shared/base_3ds.
+BASE = "work/shared/base_3ds/romfs/archive.fa"
 RUTA_ARC = "inazuma1/data_iz/a_title/title_t.arc"
 TEXTURA = "ie01_title_t_tlogo.tga"
 
@@ -62,12 +65,12 @@ def entorno():
     if not apply_py.is_file():
         pytest.skip(f"falta {CAPA}/apply.py")
     constantes = _constantes(apply_py)
-    base = raiz / "work/shared/candidatas/probe_ie1_v66/archive.fa"
+    base = raiz / BASE
     esperado = capa / "extra" / RUTA_ARC
     logo = Path(constantes.get("LOGO", ""))
     caja = constantes.get("CAJA")
     if not base.is_file():
-        pytest.skip("falta work/shared/candidatas/probe_ie1_v66/archive.fa")
+        pytest.skip(f"falta {BASE}")
     if not esperado.is_file():
         pytest.skip(f"falta {CAPA}/extra/{RUTA_ARC}")
     if caja is None or not logo.is_file():
@@ -91,9 +94,9 @@ def _edicion(logo_png: Path, caja: tuple[int, int, int, int]):
     return poner_logo
 
 
-def test_apply_plan_reproduce_el_extra_de_v67(entorno) -> None:
+def test_apply_plan_reproduce_el_extra_de_titulo_logo(entorno) -> None:
     base, esperado, logo_png, caja = entorno
-    salida = Path(tempfile.mkdtemp(prefix="ie123_v67_"))
+    salida = Path(tempfile.mkdtemp(prefix="ie123_titulo_logo_"))
     try:
         plan = {RUTA_ARC: {TEXTURA: _edicion(logo_png, caja)}}
         registro = texturas.apply_plan(base, plan, salida, rewrap="sszl")

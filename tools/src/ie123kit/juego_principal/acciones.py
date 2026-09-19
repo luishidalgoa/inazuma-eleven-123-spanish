@@ -65,6 +65,8 @@ RANGOS_CRO: Mapping[str, tuple[tuple[int, int], ...]] = {"cro/ina_menu.cro": ()}
 _RAIZ_BASE = ("shared", "base_3ds")
 _CODIFICACION_CRO = "cp932"
 _MARCA = "%Y%m%d_%H%M"
+#: Tema de las capas que crea la edición desde la GUI (texturas del menú).
+_TEMA_GUI = "graficos"
 
 
 # --------------------------------------------------------------------------- utilidades
@@ -650,10 +652,11 @@ class JuegoPrincipal(JuegoBase):
     # -- capas y construcción ---------------------------------------------
 
     def _dir_capas(self, ws: Any) -> Path:
+        """`work/juego_principal/capas`."""
         return Path(ws.work) / OBJETIVO / "capas"
 
     def _version_capa(self, ws: Any) -> str:
-        """`vNN` de la capa nueva: el de la última candidata conocida, si no `v1`."""
+        """`vNN` de la capa nueva: la candidata siguiente a la última conocida (como IE1), si no `v1`."""
         try:
             candidatas = list(ws.listar_candidatas())
         except Exception:  # noqa: BLE001 - un workspace sin candidatas no es un error
@@ -664,21 +667,25 @@ class JuegoPrincipal(JuegoBase):
         if carpeta.is_dir():
             existentes = [int(m.group(1)) for m in (re.fullmatch(r"v(\d+)", h.name) for h in carpeta.iterdir()) if m]
         todos = numeros + existentes
-        return f"v{max(todos)}" if todos else "v1"
+        return f"v{max(todos) + 1}" if todos else "v1"
 
     def _nueva_capa(self, ws: Any) -> Capa:
-        """Crea `work/juego_principal/capas/<vNN>/gui_<aaaammdd_hhmm>/` con su capa.toml."""
+        """Crea `work/juego_principal/capas/graficos/gui_<aaaammdd_hhmm>/` con su capa.toml.
+
+        Disposición por tema (docs/ARQUITECTURA.md): la versión va en capa.toml, no en la ruta.
+        """
         version = self._version_capa(ws)
         nombre = f"gui_{datetime.now(UTC).strftime(_MARCA)}"
-        carpeta = self._dir_capas(ws) / version / nombre
+        carpeta = self._dir_capas(ws) / _TEMA_GUI / nombre
         sufijo = 1
         while carpeta.exists():
             sufijo += 1
-            carpeta = self._dir_capas(ws) / version / f"{nombre}_{sufijo}"
+            carpeta = self._dir_capas(ws) / _TEMA_GUI / f"{nombre}_{sufijo}"
         carpeta.mkdir(parents=True)
         (carpeta / "capa.toml").write_text(
             "[capa]\n"
             f'objetivo = "{OBJETIVO}"\n'
+            f'tema = "{_TEMA_GUI}"\n'
             f'version = "{version}"\n'
             f'linea = "{carpeta.name}"\n'
             'descripcion = "capa creada por ie123kit.juego_principal"\n',
@@ -923,14 +930,12 @@ def _revisar_rotacion(fichero: Path, ref: AssetRef) -> Incidencia | None:
 
 
 def _carpetas_capa(raiz: Path, capas: Iterable[str] | Mapping[str, Any] | None) -> list[Path]:
-    """Carpetas de capa bajo `work/juego_principal/capas/<vNN>/<linea>/`."""
-    if not raiz.is_dir():
-        return []
+    """Carpetas de capa bajo `work/juego_principal/capas/<tema>/<linea>/` (o la antigua `<vNN>/<linea>/`).
+
+    `historial/` no cuenta. Una capa se pide por su nombre o por `<tema>/<linea>`.
+    """
+    from ie123kit.nucleo.construir.capas import listar_capas
+
     nombres = set(capas) if capas is not None else None
-    salida: list[Path] = []
-    for version in sorted(p for p in raiz.iterdir() if p.is_dir()):
-        for linea in sorted(p for p in version.iterdir() if p.is_dir()):
-            if nombres is not None and linea.name not in nombres and f"{version.name}/{linea.name}" not in nombres:
-                continue
-            salida.append(linea)
-    return salida
+    return [c for c in listar_capas(raiz)
+            if nombres is None or c.name in nombres or f"{c.parent.name}/{c.name}" in nombres]

@@ -170,3 +170,12 @@ def test_aportaciones_lee_las_capas(juego: JuegoPrincipal, ws: Workspace) -> Non
     assert set(aportacion.entradas_fa) == {"menu/title.arc"}
     assert set(aportacion.romfs_sueltos) == {"cro/ina_menu.cro"}
     assert aportacion.eventos == {}
+
+
+def test_capa_nueva_va_a_graficos(juego: JuegoPrincipal, ws: Workspace) -> None:
+    capa = juego._nueva_capa(ws)
+    assert capa.aqui.parent == ws.work / OBJETIVO / "capas" / "graficos"
+    assert capa.tema == "graficos" and capa.linea.startswith("gui_")
+    (capa.aqui / "extra" / "menu").mkdir(parents=True)
+    (capa.aqui / "extra" / "menu" / "title.arc").write_bytes(b"ARCV")
+    assert set(juego.aportaciones(ws, capas=[f"graficos/{capa.aqui.name}"]).entradas_fa) == {"menu/title.arc"}

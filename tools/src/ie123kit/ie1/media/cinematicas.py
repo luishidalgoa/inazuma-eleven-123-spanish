@@ -105,12 +105,18 @@ def importar(mp4: Path, destino_moflex: Path, *, srt: Path | None = None,
 
     destino_moflex.parent.mkdir(parents=True, exist_ok=True)
     parcial = destino_moflex.with_suffix(destino_moflex.suffix + ".partial")
-    orden = [str(herramienta), "-y", "-hide_banner", "-loglevel", "error", "-i", str(mp4)]
+    orden = [str(herramienta), "-y", "-hide_banner", "-loglevel", "error", "-i", str(Path(mp4).resolve())]
+    carpeta = None
     if srt is not None:
-        orden += ["-vf", f"subtitles={Path(srt).as_posix()}"]
+        # El filtro subtitles= toma los «:» de «C:/…» como separador de opciones: se ejecuta en la
+        # carpeta del SRT y se le pasa solo el nombre, escapado para el analizador de filtros.
+        srt = Path(srt).resolve()
+        carpeta = srt.parent
+        nombre = srt.name.replace("\\", r"\\").replace("'", r"\'").replace(":", r"\:")
+        orden += ["-vf", f"subtitles='{nombre}'"]
     orden += ["-an", "-c:v", "mobiclip", "-mobiclip", "1", "-moflex", "1",
-              "-pix_fmt", "yuv420p", "-threads", "1", "-f", "moflex", str(parcial)]
-    proceso = subprocess.run(orden, check=False, capture_output=True)
+              "-pix_fmt", "yuv420p", "-threads", "1", "-f", "moflex", str(parcial.resolve())]
+    proceso = subprocess.run(orden, check=False, capture_output=True, cwd=carpeta)
     if proceso.returncode or not parcial.is_file() or parcial.stat().st_size == 0:
         parcial.unlink(missing_ok=True)
         raise RuntimeError(f"mobipeg falló al codificar {mp4.name} (código={proceso.returncode})")

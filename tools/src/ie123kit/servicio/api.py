@@ -185,7 +185,8 @@ _EXEFS_MENU: tuple[str, ...] = ("banner.bnr", "icon.icn")
 _FICHEROS_DE_CAPA: tuple[str, ...] = ("apply.py", "capa.toml", "report.json", "ownership.json")
 #: Capas conocidas del menú que NO dejan rastro de rutas (producen imágenes que coloca otra
 #: capa). Se listan a mano para que el histórico sea reproducible y no dependa de un grep.
-_CAPAS_MENU_CONOCIDAS: tuple[str, ...] = ("v54/pantalla_inicio",)
+_CAPAS_MENU_CONOCIDAS: tuple[str, ...] = ("graficos/pantalla_inicio", "historial/graficos/v54_pantalla_inicio",
+                                          "v54/pantalla_inicio")
 #: Tope de motivos anotados por capa: el histórico es un índice, no un inventario.
 _MAX_MOTIVOS = 12
 
@@ -240,13 +241,17 @@ def _es_capa(carpeta: Path) -> bool:
 
 
 def _capas_del_menu(dir_capas: Path) -> list[tuple[Path, list[str]]]:
-    """Capas de `work/ie1/capas` (dos niveles) que tocan el juego principal, ordenadas."""
+    """Capas de `work/ie1/capas` que tocan el juego principal, ordenadas.
+
+    Recorre `<tema>/<linea>`, la antigua `<vNN>/<linea>` y `historial/<tema>/vNN_<linea>`
+    (ver ``nucleo.construir.capas.listar_capas``), además de cada carpeta de primer nivel.
+    """
+    from ie123kit.nucleo.construir.capas import HISTORIAL, listar_capas
+
     if not dir_capas.is_dir():
         return []
-    candidatas: list[Path] = []
-    for tanda in sorted(p for p in dir_capas.iterdir() if p.is_dir()):
-        candidatas.append(tanda)
-        candidatas.extend(sorted(p for p in tanda.iterdir() if p.is_dir()))
+    grupos = [p for p in dir_capas.iterdir() if p.is_dir() and p.name != HISTORIAL]
+    candidatas = sorted([*grupos, *listar_capas(dir_capas, historial=True)])
     salida: list[tuple[Path, list[str]]] = []
     for carpeta in candidatas:
         rel = carpeta.relative_to(dir_capas).as_posix()
