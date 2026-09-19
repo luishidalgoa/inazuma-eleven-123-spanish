@@ -829,11 +829,19 @@ class ServicioToolkit:
             return self._cronometrar(
                 t0, Resultado.no_soportado(f"instalar: no existe la candidata {candidata!r} ({dir_cand})")
             )
+        # La carpeta de mods sale de la configuración ([azahar] mods_dir o IE123_AZAHAR); antes se
+        # llamaba con `lanzar`/`ws`, que el núcleo no admite, y el TypeError hacía caer siempre en la
+        # carpeta por defecto del sistema aunque el proyecto configurase otra (F2.5).
+        kw: dict[str, Any] = {}
+        mods = self.ws.ajuste("azahar.mods_dir")
+        if mods:
+            kw["raiz_mods"] = Path(str(mods))
+        incidencias: list[Incidencia] = []
+        if lanzar:
+            incidencias.append(Incidencia("NOT_SUPPORTED", "aviso",
+                                          "instalar: lanzar el emulador no está soportado; ábrelo a mano"))
         try:
-            try:
-                salida = instalador.azahar(dir_cand, lanzar=lanzar, ws=self.ws)
-            except TypeError:  # T4 aún no ha aterrizado o su firma es más corta
-                salida = instalador.azahar(dir_cand)
+            salida = instalador.azahar(dir_cand, **kw)
         except Exception as exc:
             return self._cronometrar(t0, Resultado.fallo([_incidencia("NOT_SUPPORTED", f"instalar: {exc}")]))
         if isinstance(salida, Resultado):
@@ -841,7 +849,7 @@ class ServicioToolkit:
         datos = dict(salida) if isinstance(salida, dict) else {"destino": str(salida)}
         datos.setdefault("candidata", dir_cand.name)
         datos.setdefault("emulador", emulador)
-        return self._cronometrar(t0, Resultado.correcto(datos=datos))
+        return self._cronometrar(t0, Resultado.correcto(datos=datos, incidencias=tuple(incidencias)))
 
     def parche(self, rom_base: str | Path, rom_parcheada: str | Path, salida: str | Path, *,
                progreso: Callable[[Progreso], None] | None = None,

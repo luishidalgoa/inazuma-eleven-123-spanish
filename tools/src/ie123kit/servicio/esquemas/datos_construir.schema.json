@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://inazuma123.local/esquemas/datos_construir.schema.json",
+  "title": "Datos de ServicioToolkit.construir",
+  "description": "Candidata construida; el bloqueo tipográfico ya ha pasado.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "archive": {
+      "type": "string"
+    },
+    "archive_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "cros": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "build_json": {
+      "type": "string"
+    },
+    "candidata": {
+      "type": "string"
+    },
+    "informe": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "archive",
+    "archive_sha256",
+    "cros",
+    "build_json",
+    "candidata",
+    "informe"
+  ],
+  "examples": [
+    {
+      "archive": "work/shared/candidatas/probe_ie2_v35/archive.fa",
+      "archive_sha256": "abababababababababababababababababababababababababababababababab",
+      "cro": null,
+      "cros": [],
+      "build_json": "work/shared/candidatas/probe_ie2_v35/archive.build.json",
+      "candidata": "probe_ie2_v35",
+      "informe": {}
+    }
+  ]
+}
