@@ -73,7 +73,7 @@ def patch_unitbase(orig, ds):
 
 def main():
     if "--legado-lo-se" not in sys.argv:
-        sys.stderr.write("ERROR: ds_roster está en cuarentena (obsolete_dangerous; ver docs/FURIGANA_LECCIONES.md). Sustituto: work/ie1/capas/v36/nombres (regla +16/NUL, #16). Para ejecutarlo igualmente añade --legado-lo-se.\n")
+        sys.stderr.write("ERROR: ds_roster está en cuarentena (obsolete_dangerous; ver docs/FURIGANA_LECCIONES.md). Sustituto: work/ie1/capas/historial/nombres/v36_nombres (regla +16/NUL, #16). Para ejecutarlo igualmente añade --legado-lo-se.\n")
         return 2
     sys.argv.remove("--legado-lo-se")
     sys.stdout.reconfigure(encoding="utf-8")

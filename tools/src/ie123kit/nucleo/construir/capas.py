@@ -11,11 +11,62 @@ todas las rutas que devuelve son absolutas no hace falta ningún ``chdir``.
 from __future__ import annotations
 
 import os
+import re
 import sys
 import tomllib
 from pathlib import Path
 
-__all__ = ["Capa", "ejecutar"]
+__all__ = ["HISTORIAL", "TEMAS", "Capa", "ejecutar", "listar_capas", "ubicacion"]
+
+#: Temas de ``work/<juego>/capas/<tema>/<linea>/`` (docs/ARQUITECTURA.md, reorganización del 2026-09-19).
+TEMAS = ("dialogo", "nombres", "rotulos_objetivos", "menus_cro", "graficos", "media", "fuentes",
+         "teclado", "candidata")
+#: Carpeta de versiones sustituidas: ``capas/historial/<tema>/vNN_<linea>/`` (solo consulta).
+HISTORIAL = "historial"
+_RX_TANDA = re.compile(r"v\d+(?:\.\d+)?")
+_RX_HISTORICA = re.compile(r"(v\d+(?:\.\d+)?)_(.+)")
+
+
+def ubicacion(partes: tuple[str, ...] | list[str]) -> dict[str, str]:
+    """``tema``, ``version`` y ``linea`` de las partes de ruta que siguen a ``capas``.
+
+    Admite las tres formas: ``<tema>/<linea>`` (vigente, sin versión), ``historial/<tema>/vNN_<linea>``
+    y la antigua ``vNN/<linea>`` (antes de la reorganización; sin tema).
+    """
+    partes = list(partes)
+    tema = version = linea = ""
+    if partes and partes[0] == HISTORIAL:
+        tema = partes[1] if len(partes) > 1 else ""
+        if len(partes) > 2:
+            m = _RX_HISTORICA.fullmatch(partes[2])
+            version, linea = (m.group(1), m.group(2)) if m else ("", partes[2])
+    elif partes and _RX_TANDA.fullmatch(partes[0]):
+        version = partes[0]
+        linea = partes[1] if len(partes) > 1 else ""
+    elif partes:
+        tema = partes[0]
+        linea = partes[1] if len(partes) > 1 else ""
+    return {"tema": tema, "version": version, "linea": linea}
+
+
+def listar_capas(raiz_capas: str | os.PathLike[str], *, historial: bool = False) -> list[Path]:
+    """Carpetas de capa bajo ``work/<juego>/capas`` (dos niveles), ordenadas.
+
+    Sirve para la disposición por tema (``<tema>/<linea>``) y para la antigua por tanda
+    (``vNN/<linea>``). ``historial/`` se omite salvo que se pida (tres niveles).
+    """
+    raiz = Path(raiz_capas)
+    if not raiz.is_dir():
+        return []
+    salida: list[Path] = []
+    for grupo in sorted(p for p in raiz.iterdir() if p.is_dir()):
+        if grupo.name == HISTORIAL:
+            if historial:
+                salida += [c for tema in sorted(p for p in grupo.iterdir() if p.is_dir())
+                           for c in sorted(p for p in tema.iterdir() if p.is_dir())]
+            continue
+        salida += sorted(p for p in grupo.iterdir() if p.is_dir())
+    return salida
 
 #: Subcarpeta de eventos por paquete (eve.pkb / mch.pkb).
 _CARPETA_EVENTOS = {"eve": "events", "mch": "events_mch"}
@@ -40,23 +91,27 @@ class Capa:
         return self.aqui / "capa.toml"
 
     def _deducir(self) -> dict:
-        """Metadatos deducidos de la ruta: work/<objetivo>/capas/<version>/<linea>/..."""
+        """Metadatos deducidos de la ruta (ver :func:`ubicacion`).
+
+        ``work/<objetivo>/capas/<tema>/<linea>``, ``.../capas/historial/<tema>/vNN_<linea>`` o la
+        antigua ``.../capas/vNN/<linea>``. Una capa vigente no lleva versión en la ruta: la da su
+        ``capa.toml``.
+        """
         try:
             partes = self.aqui.relative_to(self.raiz).parts
         except ValueError:
             partes = self.aqui.parts
-        objetivo = version = linea = ""
+        objetivo = ""
+        lugar = {"tema": "", "version": "", "linea": ""}
         if "capas" in partes:
             i = partes.index("capas")
             objetivo = "/".join(partes[1:i]) if i >= 2 and partes[0] == "work" else "/".join(partes[:i])
-            if len(partes) > i + 1:
-                version = partes[i + 1]
-            if len(partes) > i + 2:
-                linea = partes[i + 2]
+            lugar = ubicacion(partes[i + 1:])
         return {
             "objetivo": objetivo,
-            "version": version,
-            "linea": linea or self.aqui.name,
+            "tema": lugar["tema"],
+            "version": lugar["version"],
+            "linea": lugar["linea"] or self.aqui.name,
             "base": "",
             "descripcion": "",
             "aportaciones": [],
@@ -79,6 +134,10 @@ class Capa:
     @property
     def version(self) -> str:
         return str(self.meta["version"])
+
+    @property
+    def tema(self) -> str:
+        return str(self.meta.get("tema", ""))
 
     @property
     def objetivo(self) -> str:

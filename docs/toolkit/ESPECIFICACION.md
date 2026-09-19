@@ -105,7 +105,7 @@ tools/                                   # Norma 3: todo sigue bajo tools/
     cli/  main.py (argparse 1:1 sobre ServicioToolkit, --json)  legado.py (tabla de equivalencias)
   tests/
     unidad/ (codecs con fixtures sintéticos)  compat/ (baseline_importaciones.json, superficie_v0.json, test_bloqueo_bytes.py)
-    arquitectura/ (reglas de importación por AST)  contrato/ (suite parametrizada sobre los 8 objetivos)  golden/ (solo hashes: candidatas.sha256, capas_v67.sha256)
+    arquitectura/ (reglas de importación por AST)  contrato/ (suite parametrizada sobre los 8 objetivos)  golden/ (solo hashes: candidatas.sha256, capa_referencia.sha256)
     requiere_rom/ (marcados; se saltan en CI)
 work/ (git-ignored)
   shared/ base_3ds/  candidatas/<cadena global vNN>/ (archive.fa + romfs/cro/*.cro + manifest.json)  releases/  herramientas/  verificacion/
@@ -484,6 +484,16 @@ Cinco niveles. Ningún fixture contiene datos extraídos (Norma 2): son sintéti
 | tools/bin/ | tools/bin/ (git-ignored; resuelto por nucleo/config/herramientas.py) | keep_script | 3dstool.exe y xdelta3.exe. No se empaquetan ni se suben. |
 
 ## Fases de migración
+
+> **Nota del 2026-09-19 (#49): referencia de los gates.** Las candidatas `probe_ie1_v66` y `probe_ie1_v67`
+> se borraron. Donde los gates de abajo citan v66, v67, `capas_v67.sha256` o el sha `72ef7133…fa91`, rige
+> esta equivalencia (ver `nucleo/compat/golden.py` y [`ESTADO_MIGRACION.md`](ESTADO_MIGRACION.md)):
+> base `work/shared/base_3ds/romfs`; capa `work/ie1/capas/graficos/titulo_logo`; regeneración de la capa en
+> un temporal (`capa_referencia.sha256`); reconstrucción `golden comprobar --capa … --referencia` con
+> archive `6f23e4d5…d7f1`; la CLI `construir` reaplica la capa sobre la candidata vigente
+> (`probe_ie2_v34`, archive `5f52d315…7948`, mismo contenido entrada a entrada). Las capas viven por tema
+> (`capas/<tema>/<linea>` y `historial/`), no por tanda `vNN/`. Plan de porteo de los motores de capa
+> nuevos: [`PLAN_PORTEO_CAPAS.md`](PLAN_PORTEO_CAPAS.md).
 
 ### 1. F1.0: Línea base, protección de bytes y registro de trabajo (no se mueve código) (fase1_segmentacion)
 - Abrir en GitHub la épica «Toolkit ie123kit» y un issue por subfase F1.0-F2.5, añadidos al Project board (Norma 1). Sin autenticación de gh, redactarlos en docs/ISSUES_PENDIENTES.md.

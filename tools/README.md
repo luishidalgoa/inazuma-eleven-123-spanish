@@ -24,9 +24,14 @@ la CLI no tiene lógica propia. Opciones globales: `--proyecto RUTA` (raíz del 
 (imprime el `Resultado` serializado en UTF-8).
 
 ```
-ie123 construir --base probe_ie1_v66 --capas work/ie1/capas/v67/titulo_logo --salida probe_ie1_v67
+ie123 construir --base probe_ie2_v34 --capas work/ie1/capas/graficos/titulo_logo --salida probe_ie2_v35
 ie123 parche --rom-base "Roms/shared/....3ds" --rom-parcheada build/123_es.3ds --salida patch/x.xdelta
 ie123 doctor
+ie123 proyecto init --rom3ds "Roms/shared/....3ds" --nds-es-ie1 "Roms/ie1/....nds"
+ie123 proyecto migrar-juego-principal
+ie123 objetivos
+ie123 juego_principal activos --json
+ie123 work limpiar          # --borrar para borrar de verdad
 ```
 
 - `construir` construye una candidata de TODA la recopilación (`--objetivos ie1,juego_principal`,
@@ -34,13 +39,27 @@ ie123 doctor
 - `parche` genera el `.xdelta` (único entregable distribuible) con las mismas banderas que
   `tools/build_patch.ps1`.
 - `doctor` comprueba el entorno local (sin red y sin exigir ROM).
+- `proyecto init` crea `work/<objetivo>/{capas,qa,exportaciones}` y `translation/<objetivo>/` de los
+  siete objetivos, `work/juego_principal/` incluido, y anota en `ie123.local.toml` las RUTAS de ROM
+  que se le pasen (nunca su contenido). Es idempotente; `--simular` solo informa.
+- `proyecto migrar-juego-principal` escribe `work/juego_principal/historico.json` con las capas de
+  `work/ie1/capas` que tocan el menú. **No mueve nada** (sus rutas relativas e `importlib` dependen de
+  su sitio), así que `--no-simular` responde `5` y deja el histórico escrito igual.
+- `objetivos` lista los siete objetivos con su id, prefijos y capacidades.
+- `<objetivo> activos [--tipo T] [--filtro P]` es el inventario: las entradas del `archive.fa` MÁS lo
+  que vive fuera de él (`cro/*.cro`, `.SAD`, `banner.bnr`/`icon.icn`). Las rutas de `solo_lectura`
+  (las fuentes del bloqueo v20) salen listadas con `editable: false`.
+- `work limpiar [--borrar]` lista (o borra) lo regenerable de los cinco ámbitos de `work/`.
+- `--json` y `--proyecto` valen antes y después del verbo: `ie123 --json ie1 activos` y
+  `ie123 ie1 activos --json` son lo mismo.
+- Alias en inglés ya disponibles: `build`, `patch`, `targets`, `project`, `assets`, `clean`
+  (la tabla completa de equivalencias llega en F2.4).
 
 Códigos de salida: `0` ok · `1` incidencias de validación · `2` uso incorrecto · `3` violación del
 bloqueo tipográfico · `4` falta una herramienta externa · `5` operación no soportada.
 
-> F2.2 adelanta solo estos tres verbos porque son los que el gate de la subfase ejecuta literalmente.
-> El resto (`proyecto`, `objetivos`, `extraer`, `verificar`, `instalar`, `work limpiar`, `compat` y las
-> acciones por objetivo) y los alias en inglés llegan en F2.4; ver `docs/toolkit/ESPECIFICACION.md`.
+> Quedan para F2.4 `extraer`, `verificar`, `instalar` y `compat`, y la tabla completa de alias en
+> inglés; ver `docs/toolkit/ESPECIFICACION.md`.
 
 ### Tests
 
@@ -55,10 +74,13 @@ bloqueo tipográfico · `4` falta una herramienta externa · `5` operación no s
     → `unidad/graficos/test_formatos_ui.py`. Todos pasan por ruff.
   - `arquitectura/`: reglas de importación del paquete (ver [`docs/ARQUITECTURA.md`](../docs/ARQUITECTURA.md)).
   - `compat/`: mapa de shims, superficie pública, identidad de módulos y golden de candidatas.
-  - `requiere_rom/`: `test_capa_v67.py` (regenera `work/ie1/capas/v67/titulo_logo`),
-    `test_candidata_v67.py` (`build_ui_revision.py` y `ie123kit.nucleo.construir.candidata`, desde
-    `probe_ie1_v66`, reproducen el `archive.fa` de sha256
-    `72ef7133924e981e4736e240368f716140ca35f62a5c131d7f01c1ead9cffa91` y la CRO de v67) y
+  - `requiere_rom/`: `test_capa_referencia.py` (regenera en un temporal el `.arc` de
+    `work/ie1/capas/graficos/titulo_logo` sobre `work/shared/base_3ds`),
+    `test_candidata_referencia.py` (`build_ui_revision.py` y `ie123kit.nucleo.construir.candidata`, desde
+    `work/shared/base_3ds/romfs`, dan el `archive.fa` de sha256 `golden.ARCHIVE_REFERENCIA`
+    `6f23e4d5…d7f1` y solo cambian `title_t.arc`), `test_cli_construir_parche.py` (la CLI reaplica la capa
+    sobre la candidata vigente `probe_ie2_v34`; en xfail mientras `FONT_HASHES` no sean las fuentes
+    vigentes) y
     `test_clon_limpio.py` (un `git worktree` limpio conserva los hashes de los bloqueados y pasa
     `test_dialogue_lock`).
 
@@ -135,7 +157,7 @@ ruff y black. El paquete los usa mediante re-exports perezosos que no copian có
 | `harvest_log.py` | `ie123kit._legado.harvest_log` | `nucleo.construir.registro_azahar` | fachada |
 | `ie1_keyboard.py` | `ie123kit.ie1.graficos.teclado` | — | alias directo |
 | `legacy_sprite.py` | `ie123kit.nucleo.graficos.pac_sprite` | — | alias directo |
-| `limpiar_work.py` | `ie123kit._legado.limpiar_work` | `nucleo.construir.limpieza` | fachada |
+| `limpiar_work.py` | `ie123kit._legado.limpiar_work` | `nucleo.construir.limpieza` | fachada (hoy: `ie123 work limpiar [--borrar]`) |
 | `lz10.py` | `ie123kit.nucleo.compresion.lz10` | — | alias directo sin CLI (autotest: `python -m ie123kit.nucleo.compresion.lz10`) |
 | `mods_to_moflex.py` | `ie123kit._legado.mods_to_moflex` | `nucleo.media.moflex` + `nucleo.media.subtitulos_dat` | fachada |
 | `nds_unpack.py` | `ie123kit._legado.nds_unpack` | `nucleo.contenedores.nds_rom` | fachada |
@@ -184,9 +206,9 @@ y sustitutos en [`_archivo/README.md`](_archivo/README.md).
 - `setup_mobipeg.ps1`: descarga y verifica la versión portátil x86 de mobipeg 2.1.
 - `mods_to_moflex.py`: convierte una película `.mods` de DS, incrusta su pista
   española `.dat` y restaura la orientación MOFLEX `0x16` de la recopilación.
-- `work/ie1/capas/v58/cinematicas/build.py`: genera las 21 cinemáticas europeas de IE1
+- `work/ie1/capas/media/cinematicas/build.py`: genera las 21 cinemáticas europeas de IE1
   (sustituye a `build_ie1_movies.py`, archivado en `_archivo/`; ver [`_archivo/README.md`](_archivo/README.md)).
-- `work/ie1/capas/v67/titulo_logo` (sustituye a `fix_ie1_title_logo.py`, archivado en `_archivo/`): aísla el wordmark europeo y sustituye el rótulo
+- `work/ie1/capas/graficos/titulo_logo` (sustituye a `fix_ie1_title_logo.py`, archivado en `_archivo/`): aísla el wordmark europeo y sustituye el rótulo
   rectangular anterior conservando el balón y el rayo animados del juego.
 - `setup_vgmstream.ps1` + `validate_ie1_media.py` (archivado en F1.4; sus reglas viven en
   `ie123kit.ie1.verificar`): preparan el decodificador
@@ -258,7 +280,7 @@ y sustitutos en [`_archivo/README.md`](_archivo/README.md).
 - `verify_candidate.py` — verificación estática de una candidata frente a su base:
   entradas de las capas, resto del archivo y fuentes idénticos, eventos SSD y
   literales del CRO permitidos, bloqueo tipográfico.
-- `work/ie1/capas/v33/mch_story` y `work/ie1/capas/v55/pachangas` (sustituyen a
+- `work/ie1/capas/historial/dialogo/v33_mch_story` y `work/ie1/capas/historial/dialogo/v55_pachangas` (sustituyen a
   `build_match_content_patch.py`, archivado en `_archivo/`) — pachangas, cadena de partidos y nombres de
   `team.pkb`/`teamtitle.dat`/`clubinfo.dat`.
 - Detalle de la tanda actual y orden completa: `docs/IE1_V29_TANDA.md`.
@@ -268,7 +290,7 @@ y sustitutos en [`_archivo/README.md`](_archivo/README.md).
 > [`../docs/DESARROLLO.md`](../docs/DESARROLLO.md).
 
 > **Pipeline HISTÓRICO v27.** `build_3ds_var.py` está archivado en `_archivo/` (ver [`_archivo/README.md`](_archivo/README.md)).
-> Cadena vigente: `work/ie1/capas/v33/_final/build_rom.py` (ROM IE1), `build_ui_revision.py`
+> Cadena vigente: `work/ie1/capas/historial/candidata/v33_final/build_rom.py` (ROM IE1), `build_ui_revision.py`
 > (candidatas `work/shared/candidatas/probe_ie1_vNN`) y `verify_candidate.py`.
 
 Secuencia histórica (CSV → ROM jugable), con los **flags de la build v27**:

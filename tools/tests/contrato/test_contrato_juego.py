@@ -11,7 +11,7 @@ from juego_falso import JuegoFalso  # sys.path lo prepara conftest.py
 
 from ie123kit.nucleo import util
 from ie123kit.nucleo.errores import CanceladoError
-from ie123kit.nucleo.juego import JuegoBase
+from ie123kit.nucleo.juego import CAPACIDAD_POR_TIPO, CAPACIDADES, Aportacion, JuegoBase, Regla
 from ie123kit.nucleo.tipos import AssetRef, CancelToken, Progreso, Resultado, componer_id
 from ie123kit.servicio import esquemas
 from ie123kit.servicio.api import descubrir_juegos
@@ -85,8 +85,86 @@ def test_activos_no_lanza(ident: str, juego_falso: JuegoFalso, proyecto_sintetic
     if isinstance(salida, Resultado):
         _comprobar_resultado(salida)
     else:
+        assert isinstance(salida, list)
         for ref in salida:
-            json.dumps(ref.to_json(), ensure_ascii=False)
+            datos = ref.to_json()
+            json.dumps(datos, ensure_ascii=False)
+            assert esquemas.validar(datos, "assetref") == [], (ident, datos)
+
+
+@pytest.mark.parametrize("ident", IDS)
+def test_aportaciones_uniformes(ident: str, juego_falso: JuegoFalso, proyecto_sintetico) -> None:
+    """`aportaciones()` siempre devuelve una Aportacion con sus cuatro campos."""
+    aporte = _juego(ident, juego_falso).aportaciones(proyecto_sintetico, [])
+    assert isinstance(aporte, Aportacion)
+    for campo in ("entradas_fa", "eventos", "literales_cro", "romfs_sueltos"):
+        assert isinstance(getattr(aporte, campo), dict), (ident, campo)
+
+
+@pytest.mark.parametrize("ident", IDS)
+def test_reglas_validacion_serializables(ident: str, juego_falso: JuegoFalso) -> None:
+    reglas = _juego(ident, juego_falso).reglas_validacion()
+    assert isinstance(reglas, list)
+    for regla in reglas:
+        assert isinstance(regla, Regla)
+        datos = regla.to_json()
+        assert set(datos) == {"codigo", "descripcion", "ambito"}
+        assert all(isinstance(v, str) and v for v in datos.values()), (ident, datos)
+        json.dumps(datos, ensure_ascii=False)
+
+
+@pytest.mark.parametrize("ident", IDS)
+def test_tipos_sin_capacidad_son_not_supported(ident: str, juego_falso: JuegoFalso,
+                                               proyecto_sintetico, tmp_path) -> None:
+    """Todo tipo cuya capacidad NO esté declarada se rechaza con `NOT_SUPPORTED`.
+
+    Un objetivo sin capacidades (ie2/ie3 hoy) rechaza los seis tipos; uno que declara
+    algunas (juego_principal, el falso) sigue teniendo que rechazar los que le faltan, y
+    así la comprobación no se apaga en cuanto un objetivo empieza a declarar capacidades.
+    Solo se salta con las seis declaradas, que desde F2.3 es el caso de ie1.
+    """
+    juego = _juego(ident, juego_falso)
+    info = juego.info()
+    tipos = [t for t, cap in CAPACIDAD_POR_TIPO.items() if cap not in info.capacidades]
+    if not tipos:
+        pytest.skip(f"{ident} declara todas las capacidades: {sorted(info.capacidades)}")
+    entrada = tmp_path / "entrada.bin"
+    entrada.write_bytes(b"x")
+    for tipo in tipos:
+        ruta = f"{(info.prefijos_romfs or ('x/',))[0]}dato.bin"
+        ref = AssetRef(id=componer_id(info.id, tipo, ruta), objetivo=info.id, tipo=tipo, ruta_romfs=ruta)
+        for res in (
+            juego.exportar(proyecto_sintetico, ref, tmp_path / "salida"),
+            juego.importar(proyecto_sintetico, ref, entrada, simular=True),
+        ):
+            _comprobar_resultado(res)
+            assert not res.ok, (ident, tipo)
+            assert [i.codigo for i in res.incidencias] == ["NOT_SUPPORTED"], (ident, tipo)
+
+
+@pytest.mark.parametrize("ident", IDS)
+def test_simular_nunca_toca_el_arbol(ident: str, juego_falso: JuegoFalso,
+                                     proyecto_sintetico, tmp_path) -> None:
+    """`importar(simular=True)` deja el árbol del proyecto byte a byte igual."""
+    juego = _juego(ident, juego_falso)
+    refs = juego.activos(proyecto_sintetico)
+    if not refs:
+        ruta = "falso/uno.bin"
+        refs = [AssetRef(id=componer_id(juego.info().id, "grafico", ruta),
+                         objetivo=juego.info().id, tipo="grafico", ruta_romfs=ruta)]
+    entrada = tmp_path / "simulada.bin"
+    antes = util.sha256_arbol(proyecto_sintetico.raiz)
+    for ref in refs[:3]:
+        entrada.write_bytes(b"Z" * (ref.tamano or 1))
+        res = juego.importar(proyecto_sintetico, ref, entrada, simular=True)
+        _comprobar_resultado(res)
+    assert util.sha256_arbol(proyecto_sintetico.raiz) == antes
+
+
+def test_capacidades_declaradas_son_del_vocabulario(juego_falso: JuegoFalso) -> None:
+    for ident in IDS:
+        capacidades = _juego(ident, juego_falso).info().capacidades
+        assert set(capacidades) <= set(CAPACIDADES), (ident, sorted(capacidades))
 
 
 def test_exportar_falso_progreso_monotono(juego_falso: JuegoFalso, proyecto_sintetico, tmp_path) -> None:

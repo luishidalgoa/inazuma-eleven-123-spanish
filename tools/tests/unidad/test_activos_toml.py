@@ -1,10 +1,16 @@
-"""activos.toml por objetivo (F1.4, #45): esquema 1, declarativo y sin ROM."""
+"""activos.toml por objetivo (F1.4 #45, F2.3 #49): esquema 1, declarativo y sin ROM.
+
+Este módulo es el validador del esquema 1 para los siete objetivos (gate 1 de F2.3):
+ninguna clave fuera del vocabulario acordado y ningún dato que no sea ruta corta.
+"""
 
 import re
 import tomllib
 from importlib import resources
 
 import pytest
+
+from ie123kit.nucleo.juego import CAPACIDADES
 
 OBJETIVOS = {
     "juego_principal": "ie123kit.juego_principal",
@@ -17,6 +23,28 @@ OBJETIVOS = {
 }
 CROS_VALIDAS = {"cro/ina_menu.cro", "cro/ina_main1.cro", "cro/ina_main2.cro", "cro/ina_main3ogre.cro"}
 UNIDAD = re.compile(r"^[A-Za-z]:")
+
+#: Vocabulario pinchado del esquema 1: tabla -> claves admitidas. Ninguna otra.
+VOCABULARIO: dict[str, set[str]] = {
+    "objetivo": {
+        "id", "nombre", "juego", "version", "comun", "perfil_texto",
+        "capacidades", "pendiente_auditoria",
+    },
+    "romfs": {"prefijos_fa", "cros", "solo_lectura", "sueltos"},
+    "exefs": {"experimental", "ficheros"},
+    "textos": {"ambitos"},
+    "graficos": {"contenedores"},
+    "cinematicas": {"rutas"},
+    "voces": {"prefijos"},
+    "eventos": {"protegidos", "apertura"},
+    "familias": {
+        "tipo", "prefijo_romfs", "contenedores", "perfil_texto", "ambito", "contrapartida",
+    },
+}
+#: Claves admitidas en la raíz, además de las tablas de VOCABULARIO.
+RAIZ = {"esquema"}
+AMBITOS_TEXTO = {"eventos", "tablas", "cro", "gamestring"}
+CONTENEDORES_GRAFICOS = {"arcv", "ctpk", "qna"}
 
 
 def _leer(paquete: str) -> dict:
@@ -72,3 +100,71 @@ def test_union_de_prefijos():
         "patchscript/",
     }
     assert esperados <= union, esperados - union
+
+
+def _ruta_relativa_posix(valor: str) -> bool:
+    return (
+        ".." not in valor.split("/")
+        and "\\" not in valor
+        and not valor.startswith("/")
+        and not UNIDAD.match(valor)
+    )
+
+
+@pytest.mark.parametrize("objetivo", list(OBJETIVOS))
+def test_solo_claves_del_vocabulario(objetivo):
+    """Ninguna clave ni tabla fuera del vocabulario acordado del esquema 1."""
+    datos = _leer(OBJETIVOS[objetivo])
+    sobran = set(datos) - RAIZ - set(VOCABULARIO)
+    assert not sobran, f"{objetivo}: tablas/claves desconocidas en la raíz: {sorted(sobran)}"
+    for tabla, admitidas in VOCABULARIO.items():
+        valor = datos.get(tabla)
+        if valor is None:
+            continue
+        entradas = valor if isinstance(valor, list) else [valor]
+        for entrada in entradas:
+            assert isinstance(entrada, dict), f"{objetivo}: [{tabla}] debe ser tabla"
+            desconocidas = set(entrada) - admitidas
+            assert not desconocidas, f"{objetivo}: [{tabla}] claves desconocidas: {sorted(desconocidas)}"
+
+
+@pytest.mark.parametrize("objetivo", list(OBJETIVOS))
+def test_capacidades_del_vocabulario(objetivo):
+    """`capacidades` es un subconjunto de nucleo.juego.CAPACIDADES."""
+    capacidades = _leer(OBJETIVOS[objetivo])["objetivo"]["capacidades"]
+    assert set(capacidades) <= set(CAPACIDADES), capacidades
+    assert len(set(capacidades)) == len(capacidades), f"{objetivo}: capacidades repetidas"
+
+
+@pytest.mark.parametrize("objetivo", list(OBJETIVOS))
+def test_secciones_opcionales(objetivo):
+    """Vocabularios cerrados de [textos] y [graficos], rutas relativas y tipos correctos."""
+    datos = _leer(OBJETIVOS[objetivo])
+    ambitos = datos.get("textos", {}).get("ambitos", [])
+    assert set(ambitos) <= AMBITOS_TEXTO, ambitos
+    contenedores = datos.get("graficos", {}).get("contenedores", [])
+    assert set(contenedores) <= CONTENEDORES_GRAFICOS, contenedores
+    rutas = [
+        *datos.get("romfs", {}).get("sueltos", []),
+        *datos.get("cinematicas", {}).get("rutas", []),
+        *datos.get("voces", {}).get("prefijos", []),
+    ]
+    for ruta in rutas:
+        assert isinstance(ruta, str) and ruta, ruta
+        assert _ruta_relativa_posix(ruta), ruta
+    exefs = datos.get("exefs")
+    if exefs is not None and "experimental" in exefs:
+        assert isinstance(exefs["experimental"], bool), exefs["experimental"]
+
+
+@pytest.mark.parametrize("objetivo", list(OBJETIVOS))
+def test_familias_coherentes(objetivo):
+    """Cada [[familias]] usa vocabularios cerrados y rutas relativas."""
+    for familia in _leer(OBJETIVOS[objetivo]).get("familias", []):
+        if "prefijo_romfs" in familia:
+            assert _ruta_relativa_posix(familia["prefijo_romfs"]), familia
+        assert set(familia.get("contenedores", [])) <= CONTENEDORES_GRAFICOS, familia
+        if "ambito" in familia:
+            assert familia["ambito"] in AMBITOS_TEXTO, familia
+        if "perfil_texto" in familia:
+            assert familia["perfil_texto"] == "tipografia_v20", familia
