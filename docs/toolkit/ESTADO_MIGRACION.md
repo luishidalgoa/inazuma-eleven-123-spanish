@@ -140,7 +140,15 @@ Quedaba abierto; todo menos `_codificar` se corrigió en la F2.5 (ver abajo):
 
 ### Resultado del gate de F2.5 (2026-09-19, local)
 
-Ver la sección siguiente; se rellena al cerrar la subfase.
+| Punto | Resultado |
+|---|---|
+| (1) `pytest -m "not requiere_rom"` (incluye `test_flujo_gui` sintético y los ejemplos de los esquemas) | 1395 passed, 1 skipped |
+| (2) `nucleo.compat.importaciones --baseline …` | 0 nuevos (208 scripts) |
+| (3) `pytest -m requiere_rom` (incluye `test_flujo_gui_real` y la equivalencia de fuentes, menús y banner) | 36 passed, 2 skipped (sin ROM parcheada; sin el PNG de v67), **0 xfail** |
+| `ie123 compat comprobar --golden` | 0 (7/7 gates; `bloqueo_candidata` pasa sobre v34) |
+| `ie123 doctor` | 0 (aviso: no se localiza `mobipeg`) |
+| CI local (toolkit.yml / guardia.yml) | ruff OK, guardia bloqueados/git OK, 24 shims sin lógica, unittest OK |
+| QA en emulador | pendiente del usuario |
 
 ## Pendiente
 
