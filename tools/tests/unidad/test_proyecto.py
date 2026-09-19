@@ -223,12 +223,21 @@ def test_migrar_juego_principal_escribe_el_historico_sin_mover_nada(repo: Path) 
     solo_ie1 = _capa_falsa(repo, "v67/titulo_logo", extra={"inazuma1/data_iz/ui.arc": b"z"},
                            ficheros={"apply.py": "# solo ie1\n"})
 
-    res = _servicio(repo).migrar_juego_principal(simular=True)
+    antes = sorted(p.relative_to(repo).as_posix() for p in repo.rglob("*"))
+    simulado = _servicio(repo).migrar_juego_principal(simular=True)
+    assert simulado.ok and simulado.datos["escrito"] is False
+    # Simular no escribe nada (F2.5): el documento viaja en los datos.
+    assert sorted(p.relative_to(repo).as_posix() for p in repo.rglob("*")) == antes
+    assert not (repo / "work" / "juego_principal" / "historico.json").exists()
+
+    res = _servicio(repo).migrar_juego_principal(simular=False)
 
     assert res.ok, res.incidencias
+    assert [i.severidad for i in res.incidencias] == ["aviso"]
     historico = Path(res.datos["historico"])
     assert historico == repo / "work" / "juego_principal" / "historico.json"
     documento = json.loads(historico.read_text(encoding="utf-8"))
+    assert documento["capas"] == simulado.datos["documento"]["capas"]
     assert documento["movidas"] is False
     rutas = {c["ruta"] for c in documento["capas"]}
     assert "work/ie1/capas/v58/logos" in rutas
@@ -241,13 +250,30 @@ def test_migrar_juego_principal_escribe_el_historico_sin_mover_nada(repo: Path) 
     assert not (repo / "work" / "juego_principal" / "capas" / "v58").exists()
 
 
-def test_migrar_de_verdad_no_esta_soportado_pero_deja_el_historico(repo: Path) -> None:
-    _capa_falsa(repo, "v58/carga", extra={"menu/carga.ctpk": b"x"})
+def test_migrar_de_verdad_escribe_el_indice_y_avisa_de_que_no_mueve(repo: Path) -> None:
+    capa = _capa_falsa(repo, "v58/carga", extra={"menu/carga.ctpk": b"x"})
 
     res = _servicio(repo).migrar_juego_principal(simular=False)
 
-    assert not res.ok
-    assert [i.codigo for i in res.incidencias] == ["NOT_SUPPORTED"]
+    assert res.ok
+    assert [(i.codigo, i.severidad) for i in res.incidencias] == [("NOT_SUPPORTED", "aviso")]
     historico = repo / "work" / "juego_principal" / "historico.json"
     assert historico.is_file()
     assert json.loads(historico.read_text(encoding="utf-8"))["capas"]
+    assert capa.is_dir()
+
+
+def test_volcar_toml_entrecomilla_claves_y_escapa_cadenas() -> None:
+    """F2.5: una clave con espacios, puntos o acentos va entre comillas; el TOML se relee igual."""
+    import tomllib
+
+    from ie123kit.servicio.proyecto import _volcar_toml
+
+    datos = {
+        "roms": {"nds es ie1": r'C:\roms\a"b.nds', "año": "x", "ok": True},
+        "a.b": {"c d": ["x\ny\t", 1], "llano": "ctrl\x01"},
+    }
+    texto = _volcar_toml(datos)
+    assert '"nds es ie1" = ' in texto
+    assert '["a.b"]' in texto
+    assert tomllib.loads(texto) == datos

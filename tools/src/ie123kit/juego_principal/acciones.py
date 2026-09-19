@@ -691,7 +691,7 @@ class JuegoPrincipal(JuegoBase):
             'descripcion = "capa creada por ie123kit.juego_principal"\n',
             encoding="utf-8",
         )
-        return Capa(carpeta, raiz=ws.raiz)
+        return Capa(self._capa_creada(carpeta), raiz=ws.raiz)
 
     def aportaciones(self, ws: Any, capas: Iterable[str] | Mapping[str, Any] | None = None,
                      progreso: Callable[[Progreso], None] | None = None,

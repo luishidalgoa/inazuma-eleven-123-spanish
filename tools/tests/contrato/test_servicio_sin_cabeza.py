@@ -250,14 +250,14 @@ def test_construir_dice_lo_que_la_aportacion_usa_y_el_constructor_no_sabe_aplica
     from ie123kit.nucleo.juego import Aportacion
 
     monkeypatch.setattr(type(servicio.juegos[OBJETIVO]), "aportaciones",
-                        lambda self, ws, capas=None, **kw: Aportacion(entradas_fa={"a/uno.bin": b"x"}),
+                        lambda self, ws, capas=None, **kw: Aportacion(literales_cro={"cro/ina_menu.cro": {}}),
                         raising=False)
     solicitud = _base_lista(proyecto_sintetico)
 
     res = servicio.construir(solicitud)
 
     _ok_serializable(res)
-    assert not res.ok and "entradas_fa" in res.incidencias[0].mensaje
+    assert not res.ok and "literales_cro" in res.incidencias[0].mensaje
     assert not Path(proyecto_sintetico.candidata("probe_ie1_v68")).exists()
 
 
@@ -388,16 +388,49 @@ def test_entradas_fa_de_un_arbol_en_disco_se_colapsan_a_extra(
     ]
 
 
-def test_entradas_fa_sin_raiz_comun_se_sigue_reportando(servicio, proyecto_sintetico,
-                                                        monkeypatch) -> None:
-    """Bytes en memoria o rutas sin raíz común: se dice, no se tira en silencio."""
+def test_entradas_fa_sin_raiz_comun_se_pasan_como_entradas_sueltas(servicio, proyecto_sintetico,
+                                                                  monkeypatch) -> None:
+    """F2.5: varias extra/ fundidas (o bytes en memoria) llegan al constructor como `entradas`."""
     from ie123kit.nucleo.juego import Aportacion
 
+    capas = proyecto_sintetico.raiz / "work" / "juego_principal" / "capas"
+    uno = capas / "a" / "extra" / "menu" / "uno.ctpk"
+    dos = capas / "b" / "extra" / "message" / "dos.str"
+    for f in (uno, dos):
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_bytes(b"x")
+    entradas = {"menu/uno.ctpk": uno, "message/dos.str": dos, "menu/tres.bin": b"y"}
     monkeypatch.setattr(type(servicio.juegos[OBJETIVO]), "aportaciones",
-                        lambda self, ws, capas=None, **kw: Aportacion(entradas_fa={"menu/uno.ctpk": b"x"}),
+                        lambda self, ws, capas=None, **kw: Aportacion(entradas_fa=entradas),
                         raising=False)
 
-    res = servicio.construir(_base_lista(proyecto_sintetico))
+    kw = _kw_de_construir(servicio, proyecto_sintetico, monkeypatch, [])
 
-    _ok_serializable(res)
-    assert not res.ok and "entradas_fa" in res.incidencias[0].mensaje
+    assert kw["aportaciones"] == [
+        {"objetivo": OBJETIVO, "extra": None, "eventos": {}, "cro": [], "entradas": entradas},
+    ]
+
+
+def test_el_constructor_aplica_entradas_sueltas_en_orden(tmp_path: Path) -> None:
+    """Dos aportaciones con entradas sueltas: la última gana y queda anotada."""
+    from fa_sintetico import escribir_fa
+    from juego_falso import FICHEROS
+
+    from ie123kit.nucleo.construir import candidata
+    from ie123kit.nucleo.contenedores.fa import FaArchive
+
+    base = tmp_path / "base" / "archive.fa"
+    escribir_fa(base, FICHEROS)
+    suelto = tmp_path / "capa_b" / "falso" / "dos.bin"
+    suelto.parent.mkdir(parents=True)
+    suelto.write_bytes(b"DOS" * 4)
+    salida = tmp_path / "salida" / "archive.fa"
+    informe = candidata.construir(base, salida, aportaciones=[
+        {"objetivo": "a", "entradas": {"falso/uno.bin": b"UNO" * 5, "falso/dos.bin": b"xxx" * 4}},
+        {"objetivo": "b", "entradas": {"falso/dos.bin": suelto}},
+    ])
+    arc = FaArchive(str(salida))
+    assert arc.read("falso/uno.bin") == b"UNO" * 5
+    assert arc.read("falso/dos.bin") == b"DOS" * 4
+    assert [a["entry"] for a in informe["overridden_by_later_overlay"]] == ["falso/dos.bin"]
+    assert informe["aportaciones"][1]["entradas"] == ["falso/dos.bin"]

@@ -166,7 +166,7 @@ def test_aportaciones_como_dict_y_rehusar_sobrescribir(tmp_path):
     C.construir(base, salida, ui=ui)
     informe = C.construir(base, salida, ui=ui, rehusar_sobrescribir=False,
                           aportaciones={"ie3.comun": {"extra": None}})
-    assert informe["aportaciones"] == [{"objetivo": "ie3.comun", "extra": None, "eventos": {}, "cro": []}]
+    assert informe["aportaciones"] == [{"objetivo": "ie3.comun", "extra": None, "eventos": {}, "cro": [], "entradas": []}]
 
 
 # -- F2.2: reempaquetado de mch contra el packnum.rebuild REAL -------------------------

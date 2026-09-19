@@ -8,7 +8,7 @@ from pathlib import Path
 from ie123kit.ie2.comun.reglas import JuegoIE2
 from ie123kit.ie3.comun.reglas import JuegoIE3
 from ie123kit.nucleo.juego import CAPACIDADES, Aportacion, InfoObjetivo, JuegoBase, PerfilTexto, Regla
-from ie123kit.nucleo.tipos import AssetRef, componer_id
+from ie123kit.nucleo.tipos import AssetRef, Incidencia, Resultado, componer_id
 
 RUTA = "inazuma1/data_iz/a_title/title_t.arc"
 
@@ -117,3 +117,38 @@ def test_base_ie2_sin_capacidades_rechaza_todo(tmp_path: Path) -> None:
     reglas = juego.reglas_validacion()
     assert all(isinstance(r, Regla) for r in reglas)
     assert {r.codigo for r in reglas} >= {"V20_BLOQUEADO"}
+
+
+class JuegoQueCreaCapa(JuegoDePrueba):
+    """Crea su carpeta de capa y luego falla o revienta, según ``modo``."""
+
+    def __init__(self, raiz: Path, modo: str) -> None:
+        super().__init__()
+        self.raiz, self.modo = raiz, modo
+
+    def _importar_graficos(self, ws, ref, origen, **kw):
+        carpeta = self.raiz / "capas" / "graficos" / "gui_x"
+        carpeta.mkdir(parents=True)
+        (carpeta / "capa.toml").write_text("[capa]\n", encoding="utf-8")
+        self._capa_creada(carpeta)
+        if self.modo == "excepcion":
+            raise RuntimeError("fallo a medias")
+        if self.modo == "fallo":
+            return Resultado.fallo([Incidencia("NOT_SUPPORTED", "error", "no cabe")])
+        return Resultado.correcto()
+
+
+def test_una_importacion_fallida_no_deja_la_capa_creada(tmp_path: Path) -> None:
+    import pytest
+
+    for modo in ("fallo", "excepcion"):
+        juego = JuegoQueCreaCapa(tmp_path / modo, modo)
+        if modo == "excepcion":
+            with pytest.raises(RuntimeError):
+                juego.importar(None, _ref("grafico"), tmp_path / "x.png", simular=False)
+        else:
+            assert not juego.importar(None, _ref("grafico"), tmp_path / "x.png", simular=False).ok
+        assert not (tmp_path / modo / "capas" / "graficos" / "gui_x").exists()
+    bien = JuegoQueCreaCapa(tmp_path / "ok", "ok")
+    assert bien.importar(None, _ref("grafico"), tmp_path / "x.png", simular=False).ok
+    assert (tmp_path / "ok" / "capas" / "graficos" / "gui_x" / "capa.toml").is_file()

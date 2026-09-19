@@ -51,8 +51,34 @@ def _valor_toml(valor: Any) -> str:
         return str(valor)
     if isinstance(valor, (list, tuple)):
         return "[" + ", ".join(_valor_toml(v) for v in valor) + "]"
-    texto = str(valor).replace("\\", "\\\\").replace('"', '\\"')
-    return f'"{texto}"'
+    return _cadena_toml(str(valor))
+
+
+def _cadena_toml(texto: str) -> str:
+    """Cadena básica TOML: escapa la barra, las comillas y los caracteres de control."""
+    salida = []
+    for ch in texto:
+        if ch == "\\":
+            salida.append("\\\\")
+        elif ch == '"':
+            salida.append('\\"')
+        elif ch in _ESCAPES_TOML:
+            salida.append(_ESCAPES_TOML[ch])
+        elif ord(ch) < 0x20 or ord(ch) == 0x7F:
+            salida.append(f"\\u{ord(ch):04X}")
+        else:
+            salida.append(ch)
+    return '"' + "".join(salida) + '"'
+
+
+_ESCAPES_TOML = {"\b": "\\b", "\t": "\\t", "\n": "\\n", "\f": "\\f", "\r": "\\r"}
+_CLAVE_DESNUDA = re.compile(r"[A-Za-z0-9_-]+")
+
+
+def _clave_toml(clave: Any) -> str:
+    """Clave TOML: desnuda si solo lleva letras ASCII, cifras, `_` o `-`; si no, entrecomillada."""
+    texto = str(clave)
+    return texto if _CLAVE_DESNUDA.fullmatch(texto) else _cadena_toml(texto)
 
 
 def _volcar_toml(datos: Mapping[str, Any]) -> str:
@@ -70,10 +96,10 @@ def _volcar_toml(datos: Mapping[str, Any]) -> str:
 def _volcar_tabla(datos: Mapping[str, Any], prefijo: tuple[str, ...], lineas: list[str]) -> None:
     """Vuelca una tabla TOML y, después, sus subtablas (`[a]`, `[a.b]`…)."""
     if prefijo:
-        lineas.append("[" + ".".join(prefijo) + "]")
+        lineas.append("[" + ".".join(_clave_toml(p) for p in prefijo) + "]")
     for clave, valor in datos.items():
         if not isinstance(valor, dict):
-            lineas.append(f"{clave} = {_valor_toml(valor)}")
+            lineas.append(f"{_clave_toml(clave)} = {_valor_toml(valor)}")
     if prefijo:
         lineas.append("")
     for clave, valor in datos.items():
