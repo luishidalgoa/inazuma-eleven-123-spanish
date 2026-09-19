@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://inazuma123.local/esquemas/datos_verificar.schema.json",
+  "title": "Datos de ServicioToolkit.verificar",
+  "description": "Verificación offline: bloqueo tipográfico y hash contra el build.json.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "candidata": {
+      "type": "string"
+    },
+    "archive": {
+      "type": "string"
+    },
+    "bloqueo_v20": {
+      "const": "ok"
+    },
+    "archive_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "archive_sha256_esperado": {
+      "type": "string"
+    },
+    "golden": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "candidata",
+    "archive",
+    "bloqueo_v20",
+    "archive_sha256"
+  ],
+  "examples": [
+    {
+      "candidata": "probe_ie2_v35",
+      "archive": "work/shared/candidatas/probe_ie2_v35/archive.fa",
+      "bloqueo_v20": "ok",
+      "archive_sha256": "abababababababababababababababababababababababababababababababab"
+    }
+  ]
+}

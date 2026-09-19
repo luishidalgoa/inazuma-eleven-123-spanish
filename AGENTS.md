@@ -7,11 +7,11 @@
 
 ## BLOQUEO DE CAJA Y TIPOGRAFÍA — orden explícita del usuario
 
-- El usuario confirma que la apariencia de los diálogos de v20 está muy bien.
-  Es la referencia aprobada. No modificar caja, dimensiones, posición, tamaño
-  de letra, glifos, espaciado, fuentes, codificación ni algoritmo de saltos.
-- Mantener fullwidth, avance de cálculo 11, límite 220 y tres líneas por página,
-  con las cinco fuentes exactas verificadas por `tools/dialogue_lock.py`.
+- Referencia aprobada: **v34** (2026-09-19). El usuario autorizó actualizar el bloqueo a su motor de
+  textos: glifos europeos y espaciado corregido, letras dobles, caja ancha de 37 caracteres por
+  3 líneas y páginas de 131 B como máximo. No modificar caja, dimensiones, posición, tamaño de letra,
+  glifos, espaciado, fuentes, codificación ni algoritmo de saltos sin una nueva petición expresa.
+- Las cinco fuentes exactas se verifican con `tools/dialogue_lock.py`.
 - Las nuevas traducciones deben adaptarse a esta configuración. Un texto largo
   no autoriza a cambiar la caja, las fuentes o el motor para hacerlo caber.
 - No eliminar, desactivar, actualizar hashes ni sortear el bloqueo para compilar.

@@ -146,12 +146,7 @@ def test_sintetica_verde_y_hash_falso_rojo(tmp_path, lock, monkeypatch):
 @pytest.mark.requiere_rom
 @sin_candidata
 def test_candidata_vigente_respeta_bloqueo():
-    try:
-        bloqueo.comprobar(CANDIDATA.parent)
-    except BloqueoTipograficoError as exc:
-        # Estado conocido (2026-09-19): las fuentes vigentes (espaciado autorizado el 2026-09-16 y
-        # registro de bigramas) no coinciden con FONT_HASHES. Actualizarlos lo decide el usuario.
-        pytest.xfail(f"bloqueo v20 desactualizado respecto a las fuentes vigentes: {exc.detalle}")
+    bloqueo.comprobar(CANDIDATA.parent)  # #80: FONT_HASHES = fuentes de probe_ie2_v34
     r = subprocess.run(
         [
             sys.executable,

@@ -135,11 +135,10 @@ def _es_cro_suelta(rel: Any) -> bool:
 def _raiz_de_entradas_fa(entradas: Any) -> Path | None:
     """Raíz común de un ``entradas_fa`` que sea un árbol de ficheros ya volcado en disco.
 
-    ``nucleo.construir.candidata`` no sabe inyectar entradas sueltas, pero sí sabe volcar una
-    carpeta ``extra/`` cuyo árbol ES el de ``romfs``. Si cada ``(ruta, path)`` cumple que
+    Una carpeta ``extra/`` cuyo árbol ES el de ``romfs`` se pasa entera al constructor. Si cada ``(ruta, path)`` cumple que
     ``path`` termina en ``ruta`` y todas comparten la misma raíz, esa raíz vale como ``extra``.
-    Si no (bytes en memoria, o rutas que no comparten raíz), se devuelve None y el llamador lo
-    reporta como pendiente: nunca se tira en silencio.
+    Si no (bytes en memoria, o rutas que no comparten raíz), se devuelve None y el llamador las
+    pasa como entradas sueltas (``entradas``) al constructor.
     """
     if not entradas:
         return None
@@ -175,8 +174,9 @@ def _aportacion_a_dict(ident: str, valor: Any) -> tuple[Any, list[str]]:
     pendientes = []
     entradas_fa = dict(getattr(valor, "entradas_fa", None) or {})
     extra = _raiz_de_entradas_fa(entradas_fa)
-    if entradas_fa and extra is None:
-        pendientes.append("entradas_fa")
+    # Sin raíz común (varias capas fundidas, o bytes en memoria) se pasan como entradas sueltas:
+    # el constructor las aplica tras el extra/ de esta aportación (F2.5).
+    entradas = {} if extra is not None else entradas_fa
     if getattr(valor, "literales_cro", None):
         pendientes.append("literales_cro")
     if any(not _es_cro_suelta(rel) for rel in romfs):
@@ -187,6 +187,8 @@ def _aportacion_a_dict(ident: str, valor: Any) -> tuple[Any, list[str]]:
         "eventos": dict(getattr(valor, "eventos", None) or {}),
         "cro": [ruta for rel, ruta in sorted(romfs.items()) if _es_cro_suelta(rel)],
     }
+    if entradas:
+        aporte["entradas"] = entradas
     return aporte, pendientes
 
 
@@ -470,12 +472,14 @@ class ServicioToolkit:
     def migrar_juego_principal(self, simular: bool = True, *,
                                progreso: Callable[[Progreso], None] | None = None,
                                cancel: CancelToken | None = None) -> Resultado:
-        """Anota en `work/juego_principal/historico.json` qué capas de `work/ie1/capas` tocan el menú.
+        """Índice `work/juego_principal/historico.json` de las capas de `work/ie1/capas` que tocan el menú.
 
-        NO MUEVE NADA, y por eso `simular=False` responde NOT_SUPPORTED: esas capas calculan la
-        raíz del repo subiendo niveles desde su propio fichero y algunas se importan por
-        `importlib` desde su sitio actual (la V37); moverlas las rompe en silencio. El histórico
-        es un índice que APUNTA a donde siguen estando.
+        NO MUEVE NADA: esas capas calculan la raíz del repo subiendo niveles desde su propio fichero
+        y algunas se importan por `importlib` desde su sitio actual (la V37); moverlas las rompe en
+        silencio. El histórico es un índice que APUNTA a donde siguen estando.
+
+        Con ``simular=True`` (por defecto) no se escribe nada: el documento va en ``datos``. Con
+        ``simular=False`` se escribe el índice y se avisa de que las capas no se mueven.
         """
         t0 = time.perf_counter()
         try:
@@ -498,17 +502,19 @@ class ServicioToolkit:
                     for ruta, motivos in capas
                 ],
             }
+            datos = {"historico": str(destino), "capas": documento["capas"], "movidas": False,
+                     "simulado": bool(simular), "escrito": not simular}
+            if simular:
+                datos["documento"] = documento
+                return self._cronometrar(t0, Resultado.correcto(datos=datos))
             destino.parent.mkdir(parents=True, exist_ok=True)
             destino.write_text(json.dumps(documento, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-            datos = {"historico": str(destino), "capas": documento["capas"], "movidas": False,
-                     "simulado": bool(simular)}
-            if simular:
-                return self._cronometrar(t0, Resultado.correcto(datos=datos, artefactos=(str(destino),)))
-            return self._cronometrar(t0, Resultado.no_soportado(
-                "migrar-juego-principal: mover las capas de work/ie1/capas no está soportado "
-                "(sus rutas relativas e importlib dependen de su sitio actual); el histórico queda escrito",
-                datos=datos, artefactos=(str(destino),),
-            ))
+            aviso = Incidencia("NOT_SUPPORTED", "aviso",
+                               "migrar-juego-principal: las capas no se mueven (sus rutas relativas e "
+                               "importlib dependen de su sitio actual); solo se escribe el índice",
+                               ruta=str(destino))
+            return self._cronometrar(t0, Resultado.correcto(datos=datos, artefactos=(str(destino),),
+                                                            incidencias=(aviso,)))
         except Exception as exc:
             return self._cronometrar(
                 t0, Resultado.fallo([_incidencia("NOT_SUPPORTED", f"migrar-juego-principal: {exc}")])
@@ -823,11 +829,19 @@ class ServicioToolkit:
             return self._cronometrar(
                 t0, Resultado.no_soportado(f"instalar: no existe la candidata {candidata!r} ({dir_cand})")
             )
+        # La carpeta de mods sale de la configuración ([azahar] mods_dir o IE123_AZAHAR); antes se
+        # llamaba con `lanzar`/`ws`, que el núcleo no admite, y el TypeError hacía caer siempre en la
+        # carpeta por defecto del sistema aunque el proyecto configurase otra (F2.5).
+        kw: dict[str, Any] = {}
+        mods = self.ws.ajuste("azahar.mods_dir")
+        if mods:
+            kw["raiz_mods"] = Path(str(mods))
+        incidencias: list[Incidencia] = []
+        if lanzar:
+            incidencias.append(Incidencia("NOT_SUPPORTED", "aviso",
+                                          "instalar: lanzar el emulador no está soportado; ábrelo a mano"))
         try:
-            try:
-                salida = instalador.azahar(dir_cand, lanzar=lanzar, ws=self.ws)
-            except TypeError:  # T4 aún no ha aterrizado o su firma es más corta
-                salida = instalador.azahar(dir_cand)
+            salida = instalador.azahar(dir_cand, **kw)
         except Exception as exc:
             return self._cronometrar(t0, Resultado.fallo([_incidencia("NOT_SUPPORTED", f"instalar: {exc}")]))
         if isinstance(salida, Resultado):
@@ -835,7 +849,7 @@ class ServicioToolkit:
         datos = dict(salida) if isinstance(salida, dict) else {"destino": str(salida)}
         datos.setdefault("candidata", dir_cand.name)
         datos.setdefault("emulador", emulador)
-        return self._cronometrar(t0, Resultado.correcto(datos=datos))
+        return self._cronometrar(t0, Resultado.correcto(datos=datos, incidencias=tuple(incidencias)))
 
     def parche(self, rom_base: str | Path, rom_parcheada: str | Path, salida: str | Path, *,
                progreso: Callable[[Progreso], None] | None = None,

@@ -196,11 +196,11 @@ def construir_parser() -> argparse.ArgumentParser:
     ini.add_argument("--simular", action="store_true", help="Solo informa de lo que haría.")
     mig = acc_proyecto.add_parser("migrar-juego-principal", parents=[comunes],
                                   aliases=_alias("migrar-juego-principal"),
-                                  help="Escribe work/juego_principal/historico.json (no mueve nada).")
+                                  help="Índice work/juego_principal/historico.json de las capas del menú (no mueve nada).")
     mig.add_argument("--simular", action="store_true", default=True,
-                     help="Por defecto: mover capas no está soportado.")
+                     help="Por defecto: solo informa, no escribe.")
     mig.add_argument("--no-simular", action="store_false", dest="simular",
-                     help="Intenta la migración real (responde NOT_SUPPORTED).")
+                     help="Escribe el índice (las capas no se mueven).")
 
     work = sub.add_parser("work", parents=[comunes], help="Mantenimiento de work/.")
     acc_work = work.add_subparsers(dest="accion", required=True)

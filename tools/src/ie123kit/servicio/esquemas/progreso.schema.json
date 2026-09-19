@@ -25,5 +25,13 @@
     "actual",
     "total",
     "mensaje"
+  ],
+  "examples": [
+    {
+      "fase": "extraer",
+      "actual": 1,
+      "total": 3,
+      "mensaje": "vamos"
+    }
   ]
 }

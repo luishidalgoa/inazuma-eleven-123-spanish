@@ -109,5 +109,32 @@
         "parte"
       ]
     }
-  }
+  },
+  "examples": [
+    {
+      "id": "ie1:grafico:inazuma1/data_iz/a_title/title_t.arc#ie01_title_t_tlogo.tga",
+      "objetivo": "ie1",
+      "tipo": "grafico",
+      "ruta_romfs": "inazuma1/data_iz/a_title/title_t.arc",
+      "cadena_contenedores": [
+        "fa",
+        "arcv"
+      ],
+      "tamano": 128,
+      "editable": true,
+      "estado": "original",
+      "origen": "3ds_jp",
+      "subruta": "ie01_title_t_tlogo.tga",
+      "rects": [
+        {
+          "x0": 0,
+          "y0": 0,
+          "x1": 8,
+          "y1": 8,
+          "parte": "zona"
+        }
+      ],
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ]
 }

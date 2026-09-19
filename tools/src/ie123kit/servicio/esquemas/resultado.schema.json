@@ -92,5 +92,19 @@
         "mensaje"
       ]
     }
-  }
+  },
+  "examples": [
+    {
+      "ok": true,
+      "datos": {
+        "n": 1
+      },
+      "incidencias": [],
+      "artefactos": [
+        "a.png"
+      ],
+      "duracion_s": 0.0,
+      "api_version": "1.0"
+    }
+  ]
 }

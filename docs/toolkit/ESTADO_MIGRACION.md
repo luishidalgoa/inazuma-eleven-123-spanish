@@ -44,11 +44,7 @@ Se pausó el 2026-09-16 y el usuario pidió reanudarla el 2026-09-19.
   - `candidatas.sha256` vigila `base_3ds` y la candidata vigente `probe_ie2_v34`;
   - `verify_candidate` tiene golden nuevo (`verify_referencia.json`). Informa de 1 entrada
     sustituida y 22 fuentes idénticas, y `dialogue_lock` da PASS.
-- **Bloqueo v20 desactualizado (decisión del usuario).** `FONT_HASHES` de `tools/dialogue_lock.py` no
-  coincide con las fuentes de ninguna base actual: la extraída es la original y la v34 lleva espaciado y
-  bigramas. Por eso `ie123 construir` rechaza hoy cualquier base con `BLOQUEO_V20`. Los dos tests que lo
-  miden están en `xfail` explícito y no se ha tocado ningún fichero bloqueado. `congelados.sha256` no
-  cambia.
+- **Bloqueo v20 desactualizado**: resuelto en la F2.5 (#80, ver abajo).
 
 ### Autorrevisión del diff (2026-09-19)
 
@@ -61,17 +57,15 @@ Corregido en la rama:
 - la versión de las capas de `juego_principal` es la de la siguiente candidata, como en IE1;
 - se reconoce la ruta de historial de la capa conocida del menú.
 
-Queda abierto para la F2.4 o para decisión del usuario:
+Quedaba abierto; todo menos `_codificar` se corrigió en la F2.5 (ver abajo):
 
-- `migrar-juego-principal --simular` escribe `historico.json`. Lo pide el gate de #49, pero choca con
-  la regla de que simular no escribe nada;
+- ~~`migrar-juego-principal --simular` escribe `historico.json`~~;
 - `juego_principal._codificar` aplica `approved_layout` y codifica en cp932 los literales del menú.
   No se ha podido comprobar contra la ROM si el transporte debe ser el de ancho completo, así que no se
-  ha cambiado;
-- con varias capas, las `entradas_fa` no comparten raíz y el servicio las marca como pendientes: aún
-  no se funden varias `extra/`;
-- una importación que falla deja la carpeta de capa vacía creada;
-- `_volcar_toml` no entrecomilla las claves.
+  ha cambiado (sigue abierto);
+- ~~con varias capas no se funden varias `extra/`~~;
+- ~~una importación que falla deja la carpeta de capa vacía creada~~;
+- ~~`_volcar_toml` no entrecomilla las claves~~.
 
 ### Resultado del gate de F2.3 (2026-09-19, local)
 
@@ -116,15 +110,54 @@ Queda abierto para la F2.4 o para decisión del usuario:
 | CI local (toolkit.yml / guardia.yml) | ruff OK, guardia bloqueados/git/todo OK, 24 shims sin lógica, unittest OK |
 | (2) `ie123 compat comprobar --golden` | 0 (7 gates; `bloqueo_candidata` como aviso conocido #80) |
 | (3) `ie123 doctor` | 0 (aviso: no se localiza `mobipeg`) |
-| (4) QA en emulador con `ie123 construir` + `ie123 instalar` | **pendiente**: `construir` rechaza hoy toda base por `BLOQUEO_V20` (#80) |
+| (4) QA en emulador con `ie123 construir` + `ie123 instalar` | **pendiente** de la prueba del usuario; desde la F2.5 (#80) `construir` ya acepta la base v34 |
+
+## F2.5 (#51): en la rama `toolkit-f2.5` (PR apilado sobre `toolkit-f2.4`), pendiente de revisión
+
+- **Bloqueo tipográfico actualizado (#80, cerrado).** Autorización explícita del usuario (2026-09-19):
+  «sí, actualiza las huellas a la actual versión que tiene un motor de textos de calidad».
+  `FONT_HASHES` de `tools/dialogue_lock.py` son las fuentes de `probe_ie2_v34`: FONT12 `2e231267…`,
+  FONT12T `eb2a12cc…` y FONT8 `bec491a0…`. Las NFTR de IE1 no cambian. `congelados.sha256` se recapturó
+  solo para `dialogue_lock.py` y `BLOQUEO_PENDIENTE = False`. Los dos `xfail` pasan y `ie123 construir`
+  acepta la base v34. Las NFTR propias de IE2 (`inazuma2/data_iz/font/FONT12|FONT8.NFTR`, que cambió la
+  capa ie2 `fuentes`) **no** entran en el bloqueo: lo decide el propietario. **Pendiente del usuario**: la
+  nota del bloqueo en `AGENTS.md` y `CLAUDE.md` sigue diciendo «v20». Son instrucciones de agente y no se
+  han tocado sin una petición directa del usuario.
+- **API de servicio 1.0 para la GUI**: `API_VERSION = "1.0"`, esquemas con `examples`, esquemas
+  `datos_*` por método, `servicio.contrato` (`METODOS`, `TypedDict` de `datos`, `compatible`,
+  `validar_resultado`) y [`API_SERVICIO.md`](API_SERVICIO.md). `instalar` usa ya `[azahar] mods_dir` /
+  `IE123_AZAHAR`: antes caía siempre en la carpeta por defecto por un `TypeError` silenciado.
+- **Clientes sin cabeza**: `tests/contrato/test_flujo_gui.py` (sintético, en CI) y
+  `tests/requiere_rom/test_flujo_gui_real.py`. El real recorre exportar → editar un píxel → importar
+  simulado → capa `gui_*` → construir sobre v34 con el bloqueo real → verificar. Solo difiere
+  `title_t.arc` y el test borra todo lo que crea.
+- **Motores de fuentes portados** (#3, #4 y #8 del [plan](PLAN_PORTEO_CAPAS.md)), con equivalencia byte a
+  byte: bigramas y ritmo DP de IE1 v89, menús del CRO de IE2 v23, y banner/SMDH. Ninguna fuente cambia.
+- **Herramienta `nucleo.fuentes.liberar`** (solo informe): sobre v34, 0 códigos sin uso y 22 grupos de
+  celdas duplicadas, es decir, 22 códigos recuperables.
+- **Restos de la F2.3**: `--simular` ya no escribe; varias `extra/` se funden como entradas sueltas en
+  orden; una importación fallida borra su capa; `_volcar_toml` entrecomilla las claves.
+
+### Resultado del gate de F2.5 (2026-09-19, local)
+
+| Punto | Resultado |
+|---|---|
+| (1) `pytest -m "not requiere_rom"` (incluye `test_flujo_gui` sintético y los ejemplos de los esquemas) | 1395 passed, 1 skipped |
+| (2) `nucleo.compat.importaciones --baseline …` | 0 nuevos (208 scripts) |
+| (3) `pytest -m requiere_rom` (incluye `test_flujo_gui_real` y la equivalencia de fuentes, menús y banner) | 36 passed, 2 skipped (sin ROM parcheada; sin el PNG de v67), **0 xfail** |
+| `ie123 compat comprobar --golden` | 0 (7/7 gates; `bloqueo_candidata` pasa sobre v34) |
+| `ie123 doctor` | 0 (aviso: no se localiza `mobipeg`) |
+| CI local (toolkit.yml / guardia.yml) | ruff OK, guardia bloqueados/git OK, 24 shims sin lógica, unittest OK |
+| QA en emulador | pendiente del usuario |
 
 ## Pendiente
 
 - **F2.3**: revisión y fusión de la rama `toolkit-f2.3` (la decide el usuario).
 - **F2.4 (#50)**: revisión y fusión de la rama `toolkit-f2.4` (después de la F2.3). Queda el punto (4) del
   gate: construir e instalar una candidata completa para la QA en emulador, bloqueado por la decisión #80.
-- **F2.5 (#51)**: preparación para la GUI, más bigramas, rebanadas y escritura de SMDH/banner, una vez
-  decidido el bloqueo v20.
+- **F2.5 (#51)**: revisión y fusión de la rama `toolkit-f2.5` (después de la F2.4). Quedan del issue:
+  cerrar la épica #40 y abrir el issue de la GUI con la tecnología que elija el propietario, y la QA en
+  emulador de una candidata construida con `ie123`.
 - Mejoras menores abiertas: #53, #54, #56, #57, #60, #61, #62, #63.
 - Limpieza final (#55) después de F2.5.
 

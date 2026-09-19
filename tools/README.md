@@ -60,11 +60,17 @@ Todos los verbos tienen alias en inglés (`build`, `patch`, `extract`, `verify`,
   `python -m ie123kit._legado.verify_candidate`.
 - `compat comprobar` ejecuta los gates de la migración (`nucleo.compat.gates`): ficheros bloqueados,
   golden de congelados e importaciones de `work/`; con `--golden`, además la capa de referencia, las
-  candidatas, la reconstrucción de referencia y el bloqueo de la candidata vigente. Este último falla hoy
-  por la decisión pendiente #80 y se informa como aviso (fallo conocido), sin cambiar el código de salida.
+  candidatas, la reconstrucción de referencia y el bloqueo de la candidata vigente. Desde #80
+  (2026-09-19) el bloqueo aprueba las fuentes de `probe_ie2_v34` y ese gate tiene que pasar.
 - `motor …` expone los motores portados de las capas de IE2 en la F2.4 (paginado 37 × 3 / 131 B, teclado
   en SPF_, bancos DSP-ADPCM, subtítulos incrustados y parche de ancho del diálogo en la CRO). Escriben
   solo en `--salida` y nunca sobrescriben.
+- Motores de fuentes portados en la F2.5 (#51), como biblioteca (trabajan sobre copias en memoria y no
+  cambian ninguna fuente): `nucleo.fuentes.celdas` (lectura/escritura de celdas BCFNT), `nucleo.fuentes.ritmo`
+  (ritmo uniforme y partición DP de IE1 v89), `nucleo.fuentes.bigramas` (registro append-only),
+  `nucleo.fuentes.rebanadas` + `ie2.comun.menus` (menús del CRO de IE2 v23), `nucleo.texto.escaneo` y el
+  banner HOME (`juego_principal.banner`: SMDH, CBMD, LZ11, CGFX y BCWAV). API de servicio para la GUI:
+  [`docs/toolkit/API_SERVICIO.md`](../docs/toolkit/API_SERVICIO.md).
 
 - `construir` construye una candidata de TODA la recopilación (`--objetivos ie1,juego_principal`,
   `--capas` repetible), se niega a sobrescribir y **siempre** ejecuta el bloqueo tipográfico v20.
@@ -226,6 +232,12 @@ y sustitutos en [`_archivo/README.md`](_archivo/README.md).
 - Puerta del bloqueo v20 sobre una candidata: `python -m ie123kit.nucleo.validar.bloqueo --candidata
   <archive.fa>` (o su carpeta). Extrae las 5 fuentes de `dialogue_lock.FONT_HASHES` a un temporal que
   borra al terminar y llama a `dialogue_lock.validate`; devuelve 0 si cuadra y 1 si no.
+- Códigos de bigrama recuperables (solo informe, no cambia nada):
+  `python -m ie123kit.nucleo.fuentes.liberar --candidata work/shared/candidatas/probe_ie2_v34
+  --registro work/ie2/shared/capas/menus_cro/menus/registro.json --base-cro work/shared/base_3ds/romfs/cro
+  [--json informe.json]`. Lista los códigos sin uso en los textos de la candidata (eventos, `.STR`, `.dat`
+  de `logic/` y `movie/txt/`, CRO) y los grupos de códigos con el mismo dibujo en todas sus fuentes.
+  Liberar uno de verdad toca fuentes y textos: necesita una petición explícita del usuario.
 - El código nuevo calcula la raíz del repo con `find_root` (`ie123kit.nucleo.config.raiz`) o con la
   variable `IE123_ROOT`.
 - Cada objetivo declara sus activos en `activos.toml` (esquema 1: prefijos de `archive.fa`, CRO y rutas de

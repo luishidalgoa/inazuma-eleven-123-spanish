@@ -218,7 +218,7 @@ class JuegoIE1(JuegoBase):
             'descripcion = "capa generada por ie123kit.ie1.acciones"\n'
         )
         (destino / "capa.toml").write_text(meta, encoding="utf-8")
-        return destino
+        return self._capa_creada(destino)
 
     # ---------------------------------------------------------------- gráficos
 

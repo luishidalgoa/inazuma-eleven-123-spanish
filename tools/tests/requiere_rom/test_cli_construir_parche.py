@@ -80,11 +80,6 @@ def test_cli_construir_reaplica_la_capa_sobre_la_vigente(raiz):
         salida = tmp / "referencia"
         proceso = _cli(raiz, "--json", "construir", "--base", golden.CANDIDATA_VIGENTE,
                        "--capas", CAPA, "--salida", str(salida))
-        if proceso.returncode == 3 and "BLOQUEO_V20" in proceso.stdout:
-            # Estado conocido (2026-09-19): las fuentes vigentes (espaciado autorizado el 2026-09-16 y
-            # registro de bigramas) ya no coinciden con FONT_HASHES de tools/dialogue_lock.py. Actualizar
-            # esos hashes es decisión del usuario; hasta entonces este punto del gate queda en xfail.
-            pytest.xfail("bloqueo v20: FONT_HASHES de dialogue_lock.py no son las fuentes vigentes")
         assert proceso.returncode == 0, proceso.stdout + proceso.stderr
         archive = salida / "archive.fa"
         assert archive.is_file(), proceso.stdout

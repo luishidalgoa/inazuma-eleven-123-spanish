@@ -1,8 +1,22 @@
 # Plan de porteo de los motores de capa a ie123kit
 
-Estado (2026-09-19): **F2.4 portada** (#1, #2, #5, #6 y #7, rama `toolkit-f2.4`, #50); #3, #4 y #8
-siguen pendientes para la F2.5 (tocan fuentes o la GUI). El plan se escribió al reanudar la migración en
-la F2.3 (#49).
+Estado (2026-09-19): **todos los motores portados**. F2.4 (#1, #2, #5, #6 y #7, rama `toolkit-f2.4`,
+#50) y F2.5 (#3, #4 y #8, rama `toolkit-f2.5`, #51). El plan se escribió al reanudar la migración en la
+F2.3 (#49). Queda retirar de las capas el código duplicado (#55).
+
+### Qué se porteó en la F2.5 y dónde quedó
+
+| # | Motor | Módulos | Prueba de equivalencia (`requiere_rom`, `test_equivalencia_fuentes_banner.py`) |
+|---|---|---|---|
+| 3 | Registro de bigramas, dibujo de celdas y ritmo DP | `nucleo.fuentes.celdas`, `nucleo.fuentes.ritmo` (`ParametrosRitmo`, IE1 por defecto), `nucleo.fuentes.bigramas` (registro append-only), `nucleo.texto.escaneo` | Desde la FONT12 de `historial/fuentes/v88_bigramas_total`, los 847 códigos de `fuentes/bigramas_ritmo` (v89) dan la misma FONT12 (`b409c24c…`); las 2384 particiones DP de su informe salen iguales; el escáner da las mismas apariciones en la base japonesa |
+| 4 | Menús del CRO en rebanadas/trozos (camino proporcional) | `nucleo.fuentes.rebanadas` + `ie2.comun.menus` (parámetros de IE2 v23) | Desde las salidas de la v22, `menus_cro/menus` (v23): misma `ina_main2.cro`, FONT12, FONT8 y registro |
+| 8 | Banner y SMDH del menú HOME | `nucleo.compresion.lz11`, `nucleo.contenedores.cbmd`, `nucleo.graficos.cgfx`, `nucleo.media.bcwav`, `nucleo.ejecutable.smdh` (títulos), `juego_principal.banner` | `shared/capas/graficos/banner_home`: `icon.bin`, CGFX, BCWAV (con ffmpeg) y `banner.bnr` idénticos |
+
+Herramienta nueva para liberar códigos (solo informe): `python -m ie123kit.nucleo.fuentes.liberar`.
+Sobre `probe_ie2_v34` y el registro de `menus_cro/menus` (1596 códigos, 0 libres): ningún código está
+sin uso en los textos escaneados y hay **22 grupos de celdas duplicadas**, así que se podrían recuperar
+22 códigos. En 10 grupos se ve el mismo glifo para «l» y para «I»; en el resto, casillas con y sin espacio
+cuya tinta coincide. Liberarlos toca fuentes y textos y necesita una petición explícita del usuario.
 
 ### Qué se porteó en la F2.4 y dónde quedó
 
@@ -73,11 +87,13 @@ Nada de esto es trivial; por eso no se portea nada en la F2.3.
 
 ## Decisiones que necesita el usuario
 
-1. **Hashes del bloqueo v20.** `FONT_HASHES` de `tools/dialogue_lock.py` corresponden a las fuentes v20;
-   las vigentes (espaciado autorizado el 2026-09-16 y registro de bigramas) ya no coinciden, así que
-   `ie123 construir` rechaza cualquier base actual con `BLOQUEO_V20`. Los tests que lo detectan están en
-   `xfail` explícito. Actualizar esos hashes (y `congelados.sha256`) es decisión del usuario.
-2. **Registro de bigramas agotado** (queda ~1 código libre). Antes de portear #3/#4 hay que decidir cómo
-   se liberan códigos para IE3.
+1. **Hashes del bloqueo (resuelto el 2026-09-19, #80).** El usuario autorizó actualizar las huellas a las
+   fuentes de `probe_ie2_v34` («sí, actualiza las huellas a la actual versión que tiene un motor de textos de
+   calidad»). `FONT_HASHES` de `tools/dialogue_lock.py` son ahora FONT12/FONT12T/FONT8 de v34 y las NFTR de
+   IE1 (sin cambios); `congelados.sha256` se recapturó y los dos `xfail` se quitaron. Cualquier cambio
+   posterior de fuentes vuelve a necesitar una petición explícita del usuario.
+2. **Registro de bigramas agotado** (0 libres en el registro vigente). El informe de
+   `nucleo.fuentes.liberar` propone 22 códigos recuperables (celdas duplicadas). Hay que decidir si se
+   liberan antes de IE3; hacerlo toca la tipografía.
 3. **Candidata vigente de los gates.** `golden.CANDIDATA_VIGENTE = probe_ie2_v34`. Si se borra, se cambia
    la constante y se recaptura `candidatas.sha256` (`python -m ie123kit.nucleo.compat.golden capturar`).
