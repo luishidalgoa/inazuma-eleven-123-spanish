@@ -25,8 +25,8 @@ Antes de rescatar cualquier idea de aquí, lee [`docs/FURIGANA_LECCIONES.md`](..
 | `tr_merge.py` | Mitad de fusión del mismo flujo. | Validación «solo rellenar pendiente o vacío» del importador de textos (fase 2) |
 | `align_events.py` | Alineador por orden (Needleman-Wunsch), fallido. | Emparejamiento por ID; ver [#36](https://github.com/luishidalgoa/inazuma-eleven-123-spanish/issues/36). `dialogue_runs`/`is_furigana` siguen en la fachada `_legado` de pkb_unpack |
 | `audit_ie1_voiced_text.py` | Sustituido por la auditoría por ID. Sin importadores. | `work/ie1/capas/media/voces/auditoria.py`; regla documentada en `ie1/media/voces.py` |
-| `verify_build.py` | Comprobaciones SAME_SIZE de la era v27. Sin llamadores. | `tools/verify_candidate.py` (sigue como shim de `ie123kit._legado.verify_candidate`) |
-| `verify_v21.py` | Aserciones puntuales contra v21, que ya no existe. | `tools/verify_candidate.py` (sigue como shim de `ie123kit._legado.verify_candidate`) |
+| `verify_build.py` | Comprobaciones SAME_SIZE de la era v27. Sin llamadores. | `ie123 verificar` (el shim `tools/verify_candidate.py` se retiró en la F2.4) |
+| `verify_v21.py` | Aserciones puntuales contra v21, que ya no existe. | `ie123 verificar` (el shim `tools/verify_candidate.py` se retiró en la F2.4) |
 | `fix_ie1_title_logo.py` | Rehecho por capas posteriores; tenía una ruta fija a Downloads. | Capas v60/v62/v63 y `work/ie1/capas/graficos/titulo_logo` |
 | `compact_typography.py` | Experimentos v4/v8 superados por el bloqueo v20. | Bloqueo tipográfico v20 (`tools/dialogue_lock.py`, `AGENTS.md`) |
 | `build_match_content_patch.py` | Produjo mch v23-v27. | `work/ie1/capas/historial/dialogo/v33_mch_story` y `work/ie1/capas/historial/dialogo/v55_pachangas`; invariantes a `ie1/texto/mch.py` (fase 2) |
@@ -60,5 +60,5 @@ con `patch_exefs.py`, `ie1_tables.py`, `ie1_media.py` y `validate_ie1_media.py`.
 
 ## Nota
 
-No se crean stubs en `tools/` para estos nombres. En la fase 2, `ie123 compat equivalencias`
-indicará la orden sustituta de cada script retirado.
+No se crean stubs en `tools/` para estos nombres. `ie123 compat equivalencias` (F2.4) indica la orden
+sustituta de cada script retirado, incluidos los shims de CLI retirados en la F2.4.

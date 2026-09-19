@@ -62,7 +62,7 @@ Si descubres un fallo/limitación nuevo, **añádelo a ese documento** en el mom
 Todo recurso se guarda en la carpeta de su juego (`ie1/`, `ie2/<versión>/`, `ie3/<versión>/`) o en
 `shared/` si es común a la recopilación, tanto en `work/` como en `Roms/` y `translation/`. Nada nuevo en
 la raíz de `work/`. Ver **[`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md)**; tras instalar una candidata,
-`python tools/limpiar_work.py --borrar`.
+`ie123 work limpiar --borrar`.
 
 ## Estado y documentación
 

@@ -21,6 +21,7 @@ from ie123kit.nucleo.tipos import API_VERSION, CancelToken, Incidencia, Progreso
 
 __all__ = [
     "API_VERSION",
+    "MOTORES",
     "OBJETIVOS",
     "ServicioToolkit",
     "SolicitudConstruccion",
@@ -37,6 +38,18 @@ OBJETIVOS: dict[str, str] = {
     "ie3.fuego_explosivo": "ie123kit.ie3.fuego_explosivo",
     "ie3.amenaza_del_ogro": "ie123kit.ie3.amenaza_del_ogro",
 }
+
+#: Motores con entrada de fichero: ``(juego, motor) -> "módulo:función"`` (import dinámico, como OBJETIVOS).
+#: Los motores son de un juego (sus límites y direcciones cambian); ``ie123 motor`` los expone.
+MOTORES: dict[tuple[str, str], str] = {
+    ("ie1", "paginar"): "ie123kit.ie1.texto.dialogo:paginar",
+    ("ie2", "paginar"): "ie123kit.ie2.comun.motores:paginar",
+    ("ie2", "teclado"): "ie123kit.ie2.comun.motores:teclado",
+    ("ie2", "cro-ancho-dialogo"): "ie123kit.ie2.comun.motores:cro_ancho_dialogo",
+    ("ie2", "voces"): "ie123kit.ie2.comun.motores:voces",
+    ("ie2", "subtitulos"): "ie123kit.ie2.comun.motores:subtitulos",
+}
+
 
 def _juego_generico(paquete: str) -> JuegoBase:
     """Instancia mínima de JuegoBase para un paquete que aún no declara ``JUEGO`` (llega en F2.3)."""
@@ -883,13 +896,221 @@ class ServicioToolkit:
         if isinstance(salida, Resultado):
             datos = dict(salida.datos or {})
             datos["api_version"] = API_VERSION
+            entorno, extra = self._entorno()
+            datos.update(entorno)
+            incidencias = [*salida.incidencias, *extra]
+            ok = salida.ok and not any(i.severidad == "error" for i in extra)
             return self._cronometrar(
-                t0, Resultado.correcto(datos=datos, incidencias=list(salida.incidencias))
-                if salida.ok else Resultado.fallo(list(salida.incidencias))
+                t0, Resultado.correcto(datos=datos, incidencias=incidencias)
+                if ok else Resultado.fallo(incidencias, datos=datos)
             )
         datos = dict(salida) if isinstance(salida, dict) else {"doctor": salida}
         datos["api_version"] = API_VERSION
         return self._cronometrar(t0, Resultado.correcto(datos=datos))
+
+    def _entorno(self) -> tuple[dict[str, Any], list[Incidencia]]:
+        """Comprobaciones de `ie123 doctor` que no dependen del Workspace (F2.4)."""
+        import shutil
+        import sys
+
+        datos: dict[str, Any] = {"python": sys.version.split()[0]}
+        incidencias: list[Incidencia] = []
+        dependencias: dict[str, bool] = {}
+        for modulo, obligatoria in (("PIL", True), ("numpy", True), ("capstone", True), ("scipy", False),
+                                    ("cv2", False)):
+            try:
+                importlib.import_module(modulo)
+                dependencias[modulo] = True
+            except Exception:
+                dependencias[modulo] = False
+                incidencias.append(Incidencia("NOT_SUPPORTED", "error" if obligatoria else "aviso",
+                                              f"Falta el módulo de Python {modulo!r}.",
+                                              pista='python -m pip install -e "tools[dev,graficos]"'))
+        datos["dependencias"] = dependencias
+        try:
+            from ie123kit.nucleo.config import herramientas as H
+
+            externas = {}
+            for nombre in H.HERRAMIENTAS:
+                ruta = H.localizar(nombre, ws=self.ws)
+                externas[nombre] = str(ruta) if ruta else None
+                if ruta is None:
+                    incidencias.append(Incidencia("HERRAMIENTA_AUSENTE", "aviso", f"No se encuentra {nombre}.",
+                                                  pista="tools/bin, [herramientas] de ie123.local.toml o el PATH."))
+            datos["herramientas_externas"] = externas
+        except Exception as exc:
+            incidencias.append(Incidencia("NOT_SUPPORTED", "aviso", f"herramientas: {exc}"))
+        if (self.ws.raiz / "tools" / "dialogue_lock.py").is_file():
+            try:
+                import contextlib
+                import io
+
+                from ie123kit.nucleo.compat import guardia
+
+                with contextlib.redirect_stdout(io.StringIO()):
+                    codigo = guardia.comprobar_bloqueados(self.ws.raiz)
+                datos["bloqueados"] = codigo == 0
+                if codigo:
+                    incidencias.append(Incidencia("BLOQUEO_V20", "error",
+                                                  "Los ficheros congelados v20 no coinciden byte a byte.",
+                                                  pista="python -m ie123kit.nucleo.compat.guardia bloqueados"))
+            except Exception as exc:
+                incidencias.append(Incidencia("NOT_SUPPORTED", "aviso", f"bloqueados: {exc}"))
+        roms = {**(self.ws.proyecto.get("roms") or {}), **(self.ws.local.get("roms") or {})}
+        datos["roms"] = {k: (Path(v) if Path(v).is_absolute() else self.ws.raiz / v).is_file()
+                         for k, v in roms.items() if isinstance(v, str)}
+        for clave, existe in datos["roms"].items():
+            if not existe:
+                incidencias.append(Incidencia("NOT_SUPPORTED", "aviso", f"ROM {clave} configurada pero ausente."))
+        try:
+            libre = shutil.disk_usage(self.ws.raiz).free
+            datos["espacio_libre_gb"] = round(libre / 2**30, 1)
+            if libre < 4 * 2**30:
+                incidencias.append(Incidencia("NOT_SUPPORTED", "aviso", "Menos de 4 GB libres para construir."))
+        except OSError:
+            pass
+        return datos, incidencias
+
+    # -- órdenes de F2.4 (#50) ---------------------------------------------
+
+    def extraer(self, tipo: str, rom: str | Path | None = None, salida: str | Path | None = None, *,
+                progreso: Callable[[Progreso], None] | None = None,
+                cancel: CancelToken | None = None) -> Resultado:
+        """Extrae una ROM a ``work/``: ``romfs`` (3DS con 3dstool) o ``nds`` (Python puro).
+
+        Sin ``rom``, ``romfs`` usa ``[roms] 3ds_jp`` de la configuración (``ie123 proyecto init``) o la
+        ruta por defecto de ``extract_romfs.ps1``; sin ``salida``, ``work/shared/base_3ds``. ``nds``
+        exige las dos rutas. Nunca escribe fuera de ``salida``.
+        """
+        t0 = time.perf_counter()
+        try:
+            from ie123kit.nucleo.construir import extraer as extractor
+        except ImportError as exc:
+            return self._cronometrar(t0, Resultado.no_soportado(f"extraer: falta el núcleo ({exc})"))
+        if tipo not in ("romfs", "nds"):
+            return self._cronometrar(t0, Resultado.no_soportado(f"extraer: tipo desconocido {tipo!r} (romfs|nds)"))
+        if rom is None and tipo == "romfs":
+            rom = self._rom_configurada("3ds_jp")
+        if rom is None:
+            return self._cronometrar(t0, Resultado.no_soportado(f"extraer {tipo}: falta --rom"))
+        if salida is None:
+            if tipo == "nds":
+                return self._cronometrar(t0, Resultado.no_soportado("extraer nds: falta --salida"))
+            salida = self.ws.raiz / "work" / "shared" / "base_3ds"
+        rom, salida = Path(rom), Path(salida)
+        if not salida.is_absolute():
+            salida = self.ws.raiz / salida
+        if not rom.is_absolute() and not rom.is_file():
+            rom = self.ws.raiz / rom
+        ocupada = (salida / "romfs").exists() if tipo == "romfs" else (salida.is_dir() and any(salida.iterdir()))
+        if ocupada:
+            return self._cronometrar(t0, Resultado.fallo([_incidencia(
+                "NOT_SUPPORTED", f"extraer {tipo}: la salida ya tiene una extracción ({salida})",
+                pista="No se sobrescribe: bórrala o elige otra --salida.")]))
+        try:
+            datos = extractor.romfs_3ds(rom, salida, ws=self.ws) if tipo == "romfs" else extractor.nds(rom, salida)
+        except Exception as exc:
+            codigo = "HERRAMIENTA_AUSENTE" if getattr(exc, "codigo", "") == "HERRAMIENTA_AUSENTE" else "NOT_SUPPORTED"
+            return self._cronometrar(t0, Resultado.fallo([_incidencia(codigo, f"extraer {tipo}: {exc}")]))
+        return self._cronometrar(t0, Resultado.correcto(datos=datos, artefactos=(str(salida),)))
+
+    def _rom_configurada(self, clave: str) -> Path | None:
+        """``[roms] <clave>`` de ie123.local.toml/ie123.toml; si no, la ruta de siempre si existe."""
+        roms = {**(self.ws.proyecto.get("roms") or {}), **(self.ws.local.get("roms") or {})}
+        valor = roms.get(clave)
+        if isinstance(valor, dict):
+            valor = valor.get("ruta")
+        if isinstance(valor, str) and valor:
+            return Path(valor)
+        for nombre in ("Inazuma Eleven 1-2-3!! - Endou Mamoru Densetsu (2012) (Japan).3ds",
+                       "Inazuma Eleven 1-2-3 - Endou Mamoru Densetsu.3ds"):
+            defecto = self.ws.raiz / "Roms" / "shared" / nombre
+            if defecto.is_file():
+                return defecto
+        return None
+
+    def compat(self, golden: bool = False, *, progreso: Callable[[Progreso], None] | None = None,
+               cancel: CancelToken | None = None) -> Resultado:
+        """Gates de la migración (``nucleo.compat.gates``). Un gate conocido (#80) no cuenta como fallo."""
+        t0 = time.perf_counter()
+        try:
+            from ie123kit.nucleo.compat import gates
+        except ImportError as exc:
+            return self._cronometrar(t0, Resultado.no_soportado(f"compat: falta el núcleo ({exc})"))
+        lista = gates.comprobar(self.ws.raiz, golden=golden)
+        incidencias = []
+        for g in lista:
+            if g["ok"]:
+                continue
+            if g["conocido"]:
+                incidencias.append(Incidencia("BLOQUEO_V20", "aviso",
+                                              f"{g['gate']}: fallo conocido, pendiente de decisión (#80): "
+                                              f"{g['detalle']}"))
+            else:
+                codigo = "BLOQUEO_V20" if g["gate"] == "bloqueados" else "GATE_FALLIDO"
+                incidencias.append(_incidencia(codigo, f"{g['gate']}: {g['detalle']}"))
+        datos = {"golden": golden, "gates": lista}
+        if any(i.severidad == "error" for i in incidencias):
+            return self._cronometrar(t0, Resultado.fallo(incidencias, datos=datos))
+        return self._cronometrar(t0, Resultado.correcto(datos=datos, incidencias=tuple(incidencias)))
+
+    def registro(self, sesion: str | None = None, logdir: str | Path | None = None, forzar: bool = False, *,
+                 progreso: Callable[[Progreso], None] | None = None,
+                 cancel: CancelToken | None = None) -> Resultado:
+        """Cosecha el log de Azahar en ``logs/runtime_errors.json`` (antes ``harvest_log.py``)."""
+        t0 = time.perf_counter()
+        try:
+            from ie123kit.nucleo.construir import registro_azahar
+
+            logs = self.ws.raiz / "logs"
+            datos = registro_azahar.cosechar(sesion=sesion, logdir=str(logdir) if logdir else None, forzar=forzar,
+                                             registro=str(logs / "runtime_errors.json"),
+                                             informe_md=str(logs / "INFORME_ERRORES.md"))
+        except Exception as exc:
+            return self._cronometrar(t0, Resultado.fallo([_incidencia("NOT_SUPPORTED", f"registro: {exc}")]))
+        artefactos = (datos["registro"], datos["informe"]) if datos["procesados"] else ()
+        return self._cronometrar(t0, Resultado.correcto(datos=datos, artefactos=artefactos))
+
+    def equivalencias(self, *, progreso: Callable[[Progreso], None] | None = None,
+                      cancel: CancelToken | None = None) -> Resultado:
+        """Orden ``ie123`` que sustituye a cada script u orden antigua (``servicio.equivalencias``)."""
+        t0 = time.perf_counter()
+        from ie123kit.servicio.equivalencias import EQUIVALENCIAS
+
+        tabla = [{"antigua": k, "nueva": v, "nota": n} for k, (v, n) in EQUIVALENCIAS.items()]
+        return self._cronometrar(t0, Resultado.correcto(datos={"equivalencias": tabla}))
+
+    def motores(self, *, progreso: Callable[[Progreso], None] | None = None,
+                cancel: CancelToken | None = None) -> Resultado:
+        """Motores con entrada de fichero disponibles, por juego."""
+        t0 = time.perf_counter()
+        tabla: dict[str, list[str]] = {}
+        for juego, nombre in MOTORES:
+            tabla.setdefault(juego, []).append(nombre)
+        return self._cronometrar(t0, Resultado.correcto(datos={"motores": tabla}))
+
+    def motor(self, juego: str, nombre: str, parametros: dict[str, Any] | None = None, *,
+              progreso: Callable[[Progreso], None] | None = None,
+              cancel: CancelToken | None = None) -> Resultado:
+        """Ejecuta el motor ``nombre`` de ``juego`` con ``parametros`` (rutas y opciones)."""
+        t0 = time.perf_counter()
+        destino = MOTORES.get((juego, nombre))
+        if destino is None:
+            validos = ", ".join(f"{j}:{n}" for j, n in sorted(MOTORES))
+            return self._cronometrar(
+                t0, Resultado.no_soportado(f"motor desconocido {juego}:{nombre}. Válidos: {validos}"))
+        modulo, _, funcion = destino.partition(":")
+        try:
+            salida = getattr(importlib.import_module(modulo), funcion)(**(parametros or {}))
+        except FileExistsError as exc:
+            return self._cronometrar(t0, Resultado.fallo([_incidencia("NOT_SUPPORTED", f"{nombre}: {exc}",
+                                                                      pista="La salida no se sobrescribe.")]))
+        except Exception as exc:
+            return self._cronometrar(t0, Resultado.fallo([_incidencia("NOT_SUPPORTED", f"{nombre}: {exc}")]))
+        salida = dict(salida)
+        artefactos = tuple(salida.pop("artefactos", ()))
+        datos = json.loads(json.dumps(salida, ensure_ascii=False, default=str))
+        return self._cronometrar(t0, Resultado.correcto(datos=datos, artefactos=artefactos))
 
     # -- trabajos -----------------------------------------------------------
 

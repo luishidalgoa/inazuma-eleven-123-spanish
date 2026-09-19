@@ -172,7 +172,7 @@ python work/vN/<linea>/validate.py          # solo cambian las texturas/registro
 python tools/build_ui_revision.py --base work/probe_ie1_v(N-1)/archive.fa --ui work/vN/<linea> \
     --extra work/vN/<linea>/extra --cro work/probe_ie1_v(N-1)/romfs/cro/ina_main1.cro \
     --output work/probe_ie1_vN/archive.fa
-python tools/verify_candidate.py --base work/probe_ie1_v(N-1) --candidate work/probe_ie1_vN \
+python -m ie123kit._legado.verify_candidate --base work/probe_ie1_v(N-1) --candidate work/probe_ie1_vN \
     --layer work/vN/<linea>/extra [--events work/vN/<linea>/events]
 ```
 

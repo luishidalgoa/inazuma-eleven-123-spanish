@@ -27,7 +27,7 @@ pytestmark = pytest.mark.requiere_rom
 
 CAPA = golden.CAPA
 VIGENTE = f"work/shared/candidatas/{golden.CANDIDATA_VIGENTE}"
-ROM_BASE = "Roms/shared/Inazuma Eleven 1-2-3 - Endou Mamoru Densetsu.3ds"
+ROM_BASE = "Roms/shared/Inazuma Eleven 1-2-3!! - Endou Mamoru Densetsu (2012) (Japan).3ds"
 # Candidatas habituales de la ROM ya parcheada (no está versionada; si no existe, se salta).
 ROM_PARCHEADA = ["build/123_es.3ds", "work/shared/rom/123_es.3ds", "build/inazuma123_es.3ds"]
 MIN_LIBRE = 4 * 1024**3

@@ -97,12 +97,14 @@ def _python(codigo: str, *args: str) -> subprocess.CompletedProcess:
 
 def test_mapa():
     assert len(TRASLADOS_F14) == 13
-    distintos = {n: (shims.MAPA.get(n), d) for n, d in TRASLADOS_F14.items() if shims.MAPA.get(n) != d}
+    distintos = {n: (shims.MAPA.get(n), d) for n, d in TRASLADOS_F14.items()
+                 if n not in shims.RETIRADOS and shims.MAPA.get(n) != d}
     assert not distintos, f"MAPA difiere de TRASLADOS_F14 (actual, esperado): {distintos}"
-    assert len(shims.MAPA) == 29
+    # 29 shims hasta la F2.4; ese día se retiraron los 5 de CLI (shims.RETIRADOS, #50).
+    assert len(shims.MAPA) == 29 - len(shims.RETIRADOS) == 24
 
 
-@pytest.mark.parametrize("nombre", list(TRASLADOS_F14))
+@pytest.mark.parametrize("nombre", [n for n in TRASLADOS_F14 if n not in shims.RETIRADOS])
 def test_shim_trasladado_f14(nombre):
     ruta = TOOLS / f"{nombre}.py"
     if not _trasladado(nombre):

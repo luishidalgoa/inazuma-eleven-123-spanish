@@ -3,9 +3,10 @@
 ## Paquete ie123kit
 
 La fase 1 de la migración (épica #40, subfases F1.0-F1.5) está cerrada. El código vive en
-`tools/src/ie123kit`; en `tools/` solo quedan los 5 congelados, 29 shims sin lógica, los 6 `.ps1`
-(`build_patch`, `extract_nds`, `extract_romfs`, `jugar`, `setup_mobipeg`, `setup_vgmstream`), `bin/`
-(local, ignorado), `_archivo/`, `src/`, `tests/`, `pyproject.toml` y este README.
+`tools/src/ie123kit`; en `tools/` solo quedan los 5 congelados, 24 shims de importación sin lógica (los 5
+de CLI se retiraron en la F2.4, #50), los 6 `.ps1` (`build_patch`, `extract_nds` y `extract_romfs` son
+envoltorios de una orden `ie123`; `jugar` lanza Azahar y cosecha con `ie123 registro`; `setup_mobipeg`,
+`setup_vgmstream`), `bin/` (local, ignorado), `_archivo/`, `src/`, `tests/`, `pyproject.toml` y este README.
 
 > Norma 2: nunca se suben ROMs ni datos extraídos (`Roms/` y `work/` están ignorados). La CI lo comprueba.
 
@@ -32,7 +33,38 @@ ie123 proyecto migrar-juego-principal
 ie123 objetivos
 ie123 juego_principal activos --json
 ie123 work limpiar          # --borrar para borrar de verdad
+ie123 extraer romfs         # ROM 3DS -> work/shared/base_3ds (3dstool)
+ie123 extraer nds --rom "Roms/ie1/....nds" --salida work/ie1/fuentes/nds_es
+ie123 verificar --candidata probe_ie2_v34 [--golden]
+ie123 instalar --candidata probe_ie2_v34 [--lanzar]
+ie123 registro --sesion v35  # cosecha el log de Azahar (antes harvest_log.py)
+ie123 compat comprobar [--golden]
+ie123 compat equivalencias  # orden nueva de cada script retirado
+ie123 motor listar
+ie123 motor paginar --juego ie2 --texto "..."
+ie123 motor teclado --archive A --salida DIR
+ie123 motor cro-ancho-dialogo --cro ina_main2.cro --salida DIR/ina_main2.cro
+ie123 motor voces --sonido-3ds D --sonido-nds D --bancos 2D_020_01,2D_020_02 --salida DIR
+ie123 motor subtitulos --dat a2m03.dat [--fotogramas N]
 ```
+
+Todos los verbos tienen alias en inglés (`build`, `patch`, `extract`, `verify`, `install`, `log`,
+`engine`, `check`…; tabla en `ie123kit.cli.main.ALIAS`). Códigos de salida: 0 ok, 1 validación,
+2 uso incorrecto, 3 bloqueo v20, 4 falta una herramienta, 5 no soportado; los avisos no cambian el código.
+
+- `extraer romfs|nds`: `romfs` repite los pasos de `extract_romfs.ps1` con 3dstool (la ROM sale de
+  `[roms] 3ds_jp` de `ie123.local.toml` si no se pasa `--rom`); `nds` es Python puro (sin ndstool) y deja
+  la misma salida que el antiguo `nds_unpack.py`.
+- `verificar` ejecuta siempre el bloqueo v20; `--golden` compara además con `candidatas.sha256`. El
+  informe detallado de IE1 del antiguo `verify_candidate.py` sigue en
+  `python -m ie123kit._legado.verify_candidate`.
+- `compat comprobar` ejecuta los gates de la migración (`nucleo.compat.gates`): ficheros bloqueados,
+  golden de congelados e importaciones de `work/`; con `--golden`, además la capa de referencia, las
+  candidatas, la reconstrucción de referencia y el bloqueo de la candidata vigente. Este último falla hoy
+  por la decisión pendiente #80 y se informa como aviso (fallo conocido), sin cambiar el código de salida.
+- `motor …` expone los motores portados de las capas de IE2 en la F2.4 (paginado 37 × 3 / 131 B, teclado
+  en SPF_, bancos DSP-ADPCM, subtítulos incrustados y parche de ancho del diálogo en la CRO). Escriben
+  solo en `--salida` y nunca sobrescriben.
 
 - `construir` construye una candidata de TODA la recopilación (`--objetivos ie1,juego_principal`,
   `--capas` repetible), se niega a sobrescribir y **siempre** ejecuta el bloqueo tipográfico v20.
@@ -147,20 +179,20 @@ ruff y black. El paquete los usa mediante re-exports perezosos que no copian có
 |---|---|---|---|
 | `audit_dialogo_ids.py` | `ie123kit._legado.audit_dialogo_ids` | `nucleo.eventos.alineado_ids` | fachada |
 | `bcfnt.py` | `ie123kit._legado.bcfnt` | `nucleo.fuentes.bcfnt` | fachada permanente (`font_patch.py` hace `from bcfnt import BCFNT`) |
-| `blz.py` | `ie123kit._legado.blz` | `nucleo.compresion.blz` | fachada |
+| `blz.py` | `ie123kit._legado.blz` | `nucleo.compresion.blz` | **retirado en F2.4**: `python -m ie123kit._legado.blz in out` |
 | `build_glossary.py` | `ie123kit._legado.build_glossary` | `nucleo.texto.nds_latin` | fachada |
 | `ctpk_ui.py` | `ie123kit.nucleo.graficos.ctpk` | — | alias directo |
 | `ds_official.py` | `ie123kit._legado.ds_official` | `nucleo.texto.nds_latin` + `nucleo.eventos.alineado_ids` | fachada (`--legado-lo-se`) |
 | `ds_roster.py` | `ie123kit._legado.ds_roster` | — | cuarentena |
 | `fa_repack.py` | `ie123kit._legado.fa_repack` | `nucleo.contenedores.fa` (`fe_offset_of`) | fachada |
 | `fa_unpack.py` | `ie123kit._legado.fa_unpack` | `nucleo.contenedores.fa` | fachada |
-| `harvest_log.py` | `ie123kit._legado.harvest_log` | `nucleo.construir.registro_azahar` | fachada |
+| `harvest_log.py` | `ie123kit._legado.harvest_log` | `nucleo.construir.registro_azahar` | **retirado en F2.4**: `ie123 registro` |
 | `ie1_keyboard.py` | `ie123kit.ie1.graficos.teclado` | — | alias directo |
 | `legacy_sprite.py` | `ie123kit.nucleo.graficos.pac_sprite` | — | alias directo |
-| `limpiar_work.py` | `ie123kit._legado.limpiar_work` | `nucleo.construir.limpieza` | fachada (hoy: `ie123 work limpiar [--borrar]`) |
+| `limpiar_work.py` | `ie123kit._legado.limpiar_work` | `nucleo.construir.limpieza` | **retirado en F2.4**: `ie123 work limpiar [--borrar]` |
 | `lz10.py` | `ie123kit.nucleo.compresion.lz10` | — | alias directo sin CLI (autotest: `python -m ie123kit.nucleo.compresion.lz10`) |
 | `mods_to_moflex.py` | `ie123kit._legado.mods_to_moflex` | `nucleo.media.moflex` + `nucleo.media.subtitulos_dat` | fachada |
-| `nds_unpack.py` | `ie123kit._legado.nds_unpack` | `nucleo.contenedores.nds_rom` | fachada |
+| `nds_unpack.py` | `ie123kit._legado.nds_unpack` | `nucleo.contenedores.nds_rom` | **retirado en F2.4**: `ie123 extraer nds` |
 | `nftr_metrics.py` | `ie123kit._legado.nftr_metrics` | `nucleo.fuentes.nftr` | fachada |
 | `patch_smdh_title.py` | `ie123kit._legado.patch_smdh_title` | `nucleo.ejecutable.smdh` | fachada |
 | `pkb_unpack.py` | `ie123kit._legado.pkb_unpack` | `nucleo.eventos.packnum` + `nucleo.texto.nds_latin` | fachada |
@@ -173,7 +205,7 @@ ruff y black. El paquete los usa mediante re-exports perezosos que no copian có
 | `translate_ui_textures.py` | `ie123kit._legado.translate_ui_textures` | `nucleo.graficos.pintado` | fachada |
 | `ui_archive.py` | `ie123kit._legado.ui_archive` | `nucleo.contenedores.arcv` + `nucleo.compresion.sszl` | fachada |
 | `validate.py` | `ie123kit._legado.validate` | — | cuarentena |
-| `verify_candidate.py` | `ie123kit._legado.verify_candidate` | `nucleo.validar.candidata` + `ie1.verificar` | fachada |
+| `verify_candidate.py` | `ie123kit._legado.verify_candidate` | `nucleo.validar.candidata` + `ie1.verificar` | **retirado en F2.4**: `ie123 verificar` o `python -m ie123kit._legado.verify_candidate` |
 | `dialogue_typography.py` | se queda en `tools/` | re-export `nucleo.texto.ancho_completo` (+ `decode_fullwidth` nuevo) | congelado |
 | `build_ie1_probe.py` | se queda en `tools/` | re-export `nucleo.texto.tipografia_v20` | congelado |
 | `font_patch.py` | se queda en `tools/` | re-export `nucleo.fuentes.glifos` | congelado |
@@ -186,9 +218,9 @@ y sustitutos en [`_archivo/README.md`](_archivo/README.md).
 
 ### Órdenes útiles
 
-- Invocaciones de siempre: `python tools/fa_unpack.py`, `python tools/nds_unpack.py`,
-  `python tools/harvest_log.py`, `python tools/limpiar_work.py --borrar`, `python tools/blz.py in out`,
-  `python tools/patch_smdh_title.py` y `python tools/verify_candidate.py`.
+- Invocaciones de siempre que siguen vivas: `python tools/fa_unpack.py` y `python tools/patch_smdh_title.py`.
+  Los shims de CLI `nds_unpack`, `harvest_log`, `limpiar_work`, `blz` y `verify_candidate` se retiraron en la
+  F2.4 (#50): ninguna capa los importaba; `ie123 compat equivalencias` da la orden nueva de cada uno.
 - `python -m ie123kit.ie1.media.voces [--stage]` (sustituye al archivado `ie1_media.py --stage`).
 - `python -m ie123kit.nucleo.construir.candidata --base … --ui … --output …`.
 - Puerta del bloqueo v20 sobre una candidata: `python -m ie123kit.nucleo.validar.bloqueo --candidata
@@ -261,9 +293,9 @@ y sustitutos en [`_archivo/README.md`](_archivo/README.md).
 
 ## Scripts de este repo
 
-- `extract_romfs.ps1` — extrae ExeFS/RomFS de la ROM 3DS a `work/`.
-- `extract_nds.ps1` — extrae el sistema de archivos de una ROM NDS a `work/`.
-- `build_patch.ps1` — genera `patch/inazuma123-es.xdelta` a partir de la ROM
+- `extract_romfs.ps1` — envoltorio de `ie123 extraer romfs`: ExeFS/RomFS de la ROM 3DS a `work/shared/base_3ds`.
+- `extract_nds.ps1` — envoltorio de `ie123 extraer nds`: sistema de archivos de una ROM NDS a `work/<Name>`.
+- `build_patch.ps1` — envoltorio de `ie123 parche`: genera `patch/inazuma123-es.xdelta` a partir de la ROM
   original y la traducida.
 
 ### Candidatas IE1 por capas (v28 en adelante)
@@ -277,9 +309,9 @@ y sustitutos en [`_archivo/README.md`](_archivo/README.md).
   eventos SSD con identidad de registros comprobada (`<ui>/events`), capas de
   archivos repetibles (`--extra`, la última gana) y CRO (`--cro`). Nunca
   sobrescribe una candidata existente.
-- `verify_candidate.py` — verificación estática de una candidata frente a su base:
-  entradas de las capas, resto del archivo y fuentes idénticos, eventos SSD y
-  literales del CRO permitidos, bloqueo tipográfico.
+- `ie123 verificar` (antes `verify_candidate.py`, hoy `python -m ie123kit._legado.verify_candidate` para el
+  informe detallado) — verificación estática de una candidata frente a su base: entradas de las capas, resto
+  del archivo y fuentes idénticos, eventos SSD y literales del CRO permitidos, bloqueo tipográfico.
 - `work/ie1/capas/historial/dialogo/v33_mch_story` y `work/ie1/capas/historial/dialogo/v55_pachangas` (sustituyen a
   `build_match_content_patch.py`, archivado en `_archivo/`) — pachangas, cadena de partidos y nombres de
   `team.pkb`/`teamtitle.dat`/`clubinfo.dat`.
@@ -291,7 +323,7 @@ y sustitutos en [`_archivo/README.md`](_archivo/README.md).
 
 > **Pipeline HISTÓRICO v27.** `build_3ds_var.py` está archivado en `_archivo/` (ver [`_archivo/README.md`](_archivo/README.md)).
 > Cadena vigente: `work/ie1/capas/historial/candidata/v33_final/build_rom.py` (ROM IE1), `build_ui_revision.py`
-> (candidatas `work/shared/candidatas/probe_ie1_vNN`) y `verify_candidate.py`.
+> (candidatas `work/shared/candidatas/probe_ie1_vNN`) e `ie123 verificar`.
 
 Secuencia histórica (CSV → ROM jugable), con los **flags de la build v27**:
 ```
@@ -310,15 +342,17 @@ gameplay crece a texto completo, sistema/intro INPLACE, fallback global, CRO sin
 La idea: **cada partida deja su rastro de errores en NUESTRO registro**, para ir
 detectando qué mejorar en la siguiente versión sin mirar el log en vivo.
 
-- `harvest_log.py` — lee el log de Azahar, agrupa cada error por su **PC** (firma
-  estable del bug; la dirección leída varía y se descarta), separa **crashes**
-  (bugs nuestros) del **ruido benigno del emulador**, y lo funde en
-  `logs/runtime_errors.json` (persistente) + `logs/INFORME_ERRORES.md`. Los PCs ya
-  diagnosticados se anotan en `KNOWN_PCS` (dentro del script).
+- `ie123 registro` (antes `harvest_log.py`) — lee el log de Azahar, agrupa cada error por su **PC**
+  (firma estable del bug; la dirección leída varía y se descarta), separa **crashes** (bugs nuestros) del
+  **ruido benigno del emulador**, y lo funde en `logs/runtime_errors.json` (persistente) +
+  `logs/INFORME_ERRORES.md`. Los PCs ya diagnosticados se anotan en `KNOWN_PCS`
+  (`ie123kit.nucleo.construir.registro_azahar`).
   ```
-  python tools/harvest_log.py            # cosecha el log actual + .old
-  python tools/harvest_log.py --report   # solo reimprime el informe
+  ie123 registro                  # cosecha el log actual + .old
+  ie123 registro --sesion v35     # solo el log actual, marcado con la build
+  ie123 registro --forzar         # reprocesa aunque el log no haya cambiado
   ```
+  Sin logs nuevos, la orden solo reimprime el informe.
 - `jugar.ps1` — lanza la build en Azahar y, **al cerrar el emulador, cosecha
   automáticamente** la sesión. Así el registro se alimenta solo en cada arranque.
   ```

@@ -15,6 +15,7 @@ from pathlib import Path
 __all__ = [
     "CONGELADOS",
     "MAPA",
+    "RETIRADOS",
     "destino_de_shim",
     "detectar_cli",
     "es_shim_sin_logica",
@@ -28,12 +29,14 @@ CONGELADOS = frozenset(
     {"dialogue_typography", "font_patch", "dialogue_lock", "build_ie1_probe", "build_ui_revision"}
 )
 
+#: Shims de CLI retirados en la F2.4 (#50): ninguna capa los importaba (comprobador AST) y su orden
+#: vive en ``ie123`` (``ie123 compat equivalencias``). Sus módulos siguen en ``ie123kit._legado``.
+RETIRADOS: frozenset[str] = frozenset({"blz", "nds_unpack", "harvest_log", "limpiar_work", "verify_candidate"})
+
 MAPA: dict[str, str] = {
     "lz10": "ie123kit.nucleo.compresion.lz10",
-    "blz": "ie123kit._legado.blz",
     "sszl": "ie123kit.nucleo.compresion.sszl",
     "ui_archive": "ie123kit._legado.ui_archive",
-    "nds_unpack": "ie123kit._legado.nds_unpack",
     "qna_regions": "ie123kit.nucleo.graficos.qna",
     "legacy_sprite": "ie123kit.nucleo.graficos.pac_sprite",
     "nftr_metrics": "ie123kit._legado.nftr_metrics",
@@ -43,8 +46,6 @@ MAPA: dict[str, str] = {
     "fa_unpack": "ie123kit._legado.fa_unpack",
     "fa_repack": "ie123kit._legado.fa_repack",
     "patch_smdh_title": "ie123kit._legado.patch_smdh_title",
-    "harvest_log": "ie123kit._legado.harvest_log",
-    "limpiar_work": "ie123kit._legado.limpiar_work",
     "ie1_keyboard": "ie123kit.ie1.graficos.teclado",
 }
 MAPA.update(
@@ -62,7 +63,6 @@ MAPA.update(
             "reinsert_var",
             "ssd_reinsert",
             "validate",
-            "verify_candidate",
         )
     }
 )

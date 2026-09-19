@@ -11,7 +11,16 @@ from __future__ import annotations
 
 from ie123kit.nucleo.texto.paginado import ModeloMotor
 
-__all__ = ["MODELO_IE1"]
+__all__ = ["MODELO_IE1", "paginar"]
 
 #: Motor del diálogo de IE1: 22 × 3, sin rejilla de dibujo ni tope de página.
 MODELO_IE1 = ModeloMotor(ancho_ventana=0xF0)
+
+
+def paginar(texto: str) -> dict:
+    """Reparte un texto con el motor de IE1 (22 × 3, sin tope de página)."""
+    from ie123kit.nucleo.texto import paginado as P
+
+    repartido = P.repartir(texto, MODELO_IE1)
+    return {"juego": "ie1", "max_car": MODELO_IE1.max_car, "lineas": MODELO_IE1.lineas, "pagina_max": None,
+            "texto": repartido, "paginas": [p.split(P.SALTO) for p in repartido.split(P.PAGINA)]}

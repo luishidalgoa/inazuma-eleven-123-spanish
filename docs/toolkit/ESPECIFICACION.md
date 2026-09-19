@@ -102,7 +102,7 @@ tools/                                   # Norma 3: todo sigue bajo tools/
       reinsert.py reinsert_var.py ssd_reinsert.py ds_official.py ds_roster.py validate.py build_glossary.py pkb_unpack.py ...  # fachadas con globales y main() originales
     servicio/                            # (fase 2) capa headless: CLI y GUI solo hablan con esto
       api.py (ServicioToolkit)  proyecto.py (Workspace)  registro_activos.py  trabajos.py (hilos, eventos, cancelación)  esquemas/ (*.schema.json)
-    cli/  main.py (argparse 1:1 sobre ServicioToolkit, --json)  legado.py (tabla de equivalencias)
+    cli/  main.py (argparse 1:1 sobre ServicioToolkit, --json)  (tabla de equivalencias en servicio/equivalencias.py)
   tests/
     unidad/ (codecs con fixtures sintéticos)  compat/ (baseline_importaciones.json, superficie_v0.json, test_bloqueo_bytes.py)
     arquitectura/ (reglas de importación por AST)  contrato/ (suite parametrizada sobre los 8 objetivos)  golden/ (solo hashes: candidatas.sha256, capa_referencia.sha256)
@@ -161,7 +161,7 @@ Paquete ie123kit.servicio (fase 2). La CLI y la futura GUI solo dependen de esta
   - Formato del id: `ie1:grafico:inazuma1/data_iz/a_title/title_t.arc#ie01_title_t_tlogo.tga`
   - Ejemplo de juego_principal: `juego_principal:cinematica:movie/OP.moflex`
 - `Resultado{ok, datos, incidencias:[Incidencia], artefactos:[ruta], duracion_s, api_version}`
-- `Incidencia{codigo, severidad:'error'|'aviso'|'info', mensaje, activo_id?, ruta?, ubicacion?, pista?}`. Códigos estables: TAMANO_PNG, RECT_QNA, GLIFO_NO_SOPORTADO, EXCEDE_PX, EXCEDE_BYTES, BLOQUEO_V20, NF_HUERFANO, PAGINAS_DISTINTAS, CRO_FUERA_DE_RANGO, LAYOUT_MOFLEX, HERRAMIENTA_AUSENTE, NOT_SUPPORTED, CONTENIDO_EN_GIT.
+- `Incidencia{codigo, severidad:'error'|'aviso'|'info', mensaje, activo_id?, ruta?, ubicacion?, pista?}`. Códigos estables: TAMANO_PNG, RECT_QNA, GLIFO_NO_SOPORTADO, EXCEDE_PX, EXCEDE_BYTES, BLOQUEO_V20, NF_HUERFANO, PAGINAS_DISTINTAS, CRO_FUERA_DE_RANGO, LAYOUT_MOFLEX, HERRAMIENTA_AUSENTE, NOT_SUPPORTED, CONTENIDO_EN_GIT, GATE_FALLIDO (F2.4: un gate de `ie123 compat comprobar` que falla).
 - `Progreso{fase, actual, total, mensaje}`
 - `CancelToken{cancelar(), cancelado}`
 
