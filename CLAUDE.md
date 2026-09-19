@@ -1,7 +1,7 @@
 # Guía para Claude (y colaboradores) — Proyecto de traducción Inazuma Eleven 1·2·3
 
-> TIPOGRAFÍA BLOQUEADA por petición explícita del usuario: v20 es la referencia
-> visual aprobada. Cumplir el bloqueo de AGENTS.md y tools/dialogue_lock.py.
+> TIPOGRAFÍA BLOQUEADA por petición explícita del usuario: v34 es la referencia
+> visual aprobada (actualizada desde v20 el 2026-09-19). Cumplir el bloqueo de AGENTS.md y tools/dialogue_lock.py.
 > No cambiar caja, fuentes, codificación, espaciado o saltos ni desactivar sus
 > comprobaciones al continuar la traducción. Requiere una nueva petición explícita
 > del usuario sobre la tipografía; no una orden general de continuar.
@@ -45,7 +45,7 @@ solo "en la cabeza" o en el chat. En concreto:
   y el avance en `docs/PROGRESO.md`.
 - Herramientas en `tools/` (Python/PowerShell, sin GUI: el proyecto se maneja por CLI).
 - El código Python vive en el paquete `tools/src/ie123kit`; en `tools/` quedan shims con los
-  nombres antiguos y los 5 ficheros congelados del bloqueo v20.
+  nombres antiguos y los 5 ficheros congelados del bloqueo tipográfico.
 
 - **Los diálogos no se reescriben para que quepan.** Se usa el texto oficial íntegro (el port europeo de 3DS para el IE1, la NDS española para el IE2). Si una frase no cabe en la ventana, se reparte en más cajas o páginas, o se amplía la ventana, pero nunca se condensa ni se le quitan palabras.
 
@@ -78,6 +78,6 @@ la raíz de `work/`. Ver **[`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md)**; tra
 - Herramientas: [`tools/README.md`](tools/README.md)
 - Especificación del toolkit ie123kit: [`docs/toolkit/ESPECIFICACION.md`](docs/toolkit/ESPECIFICACION.md)
 - CI del toolkit (Windows y Ubuntu; no se desactiva): [`.github/workflows/toolkit.yml`](.github/workflows/toolkit.yml)
-- Guardia global anti-ROM (Norma 2) y bloqueo v20, en todos los commits y sin filtro de rutas:
+- Guardia global anti-ROM (Norma 2) y bloqueo tipográfico, en todos los commits y sin filtro de rutas:
   [`.github/workflows/guardia.yml`](.github/workflows/guardia.yml)
 - Glosario: [`translation/shared/glossary/`](translation/shared/glossary/)
