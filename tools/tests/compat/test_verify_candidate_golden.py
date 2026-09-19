@@ -1,4 +1,5 @@
-"""verify_candidate (shim → ie123kit._legado.verify_candidate) sobre la candidata de referencia.
+"""verify_candidate (``python -m ie123kit._legado.verify_candidate``; el shim se retiró en la F2.4) sobre la
+candidata de referencia.
 
 Sustituye al golden del par probe_ie1_v66/v67 (borradas). Se monta en un temporal una base con la
 disposición de candidata (enlaces duros a work/shared/base_3ds/romfs) y la candidata de referencia
@@ -46,7 +47,8 @@ def test_verify_candidate_igual_al_golden():
                                    base / "romfs" / "cro" / "ina_main1.cro") == 0
         env = dict(os.environ)
         env.pop("IE123_ROOT", None)
-        r = subprocess.run([sys.executable, "-X", "utf8", "tools/verify_candidate.py", "--base", str(base),
+        env["PYTHONPATH"] = str(RAIZ / "tools" / "src")
+        r = subprocess.run([sys.executable, "-X", "utf8", "-m", "ie123kit._legado.verify_candidate", "--base", str(base),
                             "--candidate", str(candidata), "--layer", f"{golden.CAPA}/extra"],
                            cwd=RAIZ, env=env, capture_output=True, text=True, encoding="utf-8", check=False)
         assert r.returncode == g["returncode"], r.stderr

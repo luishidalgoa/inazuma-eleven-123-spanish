@@ -1,6 +1,24 @@
 # Plan de porteo de los motores de capa a ie123kit
 
-Estado: **plan, sin portear** (2026-09-19, al reanudar la migración en la F2.3, #49).
+Estado (2026-09-19): **F2.4 portada** (#1, #2, #5, #6 y #7, rama `toolkit-f2.4`, #50); #3, #4 y #8
+siguen pendientes para la F2.5 (tocan fuentes o la GUI). El plan se escribió al reanudar la migración en
+la F2.3 (#49).
+
+### Qué se porteó en la F2.4 y dónde quedó
+
+| # | Motor | Módulos | Prueba de equivalencia (`requiere_rom`) |
+|---|---|---|---|
+| 1 | Paginado 37 × 3 / 131 B | `nucleo.texto.paginado` (`ModeloMotor`, `ajuste`, `problemas`, `repartir`, `partir_paginas`); límites en `ie1.texto.dialogo` (22 × 3) e `ie2.comun.dialogo` (37 × 3, 131 B, 247 B; `reparte`) | Punto fijo sobre todos los registros de diálogo de las 3167 salidas de `dialogo/saltos37` y comparación con `comun19`/`comun17` en una muestra |
+| 2 | Parches de CRO | `nucleo.ejecutable.parches_cro` (palabra + contexto + relocalizaciones); direcciones en `ie2.comun.cro` | `menus_cro/cofres` -> `ancho_dialogo`: CRO idéntica e informe igual |
+| 5 | Teclado en SPF_ | `nucleo.contenedores.spf`, `nucleo.texto.teclado` (el `patch_map` de IE1 delega en él), `ie2.comun.teclado` | Los dos `.SPF_` de `teclado/teclado/extra` desde la ROM japonesa, idénticos |
+| 6 | Subtítulos incrustados | `nucleo.media.subtitulos` (dat, partición, tiempos, dibujo); estilo en `ie2.comun.subtitulos` | Pistas y fotogramas con texto de las 35 cinemáticas iguales al informe; plano Y quemado igual que `comun_sub` |
+| 7 | DSP-ADPCM y sound.pb | `nucleo.media.dsp_adpcm`, `nucleo.media.procyon` (SWD/SED), `nucleo.contenedores.sound_pb`, `ie2.comun.voces` | `media/voces` (v23): `sound.pb`/`.ph` idénticos; `historial/media/v20_voces`: bancos 3D_003 idénticos; `media/voz_titulo` (v13): `3D_901.SWD` idéntico (remuestreo incluido) |
+
+Las capas de `work/` no se han tocado (están fuera de git y la regla 2 prohíbe reescribirlas en el mismo
+paso): el paquete reproduce su salida byte a byte. Los hashes de esas salidas están en
+`tools/tests/compat/golden/motores_ie2.json` (solo hashes, Norma 2). Las bases de algunas capas ya no
+existen (`probe_ie2_v17`/`v18`); por eso el paginado se prueba como punto fijo y el teclado desde la ROM
+japonesa, que la propia capa comprobaba idéntica a su base. Cada motor tiene su orden `ie123 motor …`.
 
 Mientras la migración estuvo pausada, el trabajo de IE1 (v82–v93) y de IE2 (v01–v34) dejó en `work/`
 varios motores que hoy viven como scripts de capa. Son lógica reutilizable (IE3 los necesitará) pero

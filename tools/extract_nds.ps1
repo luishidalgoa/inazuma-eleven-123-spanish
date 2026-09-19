@@ -1,8 +1,10 @@
 <#
 .SYNOPSIS
-  Extrae el sistema de archivos de una ROM NDS a work/<nombre>/.
+  Extrae el sistema de archivos de una ROM NDS a work/<Name>/.
 .DESCRIPTION
-  Requiere ndstool.exe en tools/bin/. Usalo con las ROMs de referencia ES.
+  Envoltorio de una orden: `ie123 extraer nds` (ie123kit, Python puro: ya no hace falta
+  ndstool). Salida como la de nds_unpack: work/<Name>/data_iz/... Usalo con las ROMs de
+  referencia en espanol.
 .EXAMPLE
   pwsh ./tools/extract_nds.ps1 -Rom "Roms\ie1\Inazuma Eleven (2011).nds" -Name ie1\fuentes\nds_es
 #>
@@ -13,19 +15,7 @@ param(
 )
 $ErrorActionPreference = "Stop"
 $repo = Split-Path $PSScriptRoot -Parent
-$rom  = Join-Path $repo $Rom
-$tool = Join-Path $repo "tools\bin\ndstool.exe"
-$out  = Join-Path $repo (Join-Path "work" $Name)
-
-if (-not (Test-Path $tool)) { throw "Falta tools/bin/ndstool.exe - devkitPro/ndstool" }
-if (-not (Test-Path $rom))  { throw "No se encuentra la ROM: $rom" }
-New-Item -ItemType Directory -Force -Path $out | Out-Null
-
-Write-Host "==> Extrayendo $Rom -> $out"
-& $tool -x $rom `
-  -9 (Join-Path $out "arm9.bin") -7 (Join-Path $out "arm7.bin") `
-  -y9 (Join-Path $out "overlay9.bin") -y7 (Join-Path $out "overlay7.bin") `
-  -d (Join-Path $out "data") -y (Join-Path $out "overlay") `
-  -t (Join-Path $out "banner.bin") -h (Join-Path $out "header.bin")
-
-Write-Host "OK. Sistema de archivos en: $out\data"
+$env:PYTHONPATH = Join-Path $repo "tools\src"
+& python -X utf8 -m ie123kit.cli --proyecto $repo extraer nds --rom (Join-Path $repo $Rom) `
+  --salida (Join-Path $repo (Join-Path "work" $Name))
+exit $LASTEXITCODE

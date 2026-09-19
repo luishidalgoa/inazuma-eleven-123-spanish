@@ -84,12 +84,45 @@ Queda abierto para la F2.4 o para decisión del usuario:
 | (5) `work/juego_principal` y `ie123 work limpiar` | existe; no lista base_3ds, fuentes, congelados ni candidatas `.conservar` |
 | CI local (toolkit.yml / guardia.yml) | ruff OK, guardia bloqueados/git/todo OK, shims OK, unittest OK, superficie 0 diferencias |
 
+## F2.4 (#50): en la rama `toolkit-f2.4` (PR apilado sobre `toolkit-f2.3`), pendiente de revisión
+
+- **CLI `ie123` completa** (adaptador 1:1 de `ServicioToolkit`): `extraer romfs|nds`, `verificar`,
+  `instalar`, `registro` (antes `harvest_log.py`), `compat comprobar [--golden]`, `compat equivalencias`,
+  `motor listar|paginar|teclado|cro-ancho-dialogo|voces|subtitulos`, además de las de F2.2/F2.3. Alias en
+  inglés de todos los verbos. Un aviso no cambia el código de salida.
+- **Servicio**: `extraer`, `compat`, `registro`, `equivalencias`, `motores`, `motor` (tabla `MOTORES`, import
+  dinámico) y un `doctor` completo (Python, dependencias, herramientas externas, ficheros bloqueados, ROM
+  configuradas y espacio libre). Código de incidencia nuevo: `GATE_FALLIDO` (esquemas actualizados).
+- **Gates** (`nucleo.compat.gates`): bloqueados, congelados e importaciones; con `--golden`, capa de
+  referencia, candidatas, reconstrucción de referencia y bloqueo de la candidata vigente. Este último falla
+  por la decisión #80 y se informa como aviso («fallo conocido»); `BLOQUEO_PENDIENTE` lo controla.
+- **Scripts finos**: `build_patch.ps1`, `extract_romfs.ps1` y `extract_nds.ps1` son envoltorios de una orden;
+  `jugar.ps1` cosecha con `ie123 registro` y ya no busca `work\build` ni `roms\*ES*` (rutas obsoletas).
+  Las rutas por defecto de la ROM japonesa se corrigieron al nombre real de `Roms/shared/`.
+- **Shims de CLI retirados**: `verify_candidate`, `nds_unpack`, `blz`, `harvest_log` y `limpiar_work`
+  (`shims.RETIRADOS`). El comprobador AST confirma que ninguna capa los importa; sus módulos siguen en
+  `ie123kit._legado`. Quedan 24 shims de importación. La retirada la aprueba el propietario en el PR.
+- **Motores portados** (ver [`PLAN_PORTEO_CAPAS.md`](PLAN_PORTEO_CAPAS.md)): paginado 37 × 3 / 131 B, SPF_ y
+  teclado, DSP-ADPCM + Procyon + sound.pb, subtítulos incrustados y parches de CRO con comprobación de
+  relocalizaciones, parametrizados por juego (IE1/IE2, listos para IE3). Equivalencia byte a byte con las
+  salidas vigentes de las capas (`tests/requiere_rom/test_equivalencia_motores_ie2.py`).
+
+### Resultado del gate de F2.4 (2026-09-19, local)
+
+| Punto | Resultado |
+|---|---|
+| (1) `pytest -m "not requiere_rom"` (incluye la validación de las salidas `--json` contra el esquema) | 1318 passed, 1 skipped |
+| `pytest -m requiere_rom` | 26 passed, 2 skipped (sin ROM parcheada; sin el PNG de v67), 2 xfail (bloqueo v20, #80) |
+| CI local (toolkit.yml / guardia.yml) | ruff OK, guardia bloqueados/git/todo OK, 24 shims sin lógica, unittest OK |
+| (2) `ie123 compat comprobar --golden` | 0 (7 gates; `bloqueo_candidata` como aviso conocido #80) |
+| (3) `ie123 doctor` | 0 (aviso: no se localiza `mobipeg`) |
+| (4) QA en emulador con `ie123 construir` + `ie123 instalar` | **pendiente**: `construir` rechaza hoy toda base por `BLOQUEO_V20` (#80) |
+
 ## Pendiente
 
 - **F2.3**: revisión y fusión de la rama `toolkit-f2.3` (la decide el usuario).
-- **F2.4 (#50)**: orden `ie123`, scripts finos, retirada de shims de CLI y los motores sin impacto
-  tipográfico de [`PLAN_PORTEO_CAPAS.md`](PLAN_PORTEO_CAPAS.md) (paginado 37/131, SPF_, DSP-ADPCM,
-  subtítulos, parches de CRO).
+- **F2.4 (#50)**: revisión y fusión de la rama `toolkit-f2.4` (después de la F2.3). Queda el punto (4) del
+  gate: construir e instalar una candidata completa para la QA en emulador, bloqueado por la decisión #80.
 - **F2.5 (#51)**: preparación para la GUI, más bigramas, rebanadas y escritura de SMDH/banner, una vez
   decidido el bloqueo v20.
 - Mejoras menores abiertas: #53, #54, #56, #57, #60, #61, #62, #63.

@@ -84,12 +84,22 @@ def _python(codigo: str, *args: str) -> subprocess.CompletedProcess:
 
 def test_mapa_coincide_con_traslados():
     assert len(TRASLADOS) == 16
-    distintos = {n: (shims.MAPA.get(n), d) for n, d in TRASLADOS.items() if shims.MAPA.get(n) != d}
+    distintos = {n: (shims.MAPA.get(n), d) for n, d in TRASLADOS.items()
+                 if n not in shims.RETIRADOS and shims.MAPA.get(n) != d}
     assert not distintos, f"MAPA difiere de TRASLADOS (actual, esperado): {distintos}"
     assert not set(TRASLADOS) & shims.CONGELADOS
 
 
-@pytest.mark.parametrize("nombre", list(TRASLADOS))
+@pytest.mark.parametrize("nombre", sorted(shims.RETIRADOS))
+def test_shims_de_cli_retirados_en_f24(nombre):
+    """F2.4 (#50): el shim de CLI ya no está en tools/ ni en MAPA, pero el módulo real sigue."""
+    assert not (TOOLS / f"{nombre}.py").exists(), f"tools/{nombre}.py debería estar retirado"
+    assert nombre not in shims.MAPA
+    r = _python(f"import sys; sys.path.insert(0, 'tools/src'); import ie123kit._legado.{nombre}")
+    assert r.returncode == 0, r.stderr
+
+
+@pytest.mark.parametrize("nombre", [n for n in TRASLADOS if n not in shims.RETIRADOS])
 def test_shim_trasladado(nombre):
     ruta = TOOLS / f"{nombre}.py"
     if not _trasladado(nombre):

@@ -118,7 +118,7 @@ work/<juego>/capas/
    2026-09-16). El código nuevo no usa `parents[N]`: usa `find_root` (`ie123kit.nucleo.config.raiz`) o la
    variable `IE123_ROOT`.
 6. **Antes de construir**: ≥ 4 GB libres. **Al instalar**: comprobar el hash del `archive.fa` copiado.
-   **Después**: `ie123 work limpiar --borrar` (o `python tools/limpiar_work.py --borrar`). La limpieza
+   **Después**: `ie123 work limpiar --borrar`. La limpieza
    nunca lista `shared/base_3ds`, ninguna carpeta `fuentes`, los congelados del bloqueo v20 ni una
    candidata con `.conservar`.
 
@@ -142,7 +142,7 @@ importable ni tiene shims.
 
 ## Limpieza
 
-`python tools/limpiar_work.py` lista lo que sobra y con `--borrar` lo elimina: candidatas salvo las dos
+`ie123 work limpiar` lista lo que sobra y con `--borrar` lo elimina: candidatas salvo las dos
 últimas, `.3ds` reconstruidas de releases publicadas, `fuentes/` intermedias de cinemáticas, `__pycache__`,
 `*.partial`, `*.yuv`, `*_x2.png` y logs de comprobación. No toca `Roms/`, `shared/base_3ds`, `ieN/fuentes`,
 capas con scripts, `docs/` ni `tools/`.

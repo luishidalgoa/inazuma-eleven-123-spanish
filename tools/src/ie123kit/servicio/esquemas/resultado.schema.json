@@ -58,7 +58,8 @@
             "LAYOUT_MOFLEX",
             "HERRAMIENTA_AUSENTE",
             "NOT_SUPPORTED",
-            "CONTENIDO_EN_GIT"
+            "CONTENIDO_EN_GIT",
+            "GATE_FALLIDO"
           ]
         },
         "severidad": {

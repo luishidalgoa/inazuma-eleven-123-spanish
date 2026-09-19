@@ -124,7 +124,7 @@ python tools/build_glossary.py game2
 > **Pipeline HISTÓRICO (build v27).** `build_3ds_var.py` y `verify_build.py` están archivados en
 > `tools/_archivo/` (motivos en [`tools/_archivo/README.md`](../tools/_archivo/README.md)). La ROM IE1 vigente se construye con
 > `work/ie1/capas/v33/_final/build_rom.py`; las candidatas, con `tools/build_ui_revision.py` sobre
-> `work/shared/candidatas/probe_ie1_vNN`, y se verifican con `tools/verify_candidate.py`.
+> `work/shared/candidatas/probe_ie1_vNN`, y se verifican con `ie123 verificar`.
 > Lo que sigue se conserva como registro de la cadena v27.
 
 ```bash
@@ -191,7 +191,7 @@ ninguno salvo `SKIP_CRO=1` + `NO_CODE_PATCH=1`** (todo lo demás por defecto).
   intacto, español presente). Útil tras builds `SAME_SIZE`.
 - **`pwsh -File tools/jugar.ps1 [build.3ds]`** — lanza Azahar y, **al cerrarlo, cosecha** los
   errores de runtime a `logs/runtime_errors.json` agrupados por **PC** (firma estable del crash).
-- **`python tools/harvest_log.py [--report]`** — recompone/reimprime el informe de errores.
+- **`ie123 registro [--sesion NOMBRE]`** (antes `harvest_log.py`) — recompone/reimprime el informe de errores.
 
 > **Para diagnosticar un crash nuevo:** mira el PC en `logs/runtime_errors.json`. Si está en
 > `0x14AC5C`/`0x1B3788`/`0x184AAC`/`0xABFCC0` es un desbordamiento de las funciones de texto →
