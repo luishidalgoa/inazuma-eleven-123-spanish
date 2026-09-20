@@ -41,7 +41,7 @@ def _shims_retirados():
     return frozenset(_R)
 
 
-def RETIRADOS():  # noqa: N802 - se mantiene el nombre del conjunto histórico
+def RETIRADOS():  # el nombre en mayúsculas se mantiene por continuidad con el conjunto anterior
     """Todo lo que ya no está en tools/ y no debe contar como ausente.
 
     Son dos listas con dueños distintos: los scripts archivados y borrados (SCRIPTS_RETIRADOS, con su
