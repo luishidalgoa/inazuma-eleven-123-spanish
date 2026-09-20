@@ -11,7 +11,7 @@ import hashlib
 import os
 from pathlib import Path
 
-__all__ = ["cro_ancho_dialogo", "paginar", "subtitulos", "teclado", "voces"]
+__all__ = ["ayuda", "cro_ancho_dialogo", "paginar", "subtitulos", "teclado", "voces"]
 
 
 def _sha(b: bytes) -> str:
@@ -97,3 +97,34 @@ def subtitulos(dat: str | os.PathLike, fotogramas: int | None = None) -> dict:
         idx = S.por_fotograma(pistas, fotogramas, IS.FPS, IS.HZ)
         datos["fotogramas_con_texto"] = int((idx >= 0).sum())
     return datos
+
+
+def ayuda(archive: str | os.PathLike, capturas_nds: str | os.PathLike, salida: str | os.PathLike,
+          rutas: list[str] | None = None) -> dict:
+    """Capturas de ayuda de IE2 con las zonas traducidas de la NDS -> ``salida/<ruta>``.
+
+    ``archive``: ``archive.fa`` japonés; ``capturas_nds``: carpeta ``pic3d/script/sp`` de la NDS
+    española (``tt*.pac_``, ``syup_bg*.pac_``); ``rutas``: solo esos ``.arc`` (por defecto, todos).
+    Las pestañas de ``a_menu/system_b.arc`` no entran aquí: necesitan el motor de rótulos de menús,
+    que se le pasa a :func:`ie123kit.ie2.comun.ayuda.pestanas_arc`.
+    """
+    from ie123kit.ie2.comun import ayuda as AY
+    from ie123kit.nucleo.contenedores.fa import FaArchive
+
+    arc = FaArchive(str(archive))
+    nds = Path(capturas_nds)
+    todas = AY.capturas(p for p, _o, _n in arc.entries if p.startswith(AY.AR))
+    pedidas = set(rutas) if rutas else None
+    informes, artefactos, pendientes = {}, [], []
+    for ruta, nombre in todas:
+        if pedidas is not None and ruta not in pedidas:
+            continue
+        fuente = nds / f"{nombre}.pac_"
+        if not fuente.is_file():
+            pendientes.append({"tipo": "sin_captura_nds", "arc": ruta})
+            continue
+        datos, informe = AY.captura_arc(arc.read(ruta), fuente.read_bytes(), nombre)
+        informe["sha256"] = _sha(datos)
+        informes[ruta] = informe
+        artefactos.append(_escribir(Path(salida) / ruta, datos))
+    return {"capturas": informes, "pendientes": pendientes, "artefactos": artefactos}

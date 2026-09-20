@@ -11,10 +11,16 @@ from __future__ import annotations
 
 from ie123kit.nucleo.texto.paginado import ModeloMotor
 
-__all__ = ["MODELO_IE1", "paginar"]
+__all__ = ["MODELO_IE1", "MODELO_IE1_ANCHO", "paginar"]
 
-#: Motor del diálogo de IE1: 22 × 3, sin rejilla de dibujo ni tope de página.
+#: Motor del diálogo de IE1 sin parchear: 22 × 3, sin rejilla de dibujo ni tope de página.
 MODELO_IE1 = ModeloMotor(ancho_ventana=0xF0)
+
+#: Motor del diálogo de IE1 con la CRO parcheada por ``ie123kit.ie1.texto.cro``: 37 × 3 y 131 B por
+#: página, como el IE2. El código de IE1 es el del IE2 desplazado (mismo reajuste en 0x424f4 y mismo
+#: búfer de página sp+0x40..0xc3 -> 132 B, tope 131 B), así que el modelo medido para el IE2 vale tal
+#: cual. Lo usa la capa ``ie1/capas/dialogo/motor_unificado`` (v94).
+MODELO_IE1_ANCHO = ModeloMotor(ancho_ventana=0x1A0, ancho_dibujo=0x1C0, pagina_max=131, registro_max=247)
 
 
 def paginar(texto: str) -> dict:
