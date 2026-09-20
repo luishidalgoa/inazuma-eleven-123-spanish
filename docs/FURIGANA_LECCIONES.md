@@ -382,8 +382,14 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
 - **Los menús de opciones de los eventos** (Mapa/Caravana/Volver, Comprar/Vender/Salir…) son **sprites**:
   la instrucción 0x308e solo cambia el fotograma. Están en `a_data_replace/field_board/data/`.
 - **Los argumentos del diálogo se usan en orden.** En japonés, el marcador de furigana consume antes su
-  lectura. Si se quita la furigana, el `%s` se queda con la lectura («fichar a いま»). Hay que reordenar
-  los argumentos de esas instrucciones.
+  lectura. Si se quita la furigana, el `%s` se queda con la lectura («fichar a いま»).
+  ❌ **NO reordenar los argumentos de la instrucción** (se probó en la v20–v23 y se instaló): el juego
+  **se cuelga** al abrir las máquinas de Hillman (Ojear y Fichar) y el videoteléfono. La caja de diálogo
+  se abre vacía, con la pestaña del nombre puesta, y no responde. Son 12 instrucciones con `%s` en
+  7 eventos de cada edición (23000021, 23000031, 23000081, 23000162, 25120100, 25130472, 25130473).
+  El orden de los argumentos **tiene que ser el del japonés**; se restaura con
+  `work/ie2/shared/capas/orden_argumentos/restaurar.py` (2026-09-20). Si el `%s` sale con la lectura
+  furigana, hay que arreglarlo por el lado del TEXTO, nunca moviendo argumentos.
 - **El menú de campo dibuja las letras según su anchura real, no con un paso fijo de 15 px** (al revés que
   los rótulos). Tres rondas fallaron por usar el modelo de paso fijo. **Regla:** antes de dar por bueno un
   cambio de texto, comprobar que la simulación reproduce la captura del usuario con el fallo tal cual.
