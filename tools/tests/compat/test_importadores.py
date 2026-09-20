@@ -77,7 +77,7 @@ def test_error_sintaxis(raiz):
 
 def test_mod_inexistente(raiz):
     res = importadores.buscar(['fantasma'])
-    assert 'fantasma: no existe en tools/ ni en tools/_archivo' in res['avisos']
+    assert 'fantasma: no existe en tools/' in res['avisos']
 
 
 def test_json(raiz, capsys):

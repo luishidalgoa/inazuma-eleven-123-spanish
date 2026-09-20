@@ -8,7 +8,7 @@ from __future__ import annotations
 __all__ = ["EQUIVALENCIAS"]
 
 #: Orden antigua -> (orden nueva, nota). Incluye los shims de CLI retirados en la F2.4 (#50) y los
-#: scripts archivados en la F1.2/F1.4 (``tools/_archivo/README.md``).
+#: scripts archivados en la F1.2/F1.4 (``docs/toolkit/SCRIPTS_RETIRADOS.md``).
 EQUIVALENCIAS: dict[str, tuple[str, str]] = {
     # Scripts PowerShell (siguen existiendo como envoltorios de una orden)
     "tools/build_patch.ps1": ("ie123 parche --rom-base X --rom-parcheada Y --salida patch/...xdelta",
@@ -47,4 +47,8 @@ EQUIVALENCIAS: dict[str, tuple[str, str]] = {
                                                         "texto y tiempos; la codificación sigue en la capa"),
     "work/ie2/shared/capas/menus_cro/ancho_dialogo/apply.py": ("ie123 motor cro-ancho-dialogo --cro C --salida S",
                                                                ""),
+    # Motor del grito del título del recopilatorio portado en la F2.6
+    "work/shared/capas/media/voz_titulo_recopilatorio/apply.py": (
+        "ie123 motor voz-recopilatorio --sonido DIR --fuente AUDIO --salida DIR",
+        "la capa es ya un envoltorio del motor (juego_principal.voz_titulo)"),
 }

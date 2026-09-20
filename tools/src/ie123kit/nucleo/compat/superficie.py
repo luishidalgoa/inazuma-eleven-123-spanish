@@ -3,9 +3,10 @@
 Uso: python -m ie123kit.nucleo.compat.superficie capturar|comprobar|comparar [FICHERO] [--fichero superficie_v0.json]
 Va por AST para no ejecutar módulos con efectos al importar. comprobar (o su alias comparar) falla si
 desaparece un nombre o cambia una firma; un módulo convertido en shim (sys.modules[__name__]) se da por bueno.
-Un módulo ausente de tools/ que esté archivado en tools/_archivo/ o tools/_archivo/tests/ se omite y se
-cuenta como archivado; si está a la vez en tools/ y en _archivo se compara y se marca como duplicado.
-capturar no mira _archivo (glob no recursivo).
+Un módulo ausente de tools/ que figure en RETIRADOS() (scripts borrados + shims planos retirados) se
+omite y se cuenta como retirado; si sigue en tools/ pese a estar ahí se marca como duplicado. Hasta la F2.6 (#55) los retirados vivían en
+tools/_archivo/; ahora solo están en el historial de git y su motivo en
+docs/toolkit/SCRIPTS_RETIRADOS.md, que debe coincidir con RETIRADOS.
 Los tests heredados de la raíz trasladados en F1.5 (#46) a tools/tests/unidad (TESTS_TRASLADADOS) se omiten
 y se cuentan aparte si ya no están en tools/ y existen todas sus rutas nuevas; si siguen en tools/ y las
 rutas nuevas existen se marcan como duplicados; si falta alguna ruta nueva, módulo ausente.
@@ -16,6 +17,40 @@ import ast
 import json
 import sys
 from pathlib import Path
+
+#: Scripts retirados de tools/: archivados en F1.2/F1.4 (en tools/_archivo/) y borrados del árbol en la
+#: F2.6 (#55). Su motivo y su sustituto están en docs/toolkit/SCRIPTS_RETIRADOS.md; el test
+#: tests/compat/test_superficie_retirados.py comprueba que las dos listas coinciden.
+SCRIPTS_RETIRADOS = frozenset({
+    'align_events', 'audit_ie1_voiced_text', 'build_3ds', 'build_3ds_var', 'build_fontui',
+    'build_ie1_movies', 'build_match_content_patch', 'build_mch_patch', 'build_translation',
+    'compact_typography', 'fix_ie1_title_logo', 'ie1_media', 'ie1_tables', 'nds_str_dump',
+    'patch_code', 'patch_cro', 'patch_exefs', 'pkb_scan', 'probe_ie1_spacing', 'recompress_test',
+    'reinsert_test', 'reorganizar_proyecto', 'str_align', 'test_compact_typography',
+    'test_validate_inputs', 'tr_merge', 'tr_prepare', 'ui_insert', 'validate_ie1_media',
+    'verify_build', 'verify_v21',
+    # F2.6 (#55): shims planos sin ningún importador (evidencia AST); sus módulos siguen en
+    # ie123kit._legado y `ie123 compat equivalencias` da la orden sustituta.
+    'ds_roster', 'reinsert_var', 'ssd_reinsert', 'validate',
+})
+
+
+def _shims_retirados():
+    """Shims planos retirados (ie123kit.nucleo.compat.shims.RETIRADOS), sin importar el módulo al cargar."""
+    from ie123kit.nucleo.compat.shims import RETIRADOS as _R
+    return frozenset(_R)
+
+
+def RETIRADOS():  # noqa: N802 - se mantiene el nombre del conjunto histórico
+    """Todo lo que ya no está en tools/ y no debe contar como ausente.
+
+    Son dos listas con dueños distintos: los scripts archivados y borrados (SCRIPTS_RETIRADOS, con su
+    motivo en docs/toolkit/SCRIPTS_RETIRADOS.md) y los shims planos retirados por no tener importadores
+    (shims.RETIRADOS, documentados en tools/README.md). Hasta la F2.6 los 5 shims de CLI retirados en la
+    F2.4 (#50) no estaban en ninguna de las dos y `superficie comprobar` los daba por ausentes: eran las
+    5 diferencias que arrastraba el gate.
+    """
+    return SCRIPTS_RETIRADOS | _shims_retirados()
 
 TESTS_TRASLADADOS = {
     'test_dialogue_lock': ('tools/tests/unidad/texto/test_dialogue_lock.py',),
@@ -65,9 +100,9 @@ def es_shim(mod, tools=None):
     return ruta.is_file() and 'sys.modules[__name__]' in ruta.read_text(encoding='utf-8', errors='replace')
 
 
-def es_archivado(mod, tools=None):
-    archivo = (tools or _tools()) / '_archivo'
-    return (archivo / f'{mod}.py').is_file() or (archivo / 'tests' / f'{mod}.py').is_file()
+def es_retirado(mod, tools=None):
+    """True si mod se retiró de tools/: script archivado y borrado, o shim plano sin importadores."""
+    return mod in RETIRADOS()
 
 
 def _rutas_nuevas_existen(mod, tools):
@@ -99,7 +134,7 @@ def main():
         return 0
     esperado = json.loads(Path(fichero).read_text(encoding='utf-8'))
     errores = []
-    archivados = 0
+    retirados = 0
     trasladados = 0
     for mod, nombres in esperado.items():
         if es_shim(mod, tools):
@@ -109,11 +144,11 @@ def main():
             continue
         if mod in TESTS_TRASLADADOS and mod in actual and _rutas_nuevas_existen(mod, tools):
             errores.append(f'{mod}: duplicado en tools/ y tools/tests')
-        if es_archivado(mod, tools):
+        if es_retirado(mod, tools):
             if mod not in actual:
-                archivados += 1
+                retirados += 1
                 continue
-            errores.append(f'{mod}: duplicado en tools/ y tools/_archivo')
+            errores.append(f'{mod}: en RETIRADOS pero sigue en tools/')
         if mod not in actual:
             errores.append(f'{mod}: módulo ausente')
             continue
@@ -124,7 +159,7 @@ def main():
                 errores.append(f'{mod}.{n}: {tipo} -> {actual[mod][n]}')
     for e in errores:
         print('SUPERFICIE', e)
-    print(f'{len(esperado)} módulos comprobados; {archivados} archivados omitidos; '
+    print(f'{len(esperado)} módulos comprobados; {retirados} retirados omitidos; '
           f'{trasladados} tests trasladados omitidos; {len(errores)} diferencias')
     return 1 if errores else 0
 

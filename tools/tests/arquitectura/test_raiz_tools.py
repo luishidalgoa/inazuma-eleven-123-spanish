@@ -23,7 +23,8 @@ PS1 = frozenset(
         "setup_vgmstream.ps1",
     }
 )
-CARPETAS_Y_META = frozenset({"_archivo", "src", "tests", "pyproject.toml", "README.md"})
+# F2.6 (#55): _archivo/ se borró; los retirados están en docs/toolkit/SCRIPTS_RETIRADOS.md.
+CARPETAS_Y_META = frozenset({"src", "tests", "pyproject.toml", "README.md"})
 # tools/bin/ está en .gitignore; se tolera por si una copia local no lo filtrase.
 OPCIONALES = frozenset({"bin"})
 # Cachés locales toleradas: hoy .gitignore ya ignora __pycache__/, .pytest_cache/,

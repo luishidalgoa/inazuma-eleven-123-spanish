@@ -71,7 +71,7 @@ jobs:
       - name: Comprobar shims
         run: python -X utf8 -m ie123kit.nucleo.compat.shims comprobar
 
-      # tools/pyproject.toml excluye los 5 ficheros bloqueados v20 y _archivo/, y documenta
+      # tools/pyproject.toml excluye los 5 ficheros bloqueados v20, y documenta
       # en per-file-ignores por qué las fachadas de _legado/ y servicio/api.py se salvan de
       # dos reglas concretas. Con `ruff>=0.5,<0.17` el conjunto de reglas no cambia solo.
       - name: Lint (ruff)

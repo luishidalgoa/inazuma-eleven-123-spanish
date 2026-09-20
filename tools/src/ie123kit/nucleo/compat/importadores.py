@@ -1,7 +1,7 @@
 """Busca por AST quién importa unos módulos concretos de tools/ (paso 1 del archivado de scripts).
 
 Uso: python -m ie123kit.nucleo.compat.importadores [--work RUTA] [--json] MOD [MOD ...]
-Recorre tools/*.py, tools/src/**, tools/tests/** y work/** (excluye tools/_archivo y __pycache__).
+Recorre tools/*.py, tools/src/**, tools/tests/** y work/** (excluye __pycache__).
 Sale con 1 si hay importadores externos; las referencias de ruta 'tools/<mod>.py' son solo informativas.
 """
 import argparse
@@ -21,7 +21,6 @@ def _raiz():
 
 def _ficheros(raiz, work):
     tools = raiz / 'tools'
-    archivo = tools / '_archivo'
     candidatos = []
     if tools.is_dir():
         candidatos += sorted(tools.glob('*.py'))
@@ -32,7 +31,7 @@ def _ficheros(raiz, work):
         candidatos += sorted(work.rglob('*.py'))
     vistos, salida = set(), []
     for p in candidatos:
-        if '__pycache__' in p.parts or p.is_relative_to(archivo) or p in vistos:
+        if '__pycache__' in p.parts or p in vistos:
             continue
         vistos.add(p)
         salida.append(p)
@@ -78,8 +77,10 @@ def buscar(mods, work=None) -> dict:
     res = {'importadores': [], 'internos': [], 'referencias': [], 'avisos': [], 'ficheros': 0}
     tools = raiz / 'tools'
     for m in sorted(mods):
-        if not any((tools / r).is_file() for r in (f'{m}.py', f'_archivo/{m}.py', f'_archivo/tests/{m}.py')):
-            res['avisos'].append(f'{m}: no existe en tools/ ni en tools/_archivo')
+        if not (tools / f'{m}.py').is_file():
+            from ie123kit.nucleo.compat.superficie import RETIRADOS
+            donde = 'retirado (docs/toolkit/SCRIPTS_RETIRADOS.md)' if m in RETIRADOS else 'no existe'
+            res['avisos'].append(f'{m}: {donde} en tools/')
     work = raiz / 'work' if work is None else Path(work)
     if not work.is_dir():
         res['avisos'].append(f'{work}: no existe; se omite work/')

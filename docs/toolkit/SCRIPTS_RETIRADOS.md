@@ -1,15 +1,22 @@
-# tools/_archivo — scripts retirados
+# Scripts retirados de `tools/`
 
-Esta carpeta guarda scripts **retirados** de `tools/` durante la migración al paquete
-`ie123kit` (subfases F1.2, [issue #43](https://github.com/luishidalgoa/inazuma-eleven-123-spanish/issues/43), y F1.4, [issue #45](https://github.com/luishidalgoa/inazuma-eleven-123-spanish/issues/45)).
+Registro de los scripts **retirados** de `tools/` durante la migración al paquete `ie123kit`. Se
+archivaron primero en `tools/_archivo/` (subfases F1.2, [issue #43](https://github.com/luishidalgoa/inazuma-eleven-123-spanish/issues/43), y F1.4, [issue #45](https://github.com/luishidalgoa/inazuma-eleven-123-spanish/issues/45)) y en la
+limpieza final F2.6 ([issue #55](https://github.com/luishidalgoa/inazuma-eleven-123-spanish/issues/55)) se **borraron del árbol**: su
+contenido sigue completo en el historial de git y este documento conserva el motivo de cada
+retirada, que es lo que había que preservar.
 
-- **No son importables**: la carpeta no tiene `__init__.py` y no está en `sys.path`.
-- Se conservan **solo como referencia histórica**. Lo más probable es que no se puedan
-  ejecutar tal cual: usan rutas `parents[N]` y estructuras antiguas de `work/` que ya no existen.
-- Está excluida de ruff/black, de pytest (`testpaths = tests`) y de `unittest discover`.
-- Se han movido con `git mv` sin tocar su contenido, así que el historial sigue con `git log --follow`.
+- Para recuperar uno: `git log --follow -- tools/_archivo/<script>.py` y
+  `git show <commit>:tools/_archivo/<script>.py`.
+- Ninguno era importable (la carpeta no tenía `__init__.py` ni estaba en `sys.path`) y lo más
+  probable es que no se ejecuten tal cual: usaban rutas `parents[N]` y estructuras antiguas de
+  `work/` que ya no existen.
+- `ie123kit.nucleo.compat.superficie` los cuenta como retirados a partir de la lista `RETIRADOS`
+  del propio módulo, que debe coincidir con la tabla de abajo.
 
-Antes de rescatar cualquier idea de aquí, lee [`docs/FURIGANA_LECCIONES.md`](../../docs/FURIGANA_LECCIONES.md).
+Antes de rescatar cualquier idea de aquí, lee [`FURIGANA_LECCIONES.md`](../FURIGANA_LECCIONES.md).
+En particular, los marcados **PELIGROSO: no reutilizar** están ahí por un fallo reproducido en
+emulador (Norma 4).
 
 ## Scripts archivados
 
@@ -51,14 +58,28 @@ Issues relacionados: [#9](https://github.com/luishidalgoa/inazuma-eleven-123-spa
 [#16](https://github.com/luishidalgoa/inazuma-eleven-123-spanish/issues/16),
 [#36](https://github.com/luishidalgoa/inazuma-eleven-123-spanish/issues/36).
 
-## Archivados en F1.4
+## Retirados en F1.4
 
 `patch_code.py` y `patch_cro.py`, que en F1.2 seguían en `tools/` porque `patch_exefs.py` los importaba,
 se archivaron en F1.4 ([#45](https://github.com/luishidalgoa/inazuma-eleven-123-spanish/issues/45)) junto
 con `patch_exefs.py`, `ie1_tables.py`, `ie1_media.py` y `validate_ie1_media.py`. Ambos parches son
-**obsolete_dangerous** según [`FURIGANA_LECCIONES.md`](../../docs/FURIGANA_LECCIONES.md).
+**obsolete_dangerous** según [`FURIGANA_LECCIONES.md`](../FURIGANA_LECCIONES.md).
+
+## Retirados en F2.6 (#55)
+
+Shims planos de `tools/` borrados en la limpieza final: el comprobador AST no encontró **ningún**
+importador (ni en `tools/`, ni en `tools/src`, ni en `tools/tests`, ni en `work/`, historial
+incluido). Los cuatro siguen en cuarentena dentro de `ie123kit._legado`, con su bandera
+`--legado-lo-se`, y se lanzan con `python -m ie123kit._legado.<modulo>`.
+
+| Script | Motivo | Sustituto o dónde vive ahora |
+|---|---|---|
+| `ds_roster.py` | Sin importadores. La ESPECIFICACION lo conservaba por ser «transitivo desde `reinsert`», pero `_legado` se importa entre sí por `ie123kit._legado.<mod>`, no por el nombre plano. | `ie123kit._legado.ds_roster` (cuarentena); regla +16/NUL en `ie123kit.ie1.texto.tablas` |
+| `reinsert_var.py` | Ídem. **PELIGROSO: no reutilizar** (el offset-fixup corrompía eventos, [`FURIGANA_LECCIONES`](../FURIGANA_LECCIONES.md) ❌#8/#11/#13). | `ie123kit._legado.reinsert_var` (cuarentena) |
+| `ssd_reinsert.py` | Ídem. **PELIGROSO: no reutilizar** (ignora el byte de tamaño de registro). | `ie123kit.nucleo.eventos.ssd` (`ssd.replace`) |
+| `validate.py` | Sin importadores, y su nombre colisionaba en `sys.path` con los `validate.py` de las capas; al retirarlo cada capa resuelve el suyo. | `ie123 verificar`; el validador del flujo abandonado sigue en `ie123kit._legado.validate` |
 
 ## Nota
 
-No se crean stubs en `tools/` para estos nombres. `ie123 compat equivalencias` (F2.4) indica la orden
+No hay stubs ni shims en `tools/` para estos nombres. `ie123 compat equivalencias` (F2.4) indica la orden
 sustituta de cada script retirado, incluidos los shims de CLI retirados en la F2.4.
