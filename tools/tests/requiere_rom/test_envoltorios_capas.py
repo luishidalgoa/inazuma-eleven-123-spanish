@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -78,13 +80,43 @@ def _cargar(ruta: Path, nombre: str):
     return modulo
 
 
+#: Guion que importa un modulo de capa en un interprete limpio y escribe los nombres que faltan.
+_GUION_SUPERFICIE = """
+import importlib.util, json, sys
+ruta, nombres = sys.argv[1], json.loads(sys.argv[2])
+sys.path.insert(0, str(__import__('pathlib').Path(ruta).parent))
+sys.path.insert(0, sys.argv[3])
+spec = importlib.util.spec_from_file_location('capa_bajo_prueba', ruta)
+m = importlib.util.module_from_spec(spec)
+sys.modules['capa_bajo_prueba'] = m
+spec.loader.exec_module(m)
+print(json.dumps([n for n in nombres if not hasattr(m, n)]))
+"""
+
+
+def _superficie_en_subproceso(ruta: Path, nombres, src: Path) -> list[str]:
+    """Nombres que le faltan a ``ruta``, comprobados en un intérprete nuevo.
+
+    Algunas capas arrastran cadenas de `historial/` (v06 -> v03) cuyos módulos se llaman `comun`,
+    `base`, `apply`… Importarlas dentro de la suite las mezcla con las de otras capas en
+    `sys.modules` y el fallo depende del orden de los tests. En un proceso limpio se importan como
+    cuando se ejecuta la capa de verdad.
+    """
+    r = subprocess.run(
+        [sys.executable, "-X", "utf8", "-c", _GUION_SUPERFICIE, str(ruta), json.dumps(list(nombres)), str(src)],
+        capture_output=True, text=True, encoding="utf-8", check=False,
+    )
+    if r.returncode != 0:
+        pytest.fail(f"{ruta.name}: no se puede importar la capa\n{r.stderr[-1500:]}")
+    return json.loads(r.stdout.strip().splitlines()[-1])
+
+
 @pytest.mark.parametrize("rel", sorted(SUPERFICIE))
 def test_la_capa_conserva_su_superficie(raiz, rel):
     ruta = raiz / rel
     if not ruta.is_file():
         pytest.skip(f"falta {rel}")
-    modulo = _cargar(ruta, f"envoltorio_{ruta.parent.name}_{ruta.stem}")
-    faltan = [n for n in SUPERFICIE[rel] if not hasattr(modulo, n)]
+    faltan = _superficie_en_subproceso(ruta, SUPERFICIE[rel], raiz / "tools/src")
     assert not faltan, f"{rel}: la desduplicación se ha llevado {faltan}"
 
 

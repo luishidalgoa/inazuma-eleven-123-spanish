@@ -86,24 +86,56 @@ def test_las_capturas_de_ayuda_son_las_de_la_capa(raiz: Path, golden: dict, japo
     assert (inferiores, paneles) == (68, 6)
 
 
-def test_las_pestanas_de_system_b_son_las_de_la_capa(raiz: Path, golden: dict, japones) -> None:
+#: Guion que monta las pestañas en un intérprete limpio y escribe el sha256 del .arc resultante.
+#:
+#: El motor de rótulos de la capa v03 (`pintado_menus`) arrastra `nombres.py`, que hace `import comun`.
+#: Ese nombre es genérico y otras capas tienen el suyo, así que importarlo dentro de la suite lo mezcla
+#: en `sys.modules` y el resultado depende del orden de los tests (fallaba con
+#: «module 'comun' has no attribute 'jp'»). En un proceso nuevo se importa como cuando se ejecuta la
+#: capa de verdad. La comprobación byte a byte no se relaja: se compara el sha del .arc montado.
+_GUION_PESTANAS = """
+import hashlib, json, sys
+raiz, v06, v03, jp_fa, base = sys.argv[1:6]
+sys.path.insert(0, sys.argv[6])
+for ruta in (v06, v03):
+    sys.path.insert(0, ruta)
+import pintado_menus as PM
+from ie123kit.ie2.comun import ayuda as A
+from ie123kit.nucleo.contenedores.fa import FaArchive
+jp = FaArchive(jp_fa)
+with open(base, 'rb') as fh:
+    datos, informe = A.pestanas_arc(jp.read(A.SYSTEM_B), fh.read(), pintar=PM.pintar)
+print(json.dumps({'sha': hashlib.sha256(datos).hexdigest(), 'cambios': informe['cambios'],
+                  'fallos': informe['fallos'], 'pestanas': list(A.PESTANAS)}))
+"""
+
+
+def test_las_pestanas_de_system_b_son_las_de_la_capa(raiz: Path, golden: dict) -> None:
     """``window_b02`` (Controles/Recursos en 4 estados) y ``panel_b04`` (Controles básicos), idénticas."""
+    import subprocess
+
     from ie123kit.ie2.comun import ayuda as A
 
     base_v06 = raiz / V06 / "extra" / A.SYSTEM_B
     if not base_v06.is_file():
         pytest.skip("falta la base v06 de system_b.arc")
     assert _sha(base_v06.read_bytes()) == golden["system_b"]["base_v06"]
-    for rel in (V06, V03):  # v06/base.py mete v03 en el path al importarse
-        if str(raiz / rel) not in sys.path:
-            sys.path.insert(0, str(raiz / rel))
-    try:
-        import pintado_menus as PM
-    except ImportError as e:  # pragma: no cover - depende de recursos locales de la capa
-        pytest.skip(f"no se puede cargar el motor de rótulos de v03: {e}")
-    datos, informe = A.pestanas_arc(japones.read(A.SYSTEM_B), base_v06.read_bytes(), pintar=PM.pintar)
-    assert informe["cambios"] == list(A.PESTANAS) and not informe["fallos"]
-    assert datos == _capa(raiz, A.SYSTEM_B, golden["system_b"]["salida"])
+
+    r = subprocess.run(
+        [sys.executable, "-X", "utf8", "-c", _GUION_PESTANAS, str(raiz), str(raiz / V06), str(raiz / V03),
+         str(raiz / JP), str(base_v06), str(raiz / "tools/src")],
+        capture_output=True, text=True, encoding="utf-8", check=False,
+    )
+    if r.returncode != 0:
+        if "pintado_menus" in r.stderr or "ModuleNotFoundError" in r.stderr:
+            pytest.skip(f"no se puede cargar el motor de rótulos de v03: {r.stderr.strip()[-300:]}")
+        pytest.fail("el montaje de las pestañas ha fallado:\n" + r.stderr[-1500:])
+    salida = json.loads(r.stdout.strip().splitlines()[-1])
+
+    assert salida["cambios"] == salida["pestanas"] and not salida["fallos"]
+    # Byte a byte: el sha del .arc montado por el paquete es el de la salida vigente de la capa.
+    esperado = _capa(raiz, A.SYSTEM_B, golden["system_b"]["salida"])
+    assert salida["sha"] == _sha(esperado)
 
 
 def test_la_reversion_de_mastutorial_sigue_siendo_el_japones(raiz: Path, golden: dict, japones) -> None:
