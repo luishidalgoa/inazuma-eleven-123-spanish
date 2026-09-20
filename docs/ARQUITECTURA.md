@@ -33,10 +33,9 @@ tools/                        herramientas (CLI; ver tools/README.md)
     ie3/{comun,rayo_celeste,fuego_explosivo,amenaza_del_ogro}/
     _legado/                  fachadas CLI de los scripts antiguos y cuarentena (--legado-lo-se)
   tests/{unidad,arquitectura,compat,requiere_rom}/
-  _archivo/                   scripts retirados: se archivan, no se borran; no importables
-  <nombre>.py (29)            shims: alias puros de sys.modules hacia ie123kit
+  <nombre>.py (20)            shims: alias puros de sys.modules hacia ie123kit
   dialogue_typography.py, font_patch.py, dialogue_lock.py,
-  build_ie1_probe.py, build_ui_revision.py   congelados del bloqueo v20 (intactos)
+  build_ie1_probe.py, build_ui_revision.py   congelados del bloqueo tipográfico (intactos)
   *.ps1, pyproject.toml       scripts PowerShell y configuración del paquete
   bin/                        (git lo ignora) ejecutables locales
 
@@ -114,12 +113,12 @@ work/<juego>/capas/
    capas del menú viven todavía bajo `ie1/`. Las capas NUEVAS del menú van ya en
    `work/juego_principal/capas/`.
 5. Las capas existentes de `work/` calculan la raíz del repo con `Path(__file__).resolve().parents[N]`; al
-   mover una capa hay que ajustar `N` (lo hizo `tools/_archivo/reorganizar_proyecto.py` en la migración del
+   mover una capa hay que ajustar `N` (lo hizo el `reorganizar_proyecto.py` ya retirado, en la migración del
    2026-09-16). El código nuevo no usa `parents[N]`: usa `find_root` (`ie123kit.nucleo.config.raiz`) o la
    variable `IE123_ROOT`.
 6. **Antes de construir**: ≥ 4 GB libres. **Al instalar**: comprobar el hash del `archive.fa` copiado.
    **Después**: `ie123 work limpiar --borrar`. La limpieza
-   nunca lista `shared/base_3ds`, ninguna carpeta `fuentes`, los congelados del bloqueo v20 ni una
+   nunca lista `shared/base_3ds`, ninguna carpeta `fuentes`, los congelados del bloqueo tipográfico ni una
    candidata con `.conservar`.
 
 ## Reglas de importación de ie123kit
@@ -136,9 +135,10 @@ work/<juego>/capas/
 Los tests de `tools/tests/arquitectura` comprueban estas reglas y la CI (`.github/workflows/toolkit.yml`)
 los ejecuta en Windows y Ubuntu.
 
-`tools/_archivo/` guarda los scripts retirados: se archivan con `git mv` en lugar de borrarse, para
-conservar su historia y sus motivos ([`tools/_archivo/README.md`](../tools/_archivo/README.md)). No es
-importable ni tiene shims.
+Los scripts retirados de `tools/` no están en el árbol: hasta la F2.6 (#55) vivían en `tools/_archivo/`
+y ahora solo están en el historial de git. El motivo de cada retirada, su sustituto y cuáles son
+**PELIGROSO: no reutilizar** están en [`docs/toolkit/SCRIPTS_RETIRADOS.md`](toolkit/SCRIPTS_RETIRADOS.md),
+que `ie123kit.nucleo.compat.superficie.RETIRADOS` mantiene sincronizado. Ninguno tiene shim.
 
 ## Limpieza
 

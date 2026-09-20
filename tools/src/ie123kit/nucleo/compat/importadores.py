@@ -78,8 +78,8 @@ def buscar(mods, work=None) -> dict:
     tools = raiz / 'tools'
     for m in sorted(mods):
         if not (tools / f'{m}.py').is_file():
-            from ie123kit.nucleo.compat.superficie import RETIRADOS
-            donde = 'retirado (docs/toolkit/SCRIPTS_RETIRADOS.md)' if m in RETIRADOS else 'no existe'
+            from ie123kit.nucleo.compat.superficie import es_retirado
+            donde = 'retirado (docs/toolkit/SCRIPTS_RETIRADOS.md)' if es_retirado(m) else 'no existe'
             res['avisos'].append(f'{m}: {donde} en tools/')
     work = raiz / 'work' if work is None else Path(work)
     if not work.is_dir():

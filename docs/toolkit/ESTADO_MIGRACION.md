@@ -150,16 +150,109 @@ Quedaba abierto; todo menos `_codificar` se corrigió en la F2.5 (ver abajo):
 | CI local (toolkit.yml / guardia.yml) | ruff OK, guardia bloqueados/git OK, 24 shims sin lógica, unittest OK |
 | QA en emulador | pendiente del usuario |
 
+## F2.6 (#55): limpieza final, en la rama `toolkit-f2.6-limpieza` (PR apilado sobre `toolkit-f2.5`)
+
+### 1. Las capas activas ya no duplican el motor
+
+Cada capa vigente que tenía motor copiado (o que lo cargaba de una capa de `historial/` con `importlib`)
+es ahora un **envoltorio fino** de `ie123kit` que conserva intacta su superficie pública, la que usan sus
+`apply.py`/`validate.py` hermanos. Las capas de `historial/` **no se han tocado**, y no se ha borrado ni un
+dato de capa (candidatas, `extra/`, `romfs*/`, `informe.json`, registros: todo intacto).
+
+| Módulo de capa | Líneas | De dónde viene ahora el motor |
+|---|---|---|
+| `ie2/…/dialogo/saltos37/comun19.py` | 103 -> 105 | `nucleo.texto.paginado` + `ie2.comun.dialogo`; ya no carga `comun17` de `historial/dialogo/v17_paginas` |
+| `ie1/capas/dialogo/motor_unificado/comun94.py` | 138 -> 156 | `nucleo.texto.paginado`, `ie1.texto.dialogo.MODELO_IE1_ANCHO` y `ie1.texto.cro` (antes `PARCHES`/`CONTEXTO` a mano); ya no carga `comun17` de `historial/` |
+| `ie2/…/media/subtitulos/comun_sub.py` | 151 -> 116 | `nucleo.media.subtitulos` + `ie2.comun.subtitulos` |
+| `ie2/…/media/voz_titulo/dsp_adpcm.py` | 347 -> 18 | `nucleo.media.dsp_adpcm` (codificador completo, 17 funciones privadas incluidas) |
+| `ie2/…/media/voz_titulo/sonido.py` | 246 -> 79 | `nucleo.contenedores.sound_pb` + `nucleo.media.procyon` |
+| `ie2/…/media/media/bancos.py` | 134 -> 134 | el cuerpo de sus 3 lectores pasa a delegación en `sound_pb`; se queda la política de capa |
+| `ie2/…/graficos/ayuda/apply.py` | 267 -> 160 | `ie2.comun.ayuda` + `nucleo.graficos.regiones` |
+| `ie2/…/graficos/ayuda/ayuda22.py` | 67 -> 63 | `ie2.comun.ayuda` (`capturas`, `captura_nds`, `ModeloAyuda`) |
+| `shared/capas/graficos/banner_home/apply.py` | 141 -> 129 | `juego_principal.banner` (`construir_banner`, `construir_icono`, `textura`, `TITULO`) |
+| `ie1/capas/graficos/smdh/apply.py` | 156 -> 159 | importa `nucleo.ejecutable.smdh` directamente (antes el shim plano) y usa sus `CAMPOS_TITULO` |
+
+Los dos módulos de diálogo crecen un poco en líneas porque el envoltorio documenta de dónde sale cada
+límite y adapta firmas; lo que desaparece es la **segunda implementación**, que era el problema.
+
+Detalle que costaba un fallo silencioso: los lectores de SWD de DS delegan con `alinear=1` (la lectura sin
+alinear de la v13, que es la que produjo la salida vigente). El valor por defecto del paquete es 16 (la
+corrección de la v20) y habría cambiado bytes.
+
+### 2. Dos motores más portados (cerraban el plan)
+
+El usuario pidió que dos motores que seguían siendo solo de capa pasaran al paquete, parametrizados por
+juego y con golden byte a byte. Detalle en [`PLAN_PORTEO_CAPAS.md`](PLAN_PORTEO_CAPAS.md):
+
+- **Capturas de ayuda de IE2**: `nucleo.graficos.regiones` (diferencia de zonas, igualación de color por
+  canal, encaje, pegado escalado, caja de contenido), `nucleo.graficos.pac_sprite.decodificar_pac8` y
+  `ie2.comun.ayuda` (`ModeloAyuda`, `captura_arc`, `PESTANAS`, `pestanas_arc`), con la traducción de las
+  pestañas. Orden `ie123 motor ayuda`.
+- **Grito del título del recopilatorio**: banco `CM_000.SWD`/`.SED` con la muestra 162 y el cambio de
+  duración de la nota de la secuencia (`nucleo.media.voz`, `nucleo.media.procyon.nota_con_ticks` /
+  `sed_con_ticks`, `juego_principal.voz_titulo`). Orden `ie123 motor voz-recopilatorio`.
+- **Tabla de parches de la CRO de IE1**, que se había quedado en `comun94.py`: `ie1.texto.cro` sobre
+  `nucleo.ejecutable.parches_cro`, más `ie1.texto.dialogo.MODELO_IE1_ANCHO` (37 × 3, 131 B, 247 B).
+
+Ya estaban cubiertos y solo hacía falta rewirar la capa: el **audio del banner** (BCWAV dentro del CBMD) y
+la **textura del logo** en `juego_principal.banner`, y los **títulos del SMDH** en `nucleo.ejecutable.smdh`.
+
+### 3. Limpieza de `tools/`
+
+- **`tools/_archivo/` borrado** (29 scripts + 2 tests): el contenido sigue en el historial de git y el
+  motivo de cada retirada, su sustituto y los marcados **PELIGROSO: no reutilizar** pasan a
+  [`SCRIPTS_RETIRADOS.md`](SCRIPTS_RETIRADOS.md), que era lo que había que conservar. Un test comprueba que
+  ese documento y `nucleo.compat.superficie.SCRIPTS_RETIRADOS` dicen lo mismo.
+- **4 shims planos retirados**: `ds_roster`, `reinsert_var`, `ssd_reinsert` y `validate`. La ESPECIFICACION
+  los conservaba por ser «transitivos desde `reinsert`», pero las fachadas de `_legado` se importan entre
+  sí por `ie123kit._legado.<mod>`, nunca por el nombre plano, así que el shim no participaba. Quedan **20**
+  shims (eran 24). Sus módulos siguen en `_legado`, en cuarentena.
+- **Los 10 shims que NO se pueden retirar**: `lz10`, `fa_unpack`, `fa_repack`, `pkb_unpack`, `ssd_records`,
+  `reinsert`, `bcfnt`, `dialogue_typography`, `dialogue_lock` y `font_patch` los importan **por nombre
+  plano los ficheros congelados** del bloqueo tipográfico (`build_ie1_probe`, `build_ui_revision`,
+  `font_patch`). Retirarlos exigiría editar ficheros congelados, así que se quedan mientras exista el
+  bloqueo. Los demás los importan entre 1 y 50 capas vivas.
+- **Gate `superficie comprobar` arreglado**: arrastraba **5 diferencias desde la F2.4** («módulo ausente»
+  para `blz`, `nds_unpack`, `harvest_log`, `limpiar_work` y `verify_candidate`), porque los shims retirados
+  entonces no estaban en ninguna lista. Ahora `RETIRADOS()` suma los scripts borrados y
+  `shims.RETIRADOS`: **0 diferencias**.
+- `_archivo` fuera de las exclusiones de ruff/black de `tools/pyproject.toml` y del comentario de la CI.
+
+### 4. Lo que NO se ha tocado, a propósito
+
+- **Bloqueo tipográfico**: ni un hash. `FONT_HASHES`, `congelados.sha256` y los 5 ficheros congelados
+  siguen como los dejó la F2.5 (v34, autorizado por el usuario el 2026-09-19).
+- **`historial/`**: ninguna capa congelada se ha modificado, y su existencia no ha servido de excusa para
+  dejar código duplicado en las capas vivas.
+- El marcador `.conservar` de `probe_ie1_v66`/`v67` que menciona el issue #55: esas candidatas **ya no
+  existen** (se borraron antes de la F2.3) y el golden dejó de depender de ellas en la F2.3. No queda nada
+  que retirar.
+
+### Resultado del gate de F2.6 (2026-09-20, local)
+
+| Punto | Resultado |
+|---|---|
+| (1) `pytest -m "not requiere_rom"` | PENDIENTE |
+| (2) `nucleo.compat.importaciones --baseline …` | PENDIENTE |
+| (3) `pytest -m requiere_rom` | PENDIENTE |
+| (4) `ie123 compat comprobar --golden` | PENDIENTE |
+| (5) `ie123 doctor` | PENDIENTE |
+| CI local (toolkit.yml / guardia.yml) | PENDIENTE |
+| QA en emulador | pendiente del usuario |
+
+
 ## Pendiente
 
 - **F2.3**: revisión y fusión de la rama `toolkit-f2.3` (la decide el usuario).
 - **F2.4 (#50)**: revisión y fusión de la rama `toolkit-f2.4` (después de la F2.3). Queda el punto (4) del
   gate: construir e instalar una candidata completa para la QA en emulador, bloqueado por la decisión #80.
-- **F2.5 (#51)**: revisión y fusión de la rama `toolkit-f2.5` (después de la F2.4). Quedan del issue:
-  cerrar la épica #40 y abrir el issue de la GUI con la tecnología que elija el propietario, y la QA en
-  emulador de una candidata construida con `ie123`.
+- **F2.5 (#51)**: revisión y fusión de la rama `toolkit-f2.5` (después de la F2.4). Queda del issue la QA
+  en emulador de una candidata construida con `ie123`.
+- **F2.6 (#55)**: revisión y fusión de la rama `toolkit-f2.6-limpieza` (después de la F2.5).
 - Mejoras menores abiertas: #53, #54, #56, #57, #60, #61, #62, #63.
-- Limpieza final (#55) después de F2.5.
+- **Decisiones que siguen siendo del propietario**, no del agente: abrir el issue de la GUI con la
+  tecnología que elija; si se liberan los 22 códigos de celdas duplicadas del registro de bigramas (toca
+  tipografía); si las NFTR propias de IE2 entran en el bloqueo; y la QA en emulador.
 
 ## Cómo se reanuda cada subfase
 

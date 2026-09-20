@@ -30,6 +30,10 @@ DESPUÉS DE LA FASE 1:
 - tools/ tiene además 29 shims generados sin lógica: 23 nombres importados por capas (menos los 5 reales), 5 transitivos (bcfnt, fa_repack, ds_roster, reinsert_var, ssd_reinsert), 1 `validate` y CLIs documentadas (verify_candidate, limpiar_work, nds_unpack, blz, harvest_log).
 - Siguen los 6 .ps1.
 - tools/_archivo/ recibe 27 retirados.
+  (Actualizado en la F2.6, #55: `tools/_archivo/` se borró del árbol. Los retirados están en el
+  historial de git y sus motivos en [`SCRIPTS_RETIRADOS.md`](SCRIPTS_RETIRADOS.md); la lista viva es
+  `ie123kit.nucleo.compat.superficie.RETIRADOS`. Las filas de la tabla de traslados que apuntan a
+  `tools/_archivo/<script>.py` se leen como «retirado», no como una ruta existente.)
 - El paquete ie123kit tiene unos 38 módulos con lógica, en lugar de 63 dispersos, y 6 tests en tools/tests.
 - Resultado: de 77 ficheros con lógica en tools/ se pasa a 11 (5 congelados y 6 .ps1). Las CLIs pasan de 60 a 5 heredadas, pendientes de sustituir.
 
