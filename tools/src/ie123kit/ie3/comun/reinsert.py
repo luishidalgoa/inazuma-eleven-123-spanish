@@ -49,11 +49,20 @@ from __future__ import annotations
 import re
 import struct
 
-from ie123kit.ie3.comun.ssd import group_ruby, parse_flat_text
-from ie123kit.ie3.comun.text import TextTable
 from ie123kit.ie3.comun.maqueta import maquetar_una_caja
 from ie123kit.ie3.comun.ssd import SSD_HEADER_SIZE as SSD_CABECERA
-from ie123kit.nucleo.texto.sjis_portador import es_encode
+from ie123kit.ie3.comun.ssd import group_ruby, parse_flat_text
+from ie123kit.ie3.comun.text import TextTable
+from ie123kit.nucleo.texto.sjis_portador import GREEK, es_encode
+
+
+def _codificable(texto: str) -> bool:
+    """False si Shift-JIS-portador tendría que sustituir algo por `?`."""
+    try:
+        texto.translate(GREEK).encode("shift-jis")
+    except UnicodeEncodeError:
+        return False
+    return True
 
 
 def _maquetar(texto):
@@ -130,26 +139,16 @@ def _reparto(total, n_lecturas, necesita_linea):
 MAX_CUERPO = MAX_REGISTRO - 5
 
 
-def parchear_bloque(bloque, traducciones, tabla=None, crecer=False):
+def parchear_bloque(bloque, traducciones, tabla=None):
     """
     Devuelve (bloque_nuevo, aplicadas, no_caben).
 
     `traducciones` es {japonés: español}.
 
-    Con `crecer=False` el bloque conserva tamaño y número de registros.
-
-    Con `crecer=True` los registros se agrandan lo que haga falta (tope 252 B,
-    que es lo que cabe en el u8 del tamaño) y el bloque cambia de tamaño. El
-    NÚMERO de registros sigue siendo el mismo, que es lo único que importa:
-
-    Las entradas de `evet` no llevan ninguna clave (los 102 419 registros del
-    pack tienen instrucción y argumento a cero), así que el script solo puede
-    referenciarlas por su posición. Que sea el índice y no el offset está
-    COMPROBADO contra la versión europea: hay 39 eventos cuyo bloque de `evet`
-    tiene 3 o más registros, cuyos offsets se mueven entre el japonés y el
-    español (p. ej. 0/96/192/288 -> 0/120/240/360) y cuya sección de código del
-    `eve` es byte a byte idéntica. Si el motor leyera offsets, Level-5 habría
-    tenido que reescribir ese código; no lo hizo.
+    El bloque conserva siempre tamaño y número de registros: el grupo (un
+    dialogo y sus lecturas
+    furigana) conserva su tamano TOTAL, el dialogo va primero asi que su propio
+    offset no se mueve, y los registros posteriores se quedan donde estaban.
     """
     tabla = tabla or TextTable.identity()
     grupos = group_ruby(parse_flat_text(bloque, tabla))
@@ -174,21 +173,16 @@ def parchear_bloque(bloque, traducciones, tabla=None, crecer=False):
             no_caben += 1
             salida.extend(original)       # no cabe en una caja: japonés
             continue
+        if not _codificable(maquetado):
+            no_caben += 1
+            salida.extend(original)       # carácter sin glifo: japonés intacto
+            continue
         cuerpo = es_encode(maquetado, 1 << 30)
 
         necesita = (4 + len(cuerpo) + 1 + 3) & ~3
 
-        if crecer:
-            # El texto manda: el registro se agranda. Las lecturas se vacían al
-            # mínimo porque el español no lleva furigana.
-            if len(cuerpo) > MAX_CUERPO:
-                no_caben += 1
-                salida.extend(original)
-                continue
-            reparto = (necesita, *([MIN_REGISTRO] * len(lecturas)))
-        else:
-            total = _tam(linea) + sum(_tam(r) for r in lecturas)
-            reparto = _reparto(total, len(lecturas), necesita)
+        total = _tam(linea) + sum(_tam(r) for r in lecturas)
+        reparto = _reparto(total, len(lecturas), necesita)
 
         if reparto is None:
             no_caben += 1
@@ -202,7 +196,7 @@ def parchear_bloque(bloque, traducciones, tabla=None, crecer=False):
 
     nuevo = bytes(salida)
 
-    if not crecer and len(nuevo) != len(bloque):
+    if len(nuevo) != len(bloque):
         raise ValueError(
             f"el bloque cambió de tamaño: {len(bloque)} -> {len(nuevo)}"
         )
@@ -279,7 +273,7 @@ def parchear_ssd(bloque, traducciones, opcodes, tabla=None):
     nuevo = bytes(cabecera) + codigo + bytes(salida)
 
     # Se vuelve a leer: si algo no cuadra, salta aquí y no en la consola.
-    comprobado, regs2 = parse_ssd(nuevo, tabla)
+    _comprobado, regs2 = parse_ssd(nuevo, tabla)
     if len(regs2) != len(registros):
         raise ValueError(
             f"la tabla de textos cambió de entradas: "

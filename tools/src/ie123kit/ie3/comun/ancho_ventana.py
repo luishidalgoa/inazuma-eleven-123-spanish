@@ -1,4 +1,4 @@
-"""Ensancha la ventana de dialogo de IE3: 22 -> 39 caracteres por linea.
+"""Ensancha el límite lógico de diálogo de IE3: 22 -> 51 caracteres por línea.
 
 Es la misma sonda que la capa `ie2/shared/v15/ancho_dialogo` aplicó a
 ``ina_main2.cro`` y que está validada en emulador; aquí se traslada a
@@ -14,8 +14,9 @@ El motor ajusta el texto con un avance FIJO de 12 px por carácter y un límite 
     max n con 12·n < 240 + 32 = 272   ->   22 caracteres por línea
 
 que es justo lo que se midió en el emulador: «¡Bravo, Paolo! ¡El fút» son 22
-caracteres clavados. Con 0x1C0 (448) el limite pasa a 480 y entran 39, que es lo que se vio
-que cabe de sobra en la caja en la prueba de la v104.
+caracteres clavados. Con las métricas oficiales europeas, el barrido de las
+34.691 traducciones elegibles produce líneas de 354 px con un máximo de 51
+caracteres; 0x250 da exactamente ese límite lógico.
 
 ------------------------------------------------------------------
 Los tres sitios
@@ -23,14 +24,14 @@ Los tres sitios
 
 Localizados por el mismo patrón que en IE2, con coincidencia única en los tres:
 
-    0x04F3CC  mov r1,#0xF0  -> mov r1,#0x1C0   ancho que el manejador del
+    0x04F3CC  mov r1,#0xF0  -> mov r1,#0x250   ancho que el manejador del
                                                diálogo pasa en cada caja
                                                (detrás lleva su mov r2,#3)
-    0x039CEC  mov r2,#0xF0  -> mov r2,#0x1C0   valor por defecto de la ventana;
+    0x039CEC  mov r2,#0xF0  -> mov r2,#0x250   valor por defecto de la ventana;
                                                el strh de 0x039CF4 lo guarda en
                                                [ventana+0x131A] (en IE1 es
                                                +0x1316 y en IE2 +0x131E)
-    0x03A928  mov r2,#0x120 -> mov r2,#0x1E0   ancho de la rejilla de dibujo de
+    0x03A928  mov r2,#0x120 -> mov r2,#0x270   ancho de la rejilla de dibujo de
                                                la página; sin esto el texto se
                                                reajusta pero se sigue dibujando
                                                cortado a 24 caracteres
@@ -54,20 +55,20 @@ from __future__ import annotations
 import struct
 
 #: Ancho nuevo de la ventana y de la rejilla de dibujo.
-ANCHO = 0x1C0
-REJILLA = 0x1E0
+ANCHO = 0x250
+REJILLA = 0x270
 
 #: 12·n < ANCHO + 0x20
 MAX_CAR = max(n for n in range(1, 80) if 12 * n < ANCHO + 0x20)
 
 #: (dirección, palabra esperada, palabra nueva, para qué)
 PARCHES = (
-    (0x04F3CC, 0xE3A010F0, 0xE3A01D07,
-     "manejador de dialogo: mov r1,#0xF0 -> #0x1C0"),
-    (0x039CEC, 0xE3A020F0, 0xE3A02D07,
-     "por defecto de la ventana: mov r2,#0xF0 -> #0x1C0"),
-    (0x03A928, 0xE3A02E12, 0xE3A02F78,
-     "rejilla de dibujo: mov r2,#0x120 -> #0x1E0"),
+    (0x04F3CC, 0xE3A010F0, 0xE3A01E25,
+     "manejador de dialogo: mov r1,#0xF0 -> #0x250"),
+    (0x039CEC, 0xE3A020F0, 0xE3A02E25,
+     "por defecto de la ventana: mov r2,#0xF0 -> #0x250"),
+    (0x03A928, 0xE3A02E12, 0xE3A02E27,
+     "rejilla de dibujo: mov r2,#0x120 -> #0x270"),
 )
 
 #: Palabras que tienen que seguir intactas alrededor (confirman que es el sitio).

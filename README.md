@@ -14,6 +14,11 @@ legal. Ver [`LEGAL.md`](LEGAL.md).
 - **Interfaz de la recopilación**.
 - Los juegos **2 y 3 siguen en japonés**.
 
+Estado de desarrollo local de IE3: Spark/Ogre disponen de una reconstrucción
+general de textos soportados y una candidata pendiente de validación manual,
+no una traducción completa verificada ni una publicación. Véase
+[integración IE3 fase 3](docs/IE3_FASE3_INTEGRACION.md).
+
 Detalle en [`docs/PROGRESO.md`](docs/PROGRESO.md).
 
 ## Cómo jugarlo
@@ -50,6 +55,11 @@ techo de lo que hay. Cada intento fallido está documentado en
 [`docs/FURIGANA_LECCIONES.md`](docs/FURIGANA_LECCIONES.md); léelo antes de reintentar nada.
 
 ## Colaborar
+
+Estado local IE3: [fase 4, candidata de colocación/nombres/interfaz pendiente
+de validación manual](docs/IE3_FASE4_INTEGRACION.md). Sus límites demostrados son
+específicos de IE3; las restricciones históricas anteriores no se generalizan
+a los consumidores auditados en ese informe.
 
 - **Desarrollo** (clonar, requisitos, build): [`docs/DESARROLLO.md`](docs/DESARROLLO.md)
 - **Traducir texto** (estilo, glosario): [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md)

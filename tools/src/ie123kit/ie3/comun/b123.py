@@ -262,6 +262,15 @@ class B123Archive:
 
         return data
 
+    @property
+    def index(self):
+        """Identidades str compatibles con adaptadores de FaArchive, sin cargar datos."""
+        return {e.path.decode(): e for e in self.entries}
+
+    def exists(self, path):
+        key = path.encode() if isinstance(path, str) else path
+        return key in self._by_path
+
     def find(self, predicate):
         return [e for e in self.entries if predicate(e.path)]
 

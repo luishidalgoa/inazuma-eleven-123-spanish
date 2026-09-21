@@ -15,7 +15,7 @@ emulador, «¡Bravo, Paolo! ¡El fútbol» (25 caracteres) salio como
 «¡Bravo, Paolo! ¡El fút» + «bol», y la ultima linea se perdia.
 
 Con la ventana de fabrica (0xF0) son 22 caracteres; con la ensanchada de
-`ancho_ventana` (0x1A0) son 37. El ancho no se repite aqui: se lee de alli, que
+`ancho_ventana` son 51. El ancho no se repite aqui: se lee de alli, que
 es donde se parchea el CRO.
 
 El motor **corta por caracter, no por palabra**, asi que si no se le dan los
@@ -43,6 +43,24 @@ MAX_CAR = max(n for n in range(1, 80) if (n - 1) * AVANCE + AVANCE < LIMITE)
 #: 3 líneas por caja.
 LINEAS = 3
 
+#: Tope de TINTA por línea, en píxeles.
+#:
+#: El motor REAJUSTA contando 12 px fijos por carácter, pero DIBUJA con el avance
+#: real de la fuente, que es proporcional. Son dos límites distintos y hacen falta
+#: los dos: el de caracteres decide dónde parte el motor, y éste decide si la
+#: línea se sale de la caja.
+#:
+#: Geometría medida en `capas/ie1/v86/ancho_ventana/informe.md`: el panel llega a
+#: x≈391, el icono de avance ocupa 370-390 en la 3.ª línea, y la caja admite unos
+#: 354 px de tinta.
+MAX_TINTA = 354
+
+
+def tinta(texto):
+    """Anchura real en píxeles del texto con la fuente del diálogo."""
+    from ie123kit.ie3.comun.tipografia import avance_font12
+    return sum(avance_font12(c) for c in texto)
+
 SALTO = "\\n"
 PAGINA = "\\f"
 
@@ -52,8 +70,19 @@ def _partir_palabra(palabra, ancho):
     return [palabra[i:i + ancho] for i in range(0, len(palabra), ancho)]
 
 
-def lineas_de(texto, ancho=MAX_CAR):
-    """Reparte `texto` en líneas de `ancho` caracteres sin cortar palabras."""
+def lineas_de(texto, ancho=MAX_CAR, max_tinta=MAX_TINTA, *, medir=None):
+    """
+    Reparte `texto` en líneas sin cortar palabras.
+
+    Una línea se cierra cuando se pasa de `ancho` caracteres (lo que hace que el
+    motor meta un salto suyo) O de `max_tinta` píxeles (lo que la sacaría de la
+    caja al dibujarla).
+    """
+    medida = tinta if medir is None else medir
+
+    def cabe(linea):
+        return len(linea) <= ancho and medida(linea) <= max_tinta
+
     lineas = []
     for trozo in texto.split(SALTO):
         actual = ""
@@ -70,7 +99,7 @@ def lineas_de(texto, ancho=MAX_CAR):
                 continue
             if not actual:
                 actual = palabra
-            elif len(actual) + 1 + len(palabra) <= ancho:
+            elif cabe(actual + " " + palabra):
                 actual += " " + palabra
             else:
                 lineas.append(actual)
@@ -99,6 +128,8 @@ def maquetar_una_caja(texto, ancho=MAX_CAR, lineas=LINEAS):
     sueltas = lineas_de(texto, ancho)
     if len(sueltas) > lineas:
         return None
+    if any(len(l) > ancho or tinta(l) > MAX_TINTA for l in sueltas):
+        return None                       # una palabra suelta que no cabe
     return SALTO.join(sueltas)
 
 

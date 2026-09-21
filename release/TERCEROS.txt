@@ -1,5 +1,0 @@
-DeltaPatcher (Windows x86_64) — Marco Calautti
-Código fuente y versiones oficiales: https://github.com/marco-calautti/DeltaPatcher
-Licencia: GNU GPL v2 (texto completo en LICENCIA_DeltaPatcher.txt).
-Se incluye sin modificar, descargado de su release oficial al montar el paquete,
-para facilitar la aplicación del parche.

@@ -5,3 +5,6 @@ tools/font_patch.py -text
 tools/dialogue_lock.py -text
 tools/build_ie1_probe.py -text
 tools/build_ui_revision.py -text
+
+# Segmentos binarios de la publicacion IE3 (sin conversion de saltos).
+patch/ie3_publica/** -text
