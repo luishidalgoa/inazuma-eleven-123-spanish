@@ -68,4 +68,3 @@ ie123.local.toml
 
 # Dialogo oficial de IE3 por version (copyright Nintendo): mismo caso que
 # translation/*/dialogo_oficial.csv, pero con una carpeta mas de profundidad.
-translation/*/*/dialogo_oficial.csv
