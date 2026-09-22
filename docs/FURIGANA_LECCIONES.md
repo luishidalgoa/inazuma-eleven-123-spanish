@@ -539,3 +539,16 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
   cambio de texto, comprobar que la simulación reproduce la captura del usuario con el fallo tal cual.
 - El nombre de técnica del recuadro de partido es un gráfico (el cartel de la técnica), no `command.STR`:
   solo se ven 86 px.
+
+## ✅ Búfer de página del diálogo ampliado a 256 B (IE3, probado en juego el 2026-09-22)
+
+- El tope «132 B por página» (`2 × caracteres + (líneas − 1) ≤ 131`) **sí se puede ampliar en su sitio**:
+  no hace falta hueco en el marco, se agranda el marco. En la función que dibuja la página
+  (IE3 `ina_main3ogre.cro` 0x3a75c, IE2 `ina_main2.cro` 0x4d4d8, IE1 `ina_main1.cro` 0x46f00) se cambian
+  13 inmediatos: `sub/add sp,sp,#F` → `F+0x100`, las 3 referencias al búfer → `sp+F` (zona nueva) y
+  los accesos a registros guardados `[sp,#k≥F]` → `k+0x100`. Sin código nuevo ni huecos.
+  Motor: `ie123kit.nucleo.ejecutable.bufer_pagina` (localiza la función y audita todos los accesos a sp).
+- Resultado en el IE3: cajas de 3 líneas × 37 caracteres en ancho completo (2 B por letra), sin cambiar
+  la codificación. Antes el reparto dejaba una sola línea por caja.
+- En el IE3 el salto de página `\f` **funciona** (la conclusión contraria de la bitácora de IE3 era un
+  efecto del fallo de offsets que comía bytes, ya resuelto con las referencias `@offset,longitud`).
