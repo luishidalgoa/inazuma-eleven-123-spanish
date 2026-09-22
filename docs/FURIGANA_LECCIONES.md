@@ -108,6 +108,150 @@ un chunk aparte (numerado `0x02..0x1f`). El motor consume **1 lectura por marcad
 por página (`\f`)**. La reinserción es **mismo-tamaño-en-bytes** (no se puede crecer
 sin un desensamblador que recalcule offsets). Todo lo que rompa esa mecánica → cuelga.
 
+## IE3 (2026-09-18) — probado en emulador
+
+Primeras pruebas en juego de la reinsercion de IE3 (`ie123kit.ie3.comun`). El
+dialogo de IE3 vive en `evet.pkb`, que es una tabla PLANA sin comprimir, no un
+SSD: las entradas no llevan clave (los 102 419 registros tienen instruccion y
+argumento a cero) y el script las referencia por INDICE.
+
+### ❌ #16 — `evet` se lee por OFFSET DE BYTES, no por indice
+
+**El hallazgo mas importante de IE3, y corrige lo que se escribio antes en este
+mismo documento.** Si un registro de `evet` cambia de tamano, todos los que van
+detras se desplazan y el motor sigue leyendo desde el offset viejo: el dialogo
+sale con los primeros bytes comidos.
+
+Medido en tres capturas del usuario, y cuadra al byte en las tres:
+
+| build | registros anteriores (base -> build) | delta | bytes perdidos al dibujar |
+|---|---|---|---|
+| v102 | 260 -> 260 | 0 | ninguno, salio bien |
+| v103 | 100 -> 80 | **-20** | **20** (`¡Madre mía! ¡Hoy `) |
+| v105 | 260 -> 256 | **-4** | **4** (`¡Br`) |
+
+El delta acumulado de los registros ANTERIORES es exactamente lo que se pierde.
+
+**La prueba que me llevo a la conclusion contraria estaba mal.** Se buscaron
+eventos cuyo bloque de `evet` cambia de tamano entre el japones y el europeo y
+cuya seccion de codigo del `eve` es identica, y se dedujo que las referencias no
+eran offsets. Pero Level-5 reconstruyo LAS DOS cosas al localizar (el europeo
+tiene 8 registros donde el japones tiene 22, porque elimino las lecturas
+furigana): que el codigo de un evento concreto coincida no prueba nada sobre el
+resto, y desde luego no sobre nuestro caso, que es cambiar solo el `evet`.
+
+**Regla: el tamano de cada registro de `evet` es intocable.** Lo unico que se
+puede hacer es repartir bytes DENTRO de un grupo (un dialogo y sus lecturas
+furigana), porque el dialogo va primero y su offset no se mueve, y el total del
+grupo se conserva, asi que los registros posteriores tampoco se mueven. Las
+lecturas del grupo si se desplazan, pero al haber quitado los marcadores no se
+consumen.
+
+### ❌ #17 — Buscar el offset de evet por correlacion estadistica: FALSO POSITIVO
+
+Intento de recuperar las lineas que no caben a mismo tamano: si el motor lee
+`evet` por offset (❌#16), ese offset estara en algun operando del `eve`, se
+recalcula al crecer y se acabo el problema.
+
+Se midio, para cada (opcode, posicion de argumento), que fraccion de sus valores
+cae exactamente en el inicio de un registro del `evet` del mismo evento. Gano
+**0x301a argumento 2 con un 95,0 % sobre 54 380 usos**, muy por encima del
+resto. Parecia concluyente.
+
+**Es un artefacto.** Al mirar un evento concreto (31200000), los valores de ese
+argumento son 0, 2, 8... y los registros de su `evet` empiezan en 204, 216, 228.
+Son numeros pequenos, y en cualquier bloque el offset 0 siempre es inicio de
+registro y los primeros registros caen en valores bajos: la correlacion se la
+comen los ceros y los dos.
+
+Comprobacion que lo delata en un minuto y que habria que hacer SIEMPRE antes de
+fiarse de una correlacion asi: coger un evento suelto y mirar si los valores
+tienen el ORDEN DE MAGNITUD de los offsets del bloque. Ademas, de 2 181 eventos
+con registros movidos, la recolocacion solo cambiaba algo en **2**: si el hueco
+fuera de verdad el del offset, cambiaria en casi todos.
+
+Es el mismo error que ❌#11, con otra ropa. **Sigue sin saberse donde guarda el
+`eve` los offsets de `evet`**, asi que el unico modo seguro es el de mismo
+tamano: cada registro conserva sus bytes y solo se reparten dentro del grupo.
+
+### ❌ #14 — Anadir paginas `` a un dialogo de IE3: SE PIERDE TEXTO
+
+Sintoma: el dialogo salia con las primeras lineas comidas. Confirmado dos veces
+(v102 y v103), con capturas del usuario.
+
+Causa: **de las 79 715 lineas japonesas de IE3 solo 22 llevan ``**, y ningun
+dialogo pasa de 3 lineas (34 284 de 1 linea, 31 219 de 2, 14 192 de 3). El motor
+dibuja UNA caja por dialogo. El manejador de `` (0x0C) solo hace `x=0, linea=0`:
+no borra la caja ni espera al boton. Todo lo que se ponga detras de un ``
+anadido se dibuja encima o no se pide nunca.
+
+Es el mismo principio que ❌#5 en IE1 (el numero de paginas del ES debe ser igual
+que el del JP), pero aqui la regla es mas dura porque el japones no pagina casi
+nunca: **no se anade ninguna pagina**. Si el espanol no cabe en 3 lineas, la linea
+se queda en japones.
+
+### ❌ #15 — Maquetar midiendo el ancho REAL de cada letra
+
+El `reflow` de IE1 (`sjis_portador`, 208 px) mide el avance real de cada glifo. El
+motor NO: cuenta **12 px fijos por caracter** (`FontGetCharWidth`), da igual que
+sea una `i` o una `M`. Medir la tinta da de mas, el motor parte la palabra y la
+ultima linea se cae de la caja.
+
+Visto en emulador: «¡Bravo, Paolo! ¡El fútbol» (25 caracteres) salio como
+«¡Bravo, Paolo! ¡El fút» + «bol», y se perdio la tercera linea. Los 22 caracteres
+que se vieron son exactamente el limite de fabrica.
+
+**Las dos restricciones son distintas y hay que aplicar las dos:**
+
+- **caracteres por linea** = `(ancho + 0x20) / 12` — decide donde parte el motor;
+- **tinta de la linea** — decide si se sale de la caja al dibujar, porque el
+  dibujo SI es proporcional. Geometria medida en `capas/ie1/v86/ancho_ventana`:
+  el panel llega a x≈391, el icono de avance ocupa 370–390 en la 3.ª linea, y la
+  caja admite unos **354 px** de tinta.
+
+### Ventana de dialogo de IE3: valores de fabrica
+
+Mismo patron que IE1 e IE2, con el offset de la estructura desplazado:
+
+| juego | modulo | escritura por defecto | ancho | lineas |
+|---|---|---|---|---|
+| IE1 | `ina_main1.cro` | 0x0465B4 | `[+0x1316]` = 0xF0 | `[+0x1318]` = 3 |
+| **IE3** | **`ina_main3ogre.cro`** | **0x039CE0** | **`[+0x131A]` = 0xF0** | **`[+0x131C]` = 3** |
+| IE2 | `ina_main2.cro` | 0x04CAB0 | `[+0x131E]` = 0xF0 | `[+0x1320]` = 3 |
+
+0xF0 + 0x20 = 272, a 12 px por caracter → **22 caracteres**, que es lo medido en
+emulador.
+
+Los tres sitios que la capa IE2 v15 parchea existen igual en IE3, con
+coincidencia unica:
+
+    0x04F3CC  mov r1,#0xF0   ancho que el manejador del dialogo pasa en cada caja
+    0x039CEC  mov r2,#0xF0   valor por defecto de la ventana
+    0x03A928  mov r2,#0x120  ancho de la rejilla de DIBUJO (sin este, el texto se
+                             reajusta pero se sigue dibujando cortado)
+
+> **Alternativa sin tocar el CRO, preferible:** el arg4 de `0x301c` escribe el
+> ancho directamente (`strhne`), y el arg5 las lineas. Es un parche de DATOS de
+> 4 bytes dentro del evento, no cambia su tamano y respeta la prohibicion de
+> tocar CRO y code.bin. Lo documenta `capas/ie1/v86/ancho_ventana/informe.md`
+> para IE1; en IE3 los 2 289 `0x301c` tienen arg4 y arg5 a cero, asi que el
+> camino esta libre. Su riesgo conocido es la PERSISTENCIA: nada devuelve el
+> ancho a 240 al cerrar la ventana, asi que el valor ancho se arrastra a los
+> eventos siguientes. Parchear el CRO no tiene ese problema porque deja el ancho
+> uniforme, pero es un parche de codigo.
+
+### Pendiente de comprobar: lecturas furigana huerfanas en `evet`
+
+La reinsersion de IE3 quita los marcadores `%NF` del espanol y **vacia** las
+lecturas. Eso deja el mismo patron que causo el bug de la zona del club en IE1
+(0 marcadores y N lecturas sueltas → el dialogo no cierra y se bloquean los
+controles). Alli la solucion fue **eliminarlas**, no vaciarlas; en `evet` no se
+pueden eliminar sin cambiar el numero de registros, y las referencias van por
+indice. Sin sintoma observado todavia, pero queda anotado.
+
+Lo que si se corrige ya, por ❌#12: las lecturas se vacian **a su tamano
+original**, sin encogerlas.
+
 ## ❌ Enfoques que CUELGAN (no reintentar)
 
 | # | Enfoque | Resultado | Por qué |
@@ -376,16 +520,3 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
 - **Regla:** cada página debe cumplir `2 × caracteres + (líneas − 1) ≤ 131`, con líneas de hasta 37
   caracteres. Esto también afecta al reparto de 22 × 3: en la v10 hay 122 páginas de 132–134 B.
 - **Cómo cumplirla sin tocar el texto:** repartir el texto en más páginas, nunca recortarlo.
-
-## ⚠️ IE2: tres cosas que parecían texto y no lo eran (v20–v23, 2026-09-19)
-
-- **Los menús de opciones de los eventos** (Mapa/Caravana/Volver, Comprar/Vender/Salir…) son **sprites**:
-  la instrucción 0x308e solo cambia el fotograma. Están en `a_data_replace/field_board/data/`.
-- **Los argumentos del diálogo se usan en orden.** En japonés, el marcador de furigana consume antes su
-  lectura. Si se quita la furigana, el `%s` se queda con la lectura («fichar a いま»). Hay que reordenar
-  los argumentos de esas instrucciones.
-- **El menú de campo dibuja las letras según su anchura real, no con un paso fijo de 15 px** (al revés que
-  los rótulos). Tres rondas fallaron por usar el modelo de paso fijo. **Regla:** antes de dar por bueno un
-  cambio de texto, comprobar que la simulación reproduce la captura del usuario con el fallo tal cual.
-- El nombre de técnica del recuadro de partido es un gráfico (el cartel de la técnica), no `command.STR`:
-  solo se ven 86 px.
