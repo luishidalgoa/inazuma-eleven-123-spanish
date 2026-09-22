@@ -43,6 +43,14 @@
 - No subir ROMs, extracciones, logs ni datos oficiales recuperados. Mantener los
   originales y distinguir una candidata de una build verificada en juego.
 
+## Después de construir una candidata: versión visible (instrucción del usuario, 2026-09-22)
+
+- La pantalla de aviso del arranque muestra la versión del parche. **Cada candidata nueva la actualiza**
+  antes de instalarse: `VERSION` en `work/ie1/capas/graficos/creditos_javiju/render.py` (formato
+  `vX.Y beta - IE3 vNN`, o el de la release), `python render.py`, `python video.py logo_l5_original_jp.moflex
+  extra/movie/logo_l5.moflex` y sustituir `movie/logo_l5.moflex` en el archive.fa de la candidata.
+- Nunca instalar una candidata cuya pantalla de aviso diga otra versión.
+
 ## Espacio en disco: instrucción del usuario
 
 - No acumular builds ni copias históricas en `work/`. Mantener solo la candidata
