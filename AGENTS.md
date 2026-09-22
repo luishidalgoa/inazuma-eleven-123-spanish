@@ -47,7 +47,7 @@
 
 - La pantalla de aviso del arranque muestra la versión del parche. **Cada candidata nueva la actualiza**
   antes de instalarse: `VERSION` en `work/ie1/capas/graficos/creditos_javiju/render.py` (formato
-  `vX.Y beta - IE3 vNN`, o el de la release), `python render.py`, `python video.py logo_l5_original_jp.moflex
+  `vX.Y beta - IE3 vNN`, o el de la release), `python diseno.py` (diseño de 2026-09-22; `render.py` ya no se usa para dibujar, solo guarda los datos), `python video.py logo_l5_original_jp.moflex
   extra/movie/logo_l5.moflex` y sustituir `movie/logo_l5.moflex` en el archive.fa de la candidata.
 - Nunca instalar una candidata cuya pantalla de aviso diga otra versión.
 
