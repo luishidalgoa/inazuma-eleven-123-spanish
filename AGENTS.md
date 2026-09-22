@@ -9,7 +9,11 @@
 
 - Referencia aprobada: **v34** (2026-09-19). El usuario autorizó actualizar el bloqueo a su motor de
   textos: glifos europeos y espaciado corregido, letras dobles, caja ancha de 37 caracteres por
-  3 líneas y páginas de 131 B como máximo. No modificar caja, dimensiones, posición, tamaño de letra,
+  3 líneas y páginas de 131 B como máximo. **Ampliado el 2026-09-22** (el usuario probó la candidata
+  IE3 v04 y la dio por «perfecta», y pidió aplicarlo a IE1 e IE2): búfer de página de 256 B en los tres
+  CRO (`ie123kit.nucleo.ejecutable.bufer_pagina`), páginas de hasta 250 B, es decir 3 líneas llenas de
+  37 caracteres en ancho completo. La codificación sigue siendo la misma (2 B por letra): el usuario
+  rechazó expresamente pasar a 1 byte. No modificar caja, dimensiones, posición, tamaño de letra,
   glifos, espaciado, fuentes, codificación ni algoritmo de saltos sin una nueva petición expresa.
 - Las cinco fuentes exactas se verifican con `tools/dialogue_lock.py`.
 - Las nuevas traducciones deben adaptarse a esta configuración. Un texto largo
@@ -20,7 +24,12 @@
 - Esta aprobación se refiere al aspecto observado; no significa que toda la ROM
   o todos los capítulos hayan superado el recorrido QA.
 
-- Objetivo actual: traducir y depurar Inazuma Eleven 1 de la recopilación 3DS.
+- Objetivo actual (2026-09-22): IE3 Fuego Explosivo (issue #90 y #91-#96) y llevar el nuevo reparto de
+  3 × 37 al IE1 y al IE2 (#95). IE1 e IE2 siguen en QA por el usuario.
+- IE3: la fuente de texto, gráficos, voces y vídeos es la CIA europea de Fuego Explosivo (trae en `es/`
+  los guiones `inazuma3` —Fuego y Rayo Celeste, idénticos— e `inazuma3_ogre`). El motor de diálogo es
+  el de @AlbertooCh (`ie123kit.ie3`, referencias `@offset,longitud` de eve→evet) con el reparto y la
+  codificación del IE2. Capas en `work/ie3/<versión>/capas` y `work/ie3/shared/capas`.
 - Leer `CLAUDE.md` y `docs/PROTOCOLO_QA_IE1.md`. El protocolo es una instrucción
   explícita del usuario: cajas de diálogo sin bugs gráficos; recorrido hasta la
   primera pachanga con varios NPC; detenerse ante cada fallo, corregirlo y repetir
