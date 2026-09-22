@@ -1,5 +1,14 @@
 # Herramientas
 
+## IE3: emisión general tras el piloto aprobado
+
+`python -X utf8 -m ie123kit.ie3.fase3` reconstruye Spark y Ogre con un núcleo
+común, transición original/heredado/salida y reportes por categoría. El constructor
+`ie123kit.ie3.comun.build_piloto --integrated` produce y reextrae la ROM completa.
+Comandos, límites, perfiles Bomber y pruebas manuales en
+[IE3_FASE3_INTEGRACION](../docs/IE3_FASE3_INTEGRACION.md). No confundir los planes
+offline, la aprobación de un único piloto y la validación de toda una campaña.
+
 ## Paquete ie123kit
 
 La fase 1 de la migración (épica #40, subfases F1.0-F1.5) está cerrada. El código vive en
@@ -307,3 +316,32 @@ detectando qué mejorar en la siguiente versión sin mirar el log en vivo.
 > herramientas, no la cosecha.
 
 > Coloca los ejecutables descargados en `tools/bin/` (ignorado por git).
+
+## IE3 Fase 2: referencias y piloto (sin reactivar `--crecer`)
+
+- `python -m ie123kit.ie3.comun.cobertura --perfil spark --salida <carpeta-nueva>`:
+  diagnóstico conservador trazable, disponible también para `ogre`.
+- `python -m ie123kit.ie3.fase2 auditar --perfil spark --salida <carpeta-nueva>`:
+  round-trip JP/ES, referencias del consumidor, correspondencias y simulación
+  offline; el mismo núcleo acepta `--perfil ogre`.
+- `python -m ie123kit.ie3.fase2 piloto --perfil spark --plan <auditoría> --referencia <archive-v7> --clave <clave-estable> --salida <candidata-nueva>`:
+  selección explícita de 1–5 mensajes, compresión/índices/referencias y B123.
+- `python -m ie123kit.ie3.comun.build_piloto --candidate <candidata> --visual-manifest <manifest-v7> --rom <salida.3ds>`:
+  build completa reutilizando el CRO exacto de referencia y reextracción de ROM.
+
+Se rechazan conflictos, cambios de hash y salidas existentes. No hay activación
+masiva hasta la prueba manual. Bomber requiere perfil/corpus/correspondencias
+propios, aunque comparta recursos con Spark. Evidencia, límites, comandos y
+protocolo en [IE3_FASE2_REFERENCIAS](../docs/IE3_FASE2_REFERENCIAS.md).
+
+## IE3 Fase 4: colocación e interfaz sobre la referencia fase 3
+
+- `python -m ie123kit.ie3.fase4 --referencia <carpeta-fase3> --salida <carpeta-nueva>`:
+  prepara la revisión sin modificar tipografía/encoder ni originales.
+- El mismo comando con `--verificar`: reextrae registros/recursos y comprueba
+  nombres, fuentes y equivalencia oficial de literales Ogre/Spark.
+- `python -m ie123kit.ie3.comun.build_piloto --revision --candidate <carpeta-fase4> --visual-manifest <fase3/manifest.json> --rom <salida-nueva.3ds>`:
+  exige verificación vigente, construye una ROM completa y relee sus recursos.
+
+La simulación no equivale a validación visual. Contratos, porcentajes separados,
+pendientes y comandos completos en [IE3_FASE4_INTEGRACION](../docs/IE3_FASE4_INTEGRACION.md).

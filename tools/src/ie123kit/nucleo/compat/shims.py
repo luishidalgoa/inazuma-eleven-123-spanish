@@ -46,6 +46,8 @@ MAPA: dict[str, str] = {
     "harvest_log": "ie123kit._legado.harvest_log",
     "limpiar_work": "ie123kit._legado.limpiar_work",
     "ie1_keyboard": "ie123kit.ie1.graficos.teclado",
+    "ie3_pipeline": "ie123kit.ie3.pipeline",
+    "ie3_verificar_offsets": "ie123kit.ie3.comun.verificar_offsets",
 }
 MAPA.update(
     {

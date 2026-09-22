@@ -65,3 +65,6 @@ ie123.local.toml
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+
+# Dialogo oficial de IE3 por version (copyright): solo local
+translation/*/*/dialogo_oficial.csv

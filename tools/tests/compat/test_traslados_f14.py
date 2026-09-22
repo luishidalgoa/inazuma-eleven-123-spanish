@@ -99,7 +99,7 @@ def test_mapa():
     assert len(TRASLADOS_F14) == 13
     distintos = {n: (shims.MAPA.get(n), d) for n, d in TRASLADOS_F14.items() if shims.MAPA.get(n) != d}
     assert not distintos, f"MAPA difiere de TRASLADOS_F14 (actual, esperado): {distintos}"
-    assert len(shims.MAPA) == 29
+    assert len(shims.MAPA) == 31
 
 
 @pytest.mark.parametrize("nombre", list(TRASLADOS_F14))

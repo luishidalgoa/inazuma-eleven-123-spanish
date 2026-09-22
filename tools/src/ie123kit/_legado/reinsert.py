@@ -96,7 +96,14 @@ def reflow(text):
 def load_translations(game):
     """{event_id: {japones_limpio: es_final}} para lineas con es_final (re-ajustadas)."""
     out = {}
-    path = os.path.join(REPO, "translation", game, "dialogo.csv")
+    # Las carpetas se renombraron a ie1/ie2 en la migracion del 2026-09-16
+    # (docs/ARQUITECTURA.md) pero la clave interna sigue siendo game1/game2.
+    # ds_official.py ya hacia esta misma conversion al escribir; aqui faltaba,
+    # asi que load_translations no encontraba nada y el bucle de dialogo se
+    # saltaba EN SILENCIO: la build salia con las fuentes parcheadas y el
+    # texto en japones.
+    carpeta = game.replace("game", "ie")
+    path = os.path.join(REPO, "translation", carpeta, "dialogo.csv")
     if not os.path.exists(path):
         return out
     for row in csv.DictReader(open(path, encoding="utf-8")):
@@ -107,7 +114,7 @@ def load_translations(game):
     # tiene PRIORIDAD sobre la IA (texto oficial de Nintendo, mismo evento+línea).
     # SOLO en eventos STRIP (historia): meterlo en la apertura PROTEGIDA (furigana)
     # descuadra el crear-partida (pantalla negra). Fichero local gitignored (copyright).
-    ofi = os.path.join(REPO, "translation", game, "dialogo_oficial.csv")
+    ofi = os.path.join(REPO, "translation", carpeta, "dialogo_oficial.csv")
     if os.path.exists(ofi):
         from ie123kit._legado.reinsert_var import is_strip_event        # lazy: evita import circular
         for row in csv.DictReader(open(ofi, encoding="utf-8")):

@@ -125,6 +125,17 @@ def test_rebuild_alineado(align):
     assert _leer(npkh, npkb)[10010002] == b"otro payload"
 
 
+def test_rebuild_preserves_sentinel_and_auto_alignment():
+    pkh, pkb = _paquete(PAYLOADS, align=16)
+    pkh = pkh + struct.pack("<III", 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF)
+    npkh, _npkb, _ = packnum.rebuild(
+        pkh, pkb, {10010002: b"otro payload"}, align="auto"
+    )
+    indice = packnum.parse_index(npkh)
+    assert indice[-1] == (0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF)
+    assert all(off % 16 == 0 for eid, off, _ in indice if eid != 0xFFFFFFFF)
+
+
 def test_alineado_observado():
     pkh, _ = _paquete(PAYLOADS, align=16)
     assert packnum.alineado_observado(packnum.parse_index(pkh)) in (16, 32)
