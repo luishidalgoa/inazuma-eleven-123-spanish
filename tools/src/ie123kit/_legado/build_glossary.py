@@ -26,7 +26,7 @@ from ie123kit.nucleo.registros.tabla_fija import names_from_dat, strings_from_st
 
 REPO = str(find_root())
 # valores por defecto (juego 1); main() los reasigna segun el juego
-DS = os.path.join(REPO, "work", "fa_extract", "inazuma1", "data_iz", "logic")   # 3DS JP
+DS = os.path.join(REPO, "work", "shared", "fa_extract", "inazuma1", "data_iz", "logic")   # 3DS JP
 ES = os.path.join(REPO, "work", "ie1", "fuentes", "nds_es", "data_iz", "logic", "sp")             # NDS ES
 OUT = os.path.join(REPO, "translation", "shared", "glossary")
 
@@ -70,7 +70,7 @@ def main():
     global DS, ES, OUT
     game = sys.argv[1] if len(sys.argv) > 1 else "game1"
     folder, es_rel, out_rel = GAME_CFG[game]
-    DS = os.path.join(REPO, "work", "fa_extract", folder, "data_iz", "logic")
+    DS = os.path.join(REPO, "work", "shared", "fa_extract", folder, "data_iz", "logic")
     ES = os.path.join(REPO, "work", *es_rel.split(os.sep))
     OUT = os.path.join(REPO, out_rel)
     print(f"Generando glosario {game} (JP 3DS <-> ES NDS oficial)...")

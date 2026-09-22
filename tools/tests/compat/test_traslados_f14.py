@@ -100,8 +100,9 @@ def test_mapa():
     distintos = {n: (shims.MAPA.get(n), d) for n, d in TRASLADOS_F14.items()
                  if n not in shims.RETIRADOS and shims.MAPA.get(n) != d}
     assert not distintos, f"MAPA difiere de TRASLADOS_F14 (actual, esperado): {distintos}"
-    # 29 shims hasta la F2.4; luego se retiraron los 5 de CLI (#50) y 4 sin importadores (#55).
-    assert len(shims.MAPA) == 29 - len(shims.RETIRADOS) == 20
+    # 29 shims hasta la F2.4; luego se retiraron los 5 de CLI (#50) y 4 sin importadores (#55);
+    # el IE3 (#89) añade ie3_pipeline e ie3_verificar_offsets.
+    assert len(shims.MAPA) == 29 - len(shims.RETIRADOS) + 2 == 22
 
 
 @pytest.mark.parametrize("nombre", [n for n in TRASLADOS_F14 if n not in shims.RETIRADOS])

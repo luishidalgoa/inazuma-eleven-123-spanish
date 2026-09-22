@@ -60,6 +60,8 @@ MAPA: dict[str, str] = {
     "fa_repack": "ie123kit._legado.fa_repack",
     "patch_smdh_title": "ie123kit._legado.patch_smdh_title",
     "ie1_keyboard": "ie123kit.ie1.graficos.teclado",
+    "ie3_pipeline": "ie123kit.ie3.pipeline",
+    "ie3_verificar_offsets": "ie123kit.ie3.comun.verificar_offsets",
 }
 MAPA.update(
     {
