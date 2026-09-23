@@ -731,3 +731,17 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
 - rpgtitle.STR: 0x1fb118 lee 0x13 B (≤ 18 B). sp_binder.STR (Ogro): 0x1b62e4 toma el desplazamiento con `ldrsh`
   (< 0x8000; el japonés ya ocupa 32.826 B) y lo copia a un búfer de 0x100.
 - Capas `work/ie3/shared/capas/textos_logic/*` (issue #91): lo que no cabe se queda en japonés y consta en su informe.json.
+
+## ⚠️ Rótulos completos en rebanadas y ampliación de FONT8 (2026-09-23)
+
+- Rótulos de lugar (IE1/IE2/IE3): el nombre se dibuja como tira FONT8 y se corta en 10 rebanadas de paso 10;
+  cada rebanada va en un código del registro (work/ie2/shared/capas/menus_cro/menus/registro.json, el vigente).
+  Capas `*/rotulos_objetivos/rotulos_completos`. Faltaban códigos: kanji que solo aparecen en gráficos o tablas
+  numéricas (opción a del usuario) y, con autorización expresa del usuario para tocar fuentes, 367 glifos nuevos
+  en FONT8 en la fila ED/EE (NEC-IBM).
+- ❌ El área de usuario SJIS F040+ NO sirve: get_code_utf16 (code.bin 0x17964c → 0x1a0f4c) solo convierte primeros
+  bytes 0x81-0xEE; lo demás sale «？».
+- ⚠️ Primera ampliación de la fuente (5.ª hoja, 573 → 707 KB): pendiente de ver en juego; si falla, sonda
+  `work/ie3/shared/capas/rotulos_objetivos/rotulos_sonda` (solo «Casa de Mark»).
+- Motor 2 (v3): los textos con bigramas (byte inicial ≥ 0x88) vuelven al paso fijo para que las piezas encajen.
+  Recuadro de objetivos IE2/IE3: una sola línea (y = 220); ancho subido de 480 a 608.
