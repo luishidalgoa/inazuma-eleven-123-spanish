@@ -706,3 +706,14 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
   revisar esas pantallas. Los objetivos del IE1 también pasan a proporcionales.
 - Los `g_Itx*` que usa el juego están compilados en code.bin (ro); los `import/*.itx` del romfs parecen no leerse:
   por eso poner a 0 los CharSpace del blog no hizo nada.
+
+## ⚠️ Blog y subtítulos del IE3: búferes de 256 y 152 B en la pila (análisis estático, 2026-09-23)
+
+- El blog de la pantalla inferior (título 0x194b00, entrada 0x194d4c, comentario 0x194908) y el dibujante de
+  `movie/txt` (0x14cf84) pintan con 0x17fc4c: copia el texto con 0x23fd0 (la rutina 0x374cc del IE1) a sp+0xa28,
+  **256 B** sin comprobar, y dibuja la copia, que se salta el latín de 1 byte. El título de la pantalla superior va
+  por 0x181370 (sp+0xa38, **152 B**). Antes de pintar, 0x197790 sustituye en su sitio los `%s` de la entrada.
+- Con ancho completo, la entrada japonesa llega a 152 B y 6 líneas de 16 caracteres; las europeas miden 270-410 B y
+  necesitan 6-9 líneas de la caja de 192 px DS. Con el texto íntegro solo caben 5 entradas, 27 títulos y 1
+  comentario (capa `work/ie3/shared/capas/blog/oficial`). Para el resto hace falta ampliar el búfer de 0x17fc4c
+  (como `bufer_pagina`) y más líneas por caja; no condensar.
