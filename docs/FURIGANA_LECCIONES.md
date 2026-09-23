@@ -801,3 +801,15 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
 - Mensaje de objeto conseguido (0x714c0): el texto va en buf+8 y las lecturas de furigana en ranuras fijas desde
   buf+0x40; si el texto pasa de 56 B, las copias de lecturas lo cortan. Con el verbo delante (europeo) se anulan esas
   copias (nop) y el prefijo se concatena desde una cueva en el pool liberado. Sin probar en juego.
+
+## ⚠️ Logo del título de IE2: es una animación por piezas, no una imagen (análisis estático, 2026-09-23)
+
+- El port conserva el código DS del título (ina_main2.cro 0x8bce0..0x8cad0) y sustituye cada «.pac» del
+  STSIni.SPF_ por un fotograma del QNA `ie02_title_t01_v2.anq` de `a_title/title_t.arc` (tabla @0x21ea58):
+  bg01b/f → 4/5 (fondo + balón liso + rótulo), bg02b/f → 6/7 (cometa + ©), st_up02a/b → 9/10 («ファイア/ブリザード»,
+  entra con zoom 2.0-1.5-1.2-1.0-1.1-1.0, tabla @0x217ca8), f01_1..4 → 17-20 (barrido cian, una vez),
+  f02_1..4 → 12-15 (destello blanco, cada 60 fotogramas). data_iz_blizzard no tiene title_t.arc.
+- ❌ Meter el logo europeo entero como imagen fija en los fondos y vaciar las piezas (v12/graficos) mata la
+  animación y el zoom de la etiqueta. Hay que traducir pieza a pieza (capa `work/ie2/shared/capas/graficos/logo_animado`).
+- Los destellos ina_p00/ina_p01 llevan recortada la silueta de las letras japonesas (pasan «por detrás»):
+  al cambiar el rótulo hay que rehacer ese recorte, y el respaldo blanco de las letras vive en la textura del balón.
