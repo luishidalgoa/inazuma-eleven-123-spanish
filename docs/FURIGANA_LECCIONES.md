@@ -592,3 +592,28 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
   sabe qué hay entre los dos: no ampliar el búfer sin comprobar en el emulador qué hay en VRAM+0x1640.
 - Los nombres europeos del IE3 que pasan de 10 caracteres (365 de 576 rótulos) se escribieron hasta 20 B:
   según la lección de la v76, esa placa sale vacía. Pendiente de verlo en juego.
+
+## ⚠️ El «paso fijo» de fichas, blog, objetivos y rótulos sale de la NFTR, no de la BCFNT (2026-09-23)
+
+- Qué pantallas: la ficha del Registro, el blog, los objetivos, la pantalla de guardado y los rótulos de lugar.
+  Dibujan en el modo emulado de la DS (DRAW_ON_CHARACTOR). La **posición** de cada letra sale de la fuente NFTR
+  del juego (`inazuma*/data_iz/font/FONT12.NFTR` y `FONT8.NFTR`) y solo el dibujo sale de la BCFNT.
+- Por qué se veía separado: en la NFTR japonesa las letras latinas de ancho completo avanzan 10-11 px DS (la «ｒ»
+  lleva además un margen de 4). El conjunto se escala ×1,5625 (256 → 400 px): ~17 px por letra. Las letras de
+  1 byte se buscan por su equivalente de ancho completo.
+- ❌ No sirvió (v12-v14): quitar los anchos forzados del ITX en los dos motores de texto, ni copiar el ASCII de la
+  BCFNT sobre el de ancho completo.
+- Cambio (v15, pendiente de prueba): capa `work/shared/capas/fuentes/nftr_proporcional`. Avance DS =
+  round((avance BCFNT + 1) / 1,5625), margen 0; espacios 3 (ASCII) y 4 (ancho completo). Las cifras no se tocan.
+- Rótulos de lugar: 0x2ed24 reserva `strlen/2` baldosas de 8 px (máximo 10). Con letras proporcionales, un nombre
+  de 1 byte de hasta 20 B cabe si su ancho es ≤ (bytes // 2) × 8. Capa `work/shared/capas/rotulos_objetivos/rotulos_lugar`.
+
+## ⚠️ Pestañas «Por nombre» del Registro: contadores guardados en la partida (2026-09-23)
+
+- El número de jugadores de cada pestaña es un contador de la partida (objeto+0x148+fila). Se suma al registrar un
+  jugador, con la fila que da 0xc054 a partir de su nombre corto. La lista reparte `usearch.dat` en tramos de ese
+  tamaño.
+- ❌ Pasar a pestañas latinas y reordenar el fichero (v14) descuadra las partidas existentes: todo cae en ABC.
+- ✅ v15: 0xc054 usa una marca con la fila japonesa guardada en el último byte del campo del nombre corto
+  (+0x1C+15) y, si no la hay, la lógica kana original. El fichero conserva el orden japonés y cada tramo va por
+  orden alfabético. Capa `work/ie3/amenaza_del_ogro/capas/nombres/lista_registro_abc`.
