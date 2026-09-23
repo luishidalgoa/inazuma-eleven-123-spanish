@@ -632,3 +632,15 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
 - ⚠️ La descripción de la ficha del Registro (IE3) sigue a paso fijo con la NFTR proporcional, los dos motores sin
   ancho por defecto y ningún parámetro del Registro en el ITX: el ancho viene de otro sitio (ancho global de pantalla
   +0xeef6c o el del gestor, +0x28). Sin localizar.
+
+## ⚠️ Rótulo del equipo en la formación (pic2d/team/mgu_td) (2026-09-23)
+
+- Cada entrada (LZ10) es un sprite DS de 120×16: cabecera 0x20, paleta 16×BGR555 en 0x20, mapa de 30 baldosas
+  (15×2, con bits de volteo 0x400/0x800) en 0x40 y baldosas 4bpp desde 0x80. Índice 0 = fondo transparente,
+  1 = contorno, 15 = relleno. Los del IE1 comparten baldosas (el mapa no es 0..29).
+- La CIA europea del IE3 **no tradujo** mgu_td (los 176 sprites son los japoneses): hay que pintarlos. El IE2 sale
+  de la NDS española y el IE1 del europeo de 3DS (sus ids 201-204 están en blanco también en el original).
+- Letra de la NDS: relleno de trazo 2 px (mayúsculas en las filas 4-11, minúsculas 6-11, acentos 3-4), contorno =
+  dilatación 8-conexa del relleno (101/108 sprites), 1 columna entre letras, 5 en el espacio, centrado en 120 px.
+  Capa `work/ie3/shared/capas/graficos/rotulo_equipo` (letras extraídas de los sprites de la NDS; los nombres que
+  no caben usan espacio de 3/2 y letras estrechadas quitando una columna interior repetida, sin abreviar).
