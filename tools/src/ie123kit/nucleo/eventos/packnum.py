@@ -47,7 +47,9 @@ def entry_data(pkb, off, size):
 
 def alineado_observado(indice) -> int:
     """Mayor alineado de ``ALINEADOS`` que divide todos los offsets del índice."""
-    offsets = [off for _, off, _ in indice]
+    # El centinela ``FF FF FF FF`` no es un bloque: sus dos campos restantes
+    # también son FFFFFFFF y no participa en el alineado del PKB.
+    offsets = [off for eid, off, _ in indice if eid != 0xFFFFFFFF]
     for paso in ALINEADOS:
         if all(off % paso == 0 for off in offsets):
             return paso
@@ -90,7 +92,9 @@ def rebuild(
     ``{"evento", "bytes_antes", "bytes_despues"}`` (tamaños ALMACENADOS en el .pkb).
     """
     indice = parse_index(pkh)
-    conocidos = {eid for eid, _, _ in indice}
+    reales = [registro for registro in indice if registro[0] != 0xFFFFFFFF]
+    centinelas = [registro for registro in indice if registro[0] == 0xFFFFFFFF]
+    conocidos = {eid for eid, _, _ in reales}
     desconocidos = sorted(set(reemplazos) - conocidos)
     if desconocidos:
         raise ValidacionError("packnum_id_desconocido", detalle=", ".join(str(e) for e in desconocidos))
@@ -99,7 +103,7 @@ def rebuild(
     salida = bytearray()
     nuevo_indice: list[tuple[int, int, int]] = []
     informe: list[dict] = []
-    for eid, off, size in indice:
+    for eid, off, size in reales:
         original = bytes(pkb[off:off + size])
         if eid in reemplazos:
             payload = bytes(reemplazos[eid])
@@ -118,6 +122,11 @@ def rebuild(
 
     nuevo_pkh = bytearray(pkh[:0x30])
     for registro in nuevo_indice:
+        nuevo_pkh.extend(struct.pack("<III", *registro))
+    # Conserva exactamente el centinela original. Convertirlo en una entrada
+    # con offset final inventado altera la semántica del índice y, además,
+    # falsea el alineado detectado por ``auto``.
+    for registro in centinelas:
         nuevo_pkh.extend(struct.pack("<III", *registro))
     if keep_header_size:
         struct.pack_into("<I", nuevo_pkh, 0x10, len(nuevo_pkh))

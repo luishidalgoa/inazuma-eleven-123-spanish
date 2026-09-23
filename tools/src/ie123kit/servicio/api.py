@@ -48,6 +48,8 @@ MOTORES: dict[tuple[str, str], str] = {
     ("ie2", "cro-ancho-dialogo"): "ie123kit.ie2.comun.motores:cro_ancho_dialogo",
     ("ie2", "voces"): "ie123kit.ie2.comun.motores:voces",
     ("ie2", "subtitulos"): "ie123kit.ie2.comun.motores:subtitulos",
+    ("ie2", "ayuda"): "ie123kit.ie2.comun.motores:ayuda",
+    ("juego_principal", "voz-recopilatorio"): "ie123kit.juego_principal.motores:voz_recopilatorio",
 }
 
 

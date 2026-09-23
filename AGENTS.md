@@ -9,8 +9,18 @@
 
 - Referencia aprobada: **v34** (2026-09-19). El usuario autorizó actualizar el bloqueo a su motor de
   textos: glifos europeos y espaciado corregido, letras dobles, caja ancha de 37 caracteres por
-  3 líneas y páginas de 131 B como máximo. No modificar caja, dimensiones, posición, tamaño de letra,
+  3 líneas y páginas de 131 B como máximo. **Ampliado el 2026-09-22** (el usuario probó la candidata
+  IE3 v04 y la dio por «perfecta», y pidió aplicarlo a IE1 e IE2): búfer de página de 256 B en los tres
+  CRO (`ie123kit.nucleo.ejecutable.bufer_pagina`), páginas de hasta 250 B, es decir 3 líneas llenas de
+  37 caracteres en ancho completo. La codificación sigue siendo la misma (2 B por letra): el usuario
+  rechazó expresamente pasar a 1 byte. No modificar caja, dimensiones, posición, tamaño de letra,
   glifos, espaciado, fuentes, codificación ni algoritmo de saltos sin una nueva petición expresa.
+- **Ampliado el 2026-09-23** (petición expresa del usuario, «sí a todo», y aprobado en juego: «ya está perfecto
+  la caja de texto»): avances europeos de los glifos latinos en FONT12 (dibujo intacto; corrige el paso de 15 px
+  de la hoja de la v75), FONT8 a ancho real, diálogo del IE1 y del IE3 con los `
+`/`` europeos 1:1, IE2
+  repartido por ancho real (≤ 314/314/300 px, hasta 55 caracteres), ventana/rejilla del diálogo 0x280/0x2A0 en los
+  tres CRO y espacio de 1 byte en el diálogo del IE2 e IE3. Referencia: candidata `probe_ie3_fuego_v16`.
 - Las cinco fuentes exactas se verifican con `tools/dialogue_lock.py`.
 - Las nuevas traducciones deben adaptarse a esta configuración. Un texto largo
   no autoriza a cambiar la caja, las fuentes o el motor para hacerlo caber.
@@ -20,7 +30,12 @@
 - Esta aprobación se refiere al aspecto observado; no significa que toda la ROM
   o todos los capítulos hayan superado el recorrido QA.
 
-- Objetivo actual: traducir y depurar Inazuma Eleven 1 de la recopilación 3DS.
+- Objetivo actual (2026-09-22): IE3 Fuego Explosivo (issue #90 y #91-#96) y llevar el nuevo reparto de
+  3 × 37 al IE1 y al IE2 (#95). IE1 e IE2 siguen en QA por el usuario.
+- IE3: la fuente de texto, gráficos, voces y vídeos es la CIA europea de Fuego Explosivo (trae en `es/`
+  los guiones `inazuma3` —Fuego y Rayo Celeste, idénticos— e `inazuma3_ogre`). El motor de diálogo es
+  el de @AlbertooCh (`ie123kit.ie3`, referencias `@offset,longitud` de eve→evet) con el reparto y la
+  codificación del IE2. Capas en `work/ie3/<versión>/capas` y `work/ie3/shared/capas`.
 - Leer `CLAUDE.md` y `docs/PROTOCOLO_QA_IE1.md`. El protocolo es una instrucción
   explícita del usuario: cajas de diálogo sin bugs gráficos; recorrido hasta la
   primera pachanga con varios NPC; detenerse ante cada fallo, corregirlo y repetir
@@ -33,6 +48,14 @@
   prueba. Preparar correcciones y volver al punto del fallo con el usuario.
 - No subir ROMs, extracciones, logs ni datos oficiales recuperados. Mantener los
   originales y distinguir una candidata de una build verificada en juego.
+
+## Después de construir una candidata: versión visible (instrucción del usuario, 2026-09-22)
+
+- La pantalla de aviso del arranque muestra la versión del parche. **Cada candidata nueva la actualiza**
+  antes de instalarse: `VERSION` en `work/ie1/capas/graficos/creditos_javiju/render.py` (formato
+  `vX.Y beta - IE3 vNN`, o el de la release), `python diseno.py` (diseño de 2026-09-22; `render.py` ya no se usa para dibujar, solo guarda los datos), `python video.py logo_l5_original_jp.moflex
+  extra/movie/logo_l5.moflex` y sustituir `movie/logo_l5.moflex` en el archive.fa de la candidata.
+- Nunca instalar una candidata cuya pantalla de aviso diga otra versión.
 
 ## Espacio en disco: instrucción del usuario
 

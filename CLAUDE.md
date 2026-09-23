@@ -1,7 +1,7 @@
 # Guía para Claude (y colaboradores) — Proyecto de traducción Inazuma Eleven 1·2·3
 
-> TIPOGRAFÍA BLOQUEADA por petición explícita del usuario: v34 es la referencia
-> visual aprobada (actualizada desde v20 el 2026-09-19). Cumplir el bloqueo de AGENTS.md y tools/dialogue_lock.py.
+> TIPOGRAFÍA BLOQUEADA por petición explícita del usuario: la referencia visual aprobada es la
+> candidata v16 (2026-09-23: espaciado europeo, saltos EU 1:1; antes v34 y v20). Cumplir el bloqueo de AGENTS.md y tools/dialogue_lock.py.
 > No cambiar caja, fuentes, codificación, espaciado o saltos ni desactivar sus
 > comprobaciones al continuar la traducción. Requiere una nueva petición explícita
 > del usuario sobre la tipografía; no una orden general de continuar.
@@ -47,7 +47,7 @@ solo "en la cabeza" o en el chat. En concreto:
 - El código Python vive en el paquete `tools/src/ie123kit`; en `tools/` quedan shims con los
   nombres antiguos y los 5 ficheros congelados del bloqueo tipográfico.
 
-- **Los diálogos no se reescriben para que quepan.** Se usa el texto oficial íntegro (el port europeo de 3DS para el IE1, la NDS española para el IE2). Si una frase no cabe en la ventana, se reparte en más cajas o páginas, o se amplía la ventana, pero nunca se condensa ni se le quitan palabras.
+- **Los diálogos no se reescriben para que quepan.** Se usa el texto oficial íntegro (el port europeo de 3DS para el IE1, la NDS española para el IE2, la CIA europea de Fuego Explosivo para el IE3). Si una frase no cabe en la ventana, se reparte en más cajas o páginas, o se amplía la ventana, pero nunca se condensa ni se le quitan palabras.
 
 ## Norma 4 — NO repetir errores ya detectados
 
@@ -71,6 +71,11 @@ la raíz de `work/`. Ver **[`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md)**; tra
   pachanga, hablar con varios NPC, detenerse ante el primer fallo, corregirlo y
   repetir su reproducción antes de continuar. No aceptar cajas de diálogo con bugs
   gráficos ni declarar estabilidad solo con validación offline.
+
+- **IE3 (desde 2026-09-22):** issue #90 y derivados #91-#96. Base del trabajo: el código de @AlbertooCh
+  (PR #88/#89, crédito en la pantalla de créditos). Cajas de diálogo 3 × 37 con el búfer de página
+  ampliado (válido también para IE1/IE2, #95). Gráficos europeos trasplantados según
+  `work/ie3/shared/capas/graficos/inventario_eu/clasificacion.json` (A/B tal cual, C recodificados).
 
 - **⚠️ Lecciones (qué NO funciona): [`docs/FURIGANA_LECCIONES.md`](docs/FURIGANA_LECCIONES.md)**
 - Avance: [`docs/PROGRESO.md`](docs/PROGRESO.md)

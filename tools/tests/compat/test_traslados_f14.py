@@ -1,7 +1,7 @@
 """Traslados de F1.4 (#45): divisiones, fachadas _legado, cuarentena y archivado.
 
 Sin ROM. Describe el ESTADO FINAL de la subfase: la parte estricta (MAPA completo,
-raíz de tools/, archivados) no se salta. Solo la comprobación por módulo se salta si
+raíz de tools/, retirados) no se salta. Solo la comprobación por módulo se salta si
 tools/<nombre>.py todavía no es un shim.
 """
 
@@ -100,8 +100,9 @@ def test_mapa():
     distintos = {n: (shims.MAPA.get(n), d) for n, d in TRASLADOS_F14.items()
                  if n not in shims.RETIRADOS and shims.MAPA.get(n) != d}
     assert not distintos, f"MAPA difiere de TRASLADOS_F14 (actual, esperado): {distintos}"
-    # 29 shims hasta la F2.4; ese día se retiraron los 5 de CLI (shims.RETIRADOS, #50).
-    assert len(shims.MAPA) == 29 - len(shims.RETIRADOS) == 24
+    # 29 shims hasta la F2.4; luego se retiraron los 5 de CLI (#50) y 4 sin importadores (#55);
+    # el IE3 (#89) añade ie3_pipeline e ie3_verificar_offsets.
+    assert len(shims.MAPA) == 29 - len(shims.RETIRADOS) + 2 == 22
 
 
 @pytest.mark.parametrize("nombre", [n for n in TRASLADOS_F14 if n not in shims.RETIRADOS])
@@ -118,8 +119,7 @@ def test_shim_trasladado_f14(nombre):
 
 @pytest.mark.parametrize("nombre", ARCHIVADOS_F14)
 def test_archivados_f14(nombre):
-    assert not (TOOLS / f"{nombre}.py").exists(), f"tools/{nombre}.py debería estar archivado"
-    assert (TOOLS / "_archivo" / f"{nombre}.py").is_file(), f"falta tools/_archivo/{nombre}.py"
+    assert not (TOOLS / f"{nombre}.py").exists(), f"tools/{nombre}.py debería estar retirado"
     codigo = (
         "import sys\n"
         "sys.path.insert(0, 'tools')\n"

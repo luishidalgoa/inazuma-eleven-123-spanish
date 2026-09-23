@@ -6,7 +6,7 @@ parcheado en la fuente con el acento. ``es_encode`` emite el portador en Shift-J
 motor lo reconvierte a Unicode y pinta el glifo parcheado. ``es_encode`` TRUNCA al
 presupuesto sin partir multibyte (no es ``encode_fullwidth``: no se unifican).
 
-``_advance`` lee los anchos de ``work/fa_extract/font/FONT12.bcfnt`` la primera vez que
+``_advance`` lee los anchos de ``work/shared/fa_extract/font/FONT12.bcfnt`` la primera vez que
 se llama (``_ADV`` es perezoso y mutable). Importar este módulo carga ``font_patch``
 (bloqueado v20) pero no escribe nada.
 """
@@ -18,6 +18,7 @@ from ie123kit.nucleo.fuentes.glifos import PLAN as _PLAN
 # caracter griego del codepoint UNICODE que pinta font_patch. es_encode lo emite en SJIS;
 # el motor lo reconvierte a Unicode y busca ese glifo (parcheado) -> sale el acento.
 _acc = {ch: chr(cp) for ch, _b, _t, cp in _PLAN}
+_acc["È"] = chr(0x03A0)  # libre en registros de texto JP; raster IE3 en tipografia.py
 _acc.update({"ª": "a", "º": "o", "“": '"', "”": '"', "—": "-", "…": "..."})
 GREEK = str.maketrans(_acc)
 
@@ -45,6 +46,7 @@ def es_encode(s, budget):
 # unnatural early breaks.
 BOX_W = 208
 _BASE = {acc: base for acc, base, _t, _cp in _PLAN}     # á->a, ¿->?, ... (anchura del base)
+_BASE["È"] = "E"
 _ADV = None
 
 
@@ -54,7 +56,7 @@ def _advance(ch):
     global _ADV
     if _ADV is None:
         from ie123kit.nucleo.fuentes.glifos import Font
-        f = Font(str(find_root() / "work" / "fa_extract" / "font" / "FONT12.bcfnt"))
+        f = Font(str(find_root() / "work" / "shared" / "fa_extract" / "font" / "FONT12.bcfnt"))
         _ADV = {}
         for cp, gi in f.cmap.items():
             o = f.cwdh_entry_off(gi)

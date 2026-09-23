@@ -75,6 +75,11 @@ class ModeloMotor:
     pagina_max: int | None = None
     registro_max: int | None = None
     anchos_pct: Mapping[str, int] = field(default_factory=lambda: _ANCHOS_PCT)
+    #: Opcional (2026-09-22): ancho real dibujado de una línea en unidades de la fuente, y tope por
+    #: línea de la página (``px_linea[k]`` para la línea k; la última suele ser menor por el icono).
+    #: Con ``None`` el reparto solo cuenta caracteres, como antes.
+    medir_px: Callable[[str], int] | None = field(default=None, compare=False)
+    px_linea: tuple[int, ...] | None = None
 
     @property
     def limite(self) -> int:
@@ -254,18 +259,25 @@ def repartir(texto: str, modelo: ModeloMotor, transportar: Callable[[str], bytes
     transportar = lru_cache(maxsize=None)(transportar or _transporte_v20)
     max_car = modelo.max_car
 
-    def cabe(linea: str) -> bool:
-        return largo(linea, modelo) <= max_car
+    def cabe(linea: str, k: int = 0) -> bool:
+        if largo(linea, modelo) > max_car:
+            return False
+        if modelo.medir_px is not None and modelo.px_linea:
+            tope = modelo.px_linea[min(k, len(modelo.px_linea) - 1)]
+            return modelo.medir_px(linea) <= tope
+        return True
 
     def envolver(palabras: list[str]):
         filas, actual = [], ""
         for w in palabras:
-            if not cabe(w):
+            if not cabe(w, len(filas)):
                 return None
             cand = f"{actual} {w}" if actual else w
-            if actual and not cabe(cand):
+            if actual and not cabe(cand, len(filas)):
                 filas.append(actual)
                 actual = w
+                if not cabe(w, len(filas)):
+                    return None
             else:
                 actual = cand
         if actual:

@@ -23,7 +23,8 @@ from __future__ import annotations
 import struct
 
 __all__ = ["TABLA_SEQ", "chunks_3ds", "chunks_nds", "fila_chunk", "ima_nds", "montar_sed", "muestras_3ds",
-           "muestras_nds", "notas", "prgi_teclas", "secuencias", "swd_con_cwavs"]
+           "muestras_nds", "nota_con_ticks", "notas", "prgi_teclas", "secuencias", "sed_con_ticks",
+           "swd_con_cwavs"]
 
 TABLA_SEQ = 0x74A
 
@@ -250,3 +251,33 @@ def swd_con_cwavs(swd_3ds: bytes, cwavs: dict) -> bytes:
     fila = fila_chunk(swd_3ds, b'pcmd')
     struct.pack_into('<I', out, fila + 12, len(pcmd))
     return bytes(out) + bytes(pcmd)
+
+
+# ------------------------------------------------------------------ retoque de una nota del SED
+
+def nota_con_ticks(patron: bytes, ticks: int) -> bytes:
+    """El mismo evento que ``patron`` con otra duración, sin cambiar de tamaño (4 B distintos).
+
+    ``patron`` es la secuencia ``a0 <octava> <velocidad> <tecla> <dur BE 2 B> 93 <pausa LE 2 B> 98``
+    (una nota suelta con su pausa y el fin de pista, como el grito del título del recopilatorio). La
+    nota y la pausa pasan a durar ``ticks``; la codificación de 2 B se mantiene, así que el SED que la
+    contiene conserva su longitud (porteo de ``nota_nueva`` de
+    ``work/shared/capas/media/voz_titulo_recopilatorio/apply.py``).
+    """
+    if len(patron) != 10 or patron[0] != 0xA0 or patron[6] != 0x93 or patron[9] != 0x98:
+        raise ValueError("patrón inesperado: 0xa0 octava, nota, pausa 0x93 de 2 B y fin 0x98")
+    if (patron[3] >> 6) & 3 != 2:
+        raise ValueError("la nota del patrón no lleva una duración de 2 B")
+    if not 0 <= ticks <= 0xFFFF:
+        raise ValueError(f"ticks fuera de 2 B: {ticks}")
+    return patron[:4] + ticks.to_bytes(2, "big") + b"\x93" + ticks.to_bytes(2, "little") + b"\x98"
+
+
+def sed_con_ticks(sed: bytes, patron: bytes, ticks: int) -> bytes:
+    """SED con la única aparición de ``patron`` cambiada a ``ticks``; el resto y el tamaño intactos."""
+    if sed.count(patron) != 1:
+        raise ValueError(f"el patrón aparece {sed.count(patron)} veces en el SED (se esperaba 1)")
+    nuevo = sed.replace(patron, nota_con_ticks(patron, ticks))
+    if len(nuevo) != len(sed):
+        raise AssertionError("el SED ha cambiado de tamaño")
+    return nuevo

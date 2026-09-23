@@ -145,7 +145,7 @@ FONT12 y FONT8, rótulos de capítulos 1 a 10 y el ajuste aislado del logo Venti
 4. Para gráficos CTPK/ARCV/SSZL usar `tools/ui_archive.py`, `tools/ctpk_ui.py` y
    `tools/translate_ui_textures.py`. Mantener dimensiones, formato, metadatos y
    tamaño de entradas. Crear una preview y revisarla antes de empaquetar.
-5. Para tablas binarias usar `ie123kit.ie1.texto.tablas` (el original `tools/ie1_tables.py` está en `tools/_archivo`): modificar solo
+5. Para tablas binarias usar `ie123kit.ie1.texto.tablas` (el original `ie1_tables.py` está retirado; en git, ver `docs/toolkit/SCRIPTS_RETIRADOS.md`): modificar solo
    campos conocidos y comprobar que estadísticas, punteros y bytes no relacionados
    permanecen iguales. Los nombres largos que no caben se dejan pendientes.
 6. Ejecutar los fixtures y validaciones, construir una candidata nueva y guardar

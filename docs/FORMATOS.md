@@ -94,7 +94,7 @@ solo cambia el idioma. Esto permite **alinear por índice/registro** el japonés
 perfectamente (descripciones de objetos), pero los recuentos difieren
 (3DS=300, NDS=603 ≈ el NDS intercala nombre+descripción). → El alineado por
 posición es solo un punto de partida; el exacto necesita el **índice del `.dat`**
-asociado (`item.dat` → offsets dentro del `.STR`). Herramienta histórica: `tools/_archivo/str_align.py` (archivada, ver [`tools/_archivo/README.md`](../tools/_archivo/README.md)): emparejaba por índice de forma ingenua (300 frente a 603); su tabla `NDS_FIX` queda superada por el futuro `nucleo/texto/nds_latin` de ie123kit.
+asociado (`item.dat` → offsets dentro del `.STR`). Herramienta histórica: `str_align.py` (retirada, ver [`SCRIPTS_RETIRADOS.md`](toolkit/SCRIPTS_RETIRADOS.md)): emparejaba por índice de forma ingenua (300 frente a 603); su tabla `NDS_FIX` queda superada por el futuro `nucleo/texto/nds_latin` de ie123kit.
 
 ### Formatos de registro resueltos (juego 1)
 
@@ -204,12 +204,12 @@ las longitudes encadenan exactas hasta ~8 B antes de `s10`, un pie especial):
 guardan un offset (rel a `s10`) que apunta al inicio de un chunk; otros son números
 (contador, coordenada, ID, delay). **NO se distinguen por el valor** (un número
 redondo como 500/1000 cae por azar en un inicio de chunk). Discriminador que SÍ
-funciona (`tools/reinsert_var.build_string_slots`): clasificar cada `(opcode, slot)`
+funciona (`ie123kit._legado.reinsert_var.build_string_slots`): clasificar cada `(opcode, slot)`
 por estadística sobre TODO el ROM — un **slot de offset** apunta SIEMPRE a inicio de
 chunk o vale 0; **casi nunca a media cadena** (mid<3%). Un slot numérico cae a media
 cadena 40-80% (valores aleatorios). game1: ~6 slots-string; game2: ~45.
 
-**→ La reinserción de LONGITUD VARIABLE sí es viable** (`tools/reinsert_var.py`):
+**→ La reinserción de LONGITUD VARIABLE sí es viable** (`ie123kit._legado.reinsert_var`):
 agranda el diálogo a texto completo y **reubica SOLO los operandos de slots-string**
 que apuntan a un chunk movido (offset-fixup preciso), dejando intactos contadores/
 índices. Validado offline: 0 operandos no-string alterados, 0 referencias rotas.

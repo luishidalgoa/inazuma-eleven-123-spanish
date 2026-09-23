@@ -29,9 +29,22 @@ CONGELADOS = frozenset(
     {"dialogue_typography", "font_patch", "dialogue_lock", "build_ie1_probe", "build_ui_revision"}
 )
 
-#: Shims de CLI retirados en la F2.4 (#50): ninguna capa los importaba (comprobador AST) y su orden
-#: vive en ``ie123`` (``ie123 compat equivalencias``). Sus módulos siguen en ``ie123kit._legado``.
-RETIRADOS: frozenset[str] = frozenset({"blz", "nds_unpack", "harvest_log", "limpiar_work", "verify_candidate"})
+#: Shims planos retirados: ninguno tenía importadores (evidencia AST de
+#: ``nucleo.compat.importadores`` sobre ``tools/``, ``tools/src``, ``tools/tests`` y todo ``work/``,
+#: incluido ``historial/``) y su orden vive en ``ie123`` (``ie123 compat equivalencias``). Sus
+#: módulos siguen en ``ie123kit._legado``.
+#:
+#: - F2.4 (#50): los 5 de CLI (``blz``, ``nds_unpack``, ``harvest_log``, ``limpiar_work``,
+#:   ``verify_candidate``).
+#: - F2.6 (#55): ``ds_roster``, ``reinsert_var``, ``ssd_reinsert`` y ``validate``. La
+#:   ESPECIFICACION los conservaba por ser «transitivos desde ``reinsert``», pero las fachadas de
+#:   ``_legado`` se importan entre sí por su ruta ``ie123kit._legado.<mod>``, nunca por el nombre
+#:   plano, así que el shim no participaba. ``validate`` además colisionaba en ``sys.path`` con los
+#:   ``validate.py`` de las capas; al retirarlo, cada capa resuelve el suyo.
+RETIRADOS: frozenset[str] = frozenset({
+    "blz", "nds_unpack", "harvest_log", "limpiar_work", "verify_candidate",
+    "ds_roster", "reinsert_var", "ssd_reinsert", "validate",
+})
 
 MAPA: dict[str, str] = {
     "lz10": "ie123kit.nucleo.compresion.lz10",
@@ -47,6 +60,8 @@ MAPA: dict[str, str] = {
     "fa_repack": "ie123kit._legado.fa_repack",
     "patch_smdh_title": "ie123kit._legado.patch_smdh_title",
     "ie1_keyboard": "ie123kit.ie1.graficos.teclado",
+    "ie3_pipeline": "ie123kit.ie3.pipeline",
+    "ie3_verificar_offsets": "ie123kit.ie3.comun.verificar_offsets",
 }
 MAPA.update(
     {
@@ -59,10 +74,6 @@ MAPA.update(
             "translate_ui_textures",
             "mods_to_moflex",
             "audit_dialogo_ids",
-            "ds_roster",
-            "reinsert_var",
-            "ssd_reinsert",
-            "validate",
         )
     }
 )

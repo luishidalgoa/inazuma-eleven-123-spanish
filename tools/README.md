@@ -1,12 +1,21 @@
 # Herramientas
 
+## IE3: emisión general tras el piloto aprobado
+
+`python -X utf8 -m ie123kit.ie3.fase3` reconstruye Spark y Ogre con un núcleo
+común, transición original/heredado/salida y reportes por categoría. El constructor
+`ie123kit.ie3.comun.build_piloto --integrated` produce y reextrae la ROM completa.
+Comandos, límites, perfiles Bomber y pruebas manuales en
+[IE3_FASE3_INTEGRACION](../docs/IE3_FASE3_INTEGRACION.md). No confundir los planes
+offline, la aprobación de un único piloto y la validación de toda una campaña.
+
 ## Paquete ie123kit
 
 La fase 1 de la migración (épica #40, subfases F1.0-F1.5) está cerrada. El código vive en
-`tools/src/ie123kit`; en `tools/` solo quedan los 5 congelados, 24 shims de importación sin lógica (los 5
+`tools/src/ie123kit`; en `tools/` solo quedan los 5 congelados, 20 shims de importación sin lógica (los 5
 de CLI se retiraron en la F2.4, #50), los 6 `.ps1` (`build_patch`, `extract_nds` y `extract_romfs` son
 envoltorios de una orden `ie123`; `jugar` lanza Azahar y cosecha con `ie123 registro`; `setup_mobipeg`,
-`setup_vgmstream`), `bin/` (local, ignorado), `_archivo/`, `src/`, `tests/`, `pyproject.toml` y este README.
+`setup_vgmstream`), `bin/` (local, ignorado), `src/`, `tests/`, `pyproject.toml` y este README.
 
 > Norma 2: nunca se suben ROMs ni datos extraídos (`Roms/` y `work/` están ignorados). La CI lo comprueba.
 
@@ -177,7 +186,8 @@ ruff y black. El paquete los usa mediante re-exports perezosos que no copian có
   reexporta todos los nombres de antes, privados incluidos.
 - **Cuarentena**: `ds_roster`, `reinsert_var`, `ssd_reinsert` y `validate` solo ejecutan su CLI con
   `--legado-lo-se`; `ds_official` exige la misma bandera para `main`/`align` (o `IE123_LEGADO_LO_SE=1`
-  si `align` se llama desde código).
+  si `align` se llama desde código). Los cuatro en cuarentena **ya no tienen shim plano** desde la F2.6
+  (#55): se invocan con `python -m ie123kit._legado.<modulo> --legado-lo-se`.
 
 ### Equivalencias `tools/<antiguo>.py` → módulo real
 
@@ -189,7 +199,7 @@ ruff y black. El paquete los usa mediante re-exports perezosos que no copian có
 | `build_glossary.py` | `ie123kit._legado.build_glossary` | `nucleo.texto.nds_latin` | fachada |
 | `ctpk_ui.py` | `ie123kit.nucleo.graficos.ctpk` | — | alias directo |
 | `ds_official.py` | `ie123kit._legado.ds_official` | `nucleo.texto.nds_latin` + `nucleo.eventos.alineado_ids` | fachada (`--legado-lo-se`) |
-| `ds_roster.py` | `ie123kit._legado.ds_roster` | — | cuarentena |
+| `ds_roster.py` | `ie123kit._legado.ds_roster` | — | **retirado en F2.6**, cuarentena: `python -m ie123kit._legado.ds_roster --legado-lo-se` |
 | `fa_repack.py` | `ie123kit._legado.fa_repack` | `nucleo.contenedores.fa` (`fe_offset_of`) | fachada |
 | `fa_unpack.py` | `ie123kit._legado.fa_unpack` | `nucleo.contenedores.fa` | fachada |
 | `harvest_log.py` | `ie123kit._legado.harvest_log` | `nucleo.construir.registro_azahar` | **retirado en F2.4**: `ie123 registro` |
@@ -204,13 +214,13 @@ ruff y black. El paquete los usa mediante re-exports perezosos que no copian có
 | `pkb_unpack.py` | `ie123kit._legado.pkb_unpack` | `nucleo.eventos.packnum` + `nucleo.texto.nds_latin` | fachada |
 | `qna_regions.py` | `ie123kit.nucleo.graficos.qna` | — | alias directo |
 | `reinsert.py` | `ie123kit._legado.reinsert` | `nucleo.texto.sjis_portador` + `nucleo.texto.tipografia_v20` | fachada |
-| `reinsert_var.py` | `ie123kit._legado.reinsert_var` | — | cuarentena |
+| `reinsert_var.py` | `ie123kit._legado.reinsert_var` | — | **retirado en F2.6**, cuarentena: `python -m ie123kit._legado.reinsert_var --legado-lo-se` |
 | `ssd_records.py` | `ie123kit.nucleo.eventos.ssd` | — | alias directo |
-| `ssd_reinsert.py` | `ie123kit._legado.ssd_reinsert` | — | cuarentena |
+| `ssd_reinsert.py` | `ie123kit._legado.ssd_reinsert` | — | **retirado en F2.6**, cuarentena: `python -m ie123kit._legado.ssd_reinsert --legado-lo-se` |
 | `sszl.py` | `ie123kit.nucleo.compresion.sszl` | — | alias directo |
 | `translate_ui_textures.py` | `ie123kit._legado.translate_ui_textures` | `nucleo.graficos.pintado` | fachada |
 | `ui_archive.py` | `ie123kit._legado.ui_archive` | `nucleo.contenedores.arcv` + `nucleo.compresion.sszl` | fachada |
-| `validate.py` | `ie123kit._legado.validate` | — | cuarentena |
+| `validate.py` | `ie123kit._legado.validate` | — | **retirado en F2.6**, cuarentena: `python -m ie123kit._legado.validate --legado-lo-se` |
 | `verify_candidate.py` | `ie123kit._legado.verify_candidate` | `nucleo.validar.candidata` + `ie1.verificar` | **retirado en F2.4**: `ie123 verificar` o `python -m ie123kit._legado.verify_candidate` |
 | `dialogue_typography.py` | se queda en `tools/` | re-export `nucleo.texto.ancho_completo` (+ `decode_fullwidth` nuevo) | congelado |
 | `build_ie1_probe.py` | se queda en `tools/` | re-export `nucleo.texto.tipografia_v20` | congelado |
@@ -219,15 +229,19 @@ ruff y black. El paquete los usa mediante re-exports perezosos que no copian có
 | `build_ui_revision.py` | se queda en `tools/` | traslado en `nucleo.construir.candidata` (el original sigue en uso) | congelado |
 
 Los scripts retirados en F1.2 y F1.4 (entre ellos `ie1_tables`, `ie1_media`, `validate_ie1_media`,
-`patch_exefs`, `patch_code` y `patch_cro`) están en `tools/_archivo/`, sin shim y no importables; motivos
-y sustitutos en [`_archivo/README.md`](_archivo/README.md).
+`patch_exefs`, `patch_code` y `patch_cro`) estuvieron en `tools/_archivo/` hasta la F2.6 (#55), que borró
+esa carpeta: ahora solo están en el historial de git. El motivo de cada retirada, su sustituto y cuáles
+son **PELIGROSO: no reutilizar** están en
+[`docs/toolkit/SCRIPTS_RETIRADOS.md`](../docs/toolkit/SCRIPTS_RETIRADOS.md), que
+`ie123kit.nucleo.compat.superficie.RETIRADOS` mantiene sincronizado (lo comprueba un test).
 
 ### Órdenes útiles
 
 - Invocaciones de siempre que siguen vivas: `python tools/fa_unpack.py` y `python tools/patch_smdh_title.py`.
   Los shims de CLI `nds_unpack`, `harvest_log`, `limpiar_work`, `blz` y `verify_candidate` se retiraron en la
-  F2.4 (#50): ninguna capa los importaba; `ie123 compat equivalencias` da la orden nueva de cada uno.
-- `python -m ie123kit.ie1.media.voces [--stage]` (sustituye al archivado `ie1_media.py --stage`).
+  F2.4 (#50) y `ds_roster`, `reinsert_var`, `ssd_reinsert` y `validate` en la F2.6 (#55): ninguna capa los
+  importaba; `ie123 compat equivalencias` da la orden nueva de cada uno.
+- `python -m ie123kit.ie1.media.voces [--stage]` (sustituye al retirado `ie1_media.py --stage`).
 - `python -m ie123kit.nucleo.construir.candidata --base … --ui … --output …`.
 - Puerta del bloqueo v20 sobre una candidata: `python -m ie123kit.nucleo.validar.bloqueo --candidata
   <archive.fa>` (o su carpeta). Extrae las 5 fuentes de `dialogue_lock.FONT_HASHES` a un temporal que
@@ -251,8 +265,8 @@ y sustitutos en [`_archivo/README.md`](_archivo/README.md).
 - `mods_to_moflex.py`: convierte una película `.mods` de DS, incrusta su pista
   española `.dat` y restaura la orientación MOFLEX `0x16` de la recopilación.
 - `work/ie1/capas/media/cinematicas/build.py`: genera las 21 cinemáticas europeas de IE1
-  (sustituye a `build_ie1_movies.py`, archivado en `_archivo/`; ver [`_archivo/README.md`](_archivo/README.md)).
-- `work/ie1/capas/graficos/titulo_logo` (sustituye a `fix_ie1_title_logo.py`, archivado en `_archivo/`): aísla el wordmark europeo y sustituye el rótulo
+  (sustituye a `build_ie1_movies.py`, retirado; ver [`SCRIPTS_RETIRADOS.md`](../docs/toolkit/SCRIPTS_RETIRADOS.md)).
+- `work/ie1/capas/graficos/titulo_logo` (sustituye a `fix_ie1_title_logo.py`, retirado): aísla el wordmark europeo y sustituye el rótulo
   rectangular anterior conservando el balón y el rayo animados del juego.
 - `setup_vgmstream.ps1` + `validate_ie1_media.py` (archivado en F1.4; sus reglas viven en
   `ie123kit.ie1.verificar`): preparan el decodificador
@@ -375,3 +389,32 @@ detectando qué mejorar en la siguiente versión sin mirar el log en vivo.
 > herramientas, no la cosecha.
 
 > Coloca los ejecutables descargados en `tools/bin/` (ignorado por git).
+
+## IE3 Fase 2: referencias y piloto (sin reactivar `--crecer`)
+
+- `python -m ie123kit.ie3.comun.cobertura --perfil spark --salida <carpeta-nueva>`:
+  diagnóstico conservador trazable, disponible también para `ogre`.
+- `python -m ie123kit.ie3.fase2 auditar --perfil spark --salida <carpeta-nueva>`:
+  round-trip JP/ES, referencias del consumidor, correspondencias y simulación
+  offline; el mismo núcleo acepta `--perfil ogre`.
+- `python -m ie123kit.ie3.fase2 piloto --perfil spark --plan <auditoría> --referencia <archive-v7> --clave <clave-estable> --salida <candidata-nueva>`:
+  selección explícita de 1–5 mensajes, compresión/índices/referencias y B123.
+- `python -m ie123kit.ie3.comun.build_piloto --candidate <candidata> --visual-manifest <manifest-v7> --rom <salida.3ds>`:
+  build completa reutilizando el CRO exacto de referencia y reextracción de ROM.
+
+Se rechazan conflictos, cambios de hash y salidas existentes. No hay activación
+masiva hasta la prueba manual. Bomber requiere perfil/corpus/correspondencias
+propios, aunque comparta recursos con Spark. Evidencia, límites, comandos y
+protocolo en [IE3_FASE2_REFERENCIAS](../docs/IE3_FASE2_REFERENCIAS.md).
+
+## IE3 Fase 4: colocación e interfaz sobre la referencia fase 3
+
+- `python -m ie123kit.ie3.fase4 --referencia <carpeta-fase3> --salida <carpeta-nueva>`:
+  prepara la revisión sin modificar tipografía/encoder ni originales.
+- El mismo comando con `--verificar`: reextrae registros/recursos y comprueba
+  nombres, fuentes y equivalencia oficial de literales Ogre/Spark.
+- `python -m ie123kit.ie3.comun.build_piloto --revision --candidate <carpeta-fase4> --visual-manifest <fase3/manifest.json> --rom <salida-nueva.3ds>`:
+  exige verificación vigente, construye una ROM completa y relee sus recursos.
+
+La simulación no equivale a validación visual. Contratos, porcentajes separados,
+pendientes y comandos completos en [IE3_FASE4_INTEGRACION](../docs/IE3_FASE4_INTEGRACION.md).

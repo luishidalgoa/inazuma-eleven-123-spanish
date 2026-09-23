@@ -1,8 +1,39 @@
 # Plan de porteo de los motores de capa a ie123kit
 
-Estado (2026-09-19): **todos los motores portados**. F2.4 (#1, #2, #5, #6 y #7, rama `toolkit-f2.4`,
-#50) y F2.5 (#3, #4 y #8, rama `toolkit-f2.5`, #51). El plan se escribió al reanudar la migración en la
-F2.3 (#49). Queda retirar de las capas el código duplicado (#55).
+Estado (2026-09-20): **todos los motores portados y las capas activas ya desduplicadas**. F2.4 (#1,
+#2, #5, #6 y #7, rama `toolkit-f2.4`, #50), F2.5 (#3, #4 y #8, rama `toolkit-f2.5`, #51) y F2.6 (#9 y
+#10 más la limpieza, rama `toolkit-f2.6-limpieza`, #55). El plan se escribió al reanudar la migración en
+la F2.3 (#49).
+
+### Qué se porteó en la F2.6 y dónde quedó
+
+Dos motores que se habían quedado solo en las capas, más la tabla de IE1 que faltaba:
+
+| # | Motor | Módulos | Prueba de equivalencia (`requiere_rom`) |
+|---|---|---|---|
+| 9 | Capturas de ayuda de IE2: la captura 3DS es la NDS española ×1,25; se pegan solo las zonas que difieren (cabecera, título, bocadillos, cajas de pista) con igualación de color, y se traducen las pestañas | `nucleo.graficos.regiones` (diferencia de zonas, igualación de color por canal, encaje, pegado escalado, caja de contenido), `nucleo.graficos.pac_sprite.decodificar_pac8`, `ie2.comun.ayuda` (`ModeloAyuda`, regiones, `captura_arc`, `PESTANAS`, `pestanas_arc`) | `test_equivalencia_ayuda_ie2.py` (golden `ayuda_ie2.json`) |
+| 10 | Grito del título del recopilatorio: banco `CM_000.SWD`/`.SED`, muestra 162 y cambio de duración de la nota de la secuencia | `nucleo.media.voz`, `nucleo.media.procyon` (`nota_con_ticks`, `sed_con_ticks`), `juego_principal.voz_titulo` | `test_equivalencia_voz_recopilatorio.py` (golden `voz_recopilatorio.json`) |
+| — | Parches de ancho de diálogo de **IE1** (`ina_main1.cro`): la tabla vivía solo en `comun94.py` de la capa | `ie1.texto.cro` (sobre `nucleo.ejecutable.parches_cro`) y `ie1.texto.dialogo.MODELO_IE1_ANCHO` | `test_equivalencia_motores_ie1.py`: la CRO parcheada es byte a byte la de la capa (golden `motores_ie1.json`) |
+
+Además, el banner HOME (BCWAV dentro del CBMD y textura del logo) y los títulos del SMDH ya estaban
+cubiertos por `juego_principal.banner` y `nucleo.ejecutable.smdh` desde la F2.5: en la F2.6 solo se
+rewiró la capa para que los use en vez de tener su propia copia.
+
+### Desduplicación de las capas activas (F2.6, #55)
+
+Cada capa activa que tenía motor copiado es ya un **envoltorio fino** que importa `ie123kit` y conserva
+intacta su superficie pública (los nombres que usan sus `apply.py`/`validate.py` hermanos). Las capas de
+`historial/` no se tocaron: el acoplamiento que se cortó es justo el de las capas activas que cargaban su
+motor desde `historial/` con `importlib`.
+
+La prueba es doble:
+
+- **la salida no cambia**: hash golden de lo que la capa ya tenía escrito + el paquete lo reproduce byte a
+  byte (`test_equivalencia_motores_ie1.py`, `…_motores_ie2.py`, `…_fuentes_banner.py`, `…_ayuda_ie2.py`,
+  `…_voz_recopilatorio.py`);
+- **el envoltorio delega de verdad**: `test_envoltorios_capas.py` comprueba por AST que el módulo de la
+  capa no vuelve a definir las funciones portadas, que importa `ie123kit`, y que sus constantes y tablas
+  son las del paquete valor a valor.
 
 ### Qué se porteó en la F2.5 y dónde quedó
 
@@ -28,8 +59,9 @@ cuya tinta coincide. Liberarlos toca fuentes y textos y necesita una petición e
 | 6 | Subtítulos incrustados | `nucleo.media.subtitulos` (dat, partición, tiempos, dibujo); estilo en `ie2.comun.subtitulos` | Pistas y fotogramas con texto de las 35 cinemáticas iguales al informe; plano Y quemado igual que `comun_sub` |
 | 7 | DSP-ADPCM y sound.pb | `nucleo.media.dsp_adpcm`, `nucleo.media.procyon` (SWD/SED), `nucleo.contenedores.sound_pb`, `ie2.comun.voces` | `media/voces` (v23): `sound.pb`/`.ph` idénticos; `historial/media/v20_voces`: bancos 3D_003 idénticos; `media/voz_titulo` (v13): `3D_901.SWD` idéntico (remuestreo incluido) |
 
-Las capas de `work/` no se han tocado (están fuera de git y la regla 2 prohíbe reescribirlas en el mismo
-paso): el paquete reproduce su salida byte a byte. Los hashes de esas salidas están en
+Las capas de `work/` no se tocaron en la F2.4/F2.5 (están fuera de git y la regla 2 prohíbe reescribirlas
+en el mismo paso); la F2.6 (#55) ya las pasó a envoltorios, con el paquete reproduciendo su salida byte a
+byte. Los hashes de esas salidas están en
 `tools/tests/compat/golden/motores_ie2.json` (solo hashes, Norma 2). Las bases de algunas capas ya no
 existen (`probe_ie2_v17`/`v18`); por eso el paginado se prueba como punto fijo y el teclado desde la ROM
 japonesa, que la propia capa comprobaba idéntica a su base. Cada motor tiene su orden `ie123 motor …`.
@@ -83,7 +115,10 @@ Nada de esto es trivial; por eso no se portea nada en la F2.3.
   test de equivalencia. Al acabar, las capas vigentes que los usan pueden importar el paquete.
 - **F2.5 (#51).** Lo que toca fuentes o la GUI: #3 registro de bigramas y dibujo de glifos, #4 rebanadas,
   #8 escritura de SMDH/banner. Solo tras decidir el bloqueo v20 (abajo).
-- **Después (#55, limpieza).** Retirar de las capas vigentes el código duplicado (`comun*.py`) ya portado.
+- **F2.6 (#55, limpieza final).** Hecho: los dos motores que quedaban solo en capas (#9 capturas de
+  ayuda, #10 grito del recopilatorio) y la tabla de CRO de IE1; retirada del código duplicado de las
+  capas vigentes (`comun*.py`, copias de motor y las que cargaban su motor de `historial/`); borrado de
+  `tools/_archivo/` y de los 4 shims planos sin importadores.
 
 ## Decisiones que necesita el usuario
 

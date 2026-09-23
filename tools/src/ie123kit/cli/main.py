@@ -7,7 +7,8 @@ Verbos (F2.4, #50; docs/toolkit/ESPECIFICACION.md, «CLI»):
 - ROM y candidatas: `extraer romfs|nds`, `construir`, `verificar`, `instalar`, `parche`,
   `registro` (cosecha del log de Azahar);
 - por objetivo: `<objetivo> activos`;
-- motores portados de las capas: `motor listar`, `motor paginar|teclado|cro-ancho-dialogo|voces|subtitulos`.
+- motores portados de las capas: `motor listar`, `motor paginar|teclado|cro-ancho-dialogo|voces|subtitulos|
+  voz-recopilatorio|ayuda`.
 
 No añadir aquí ninguna regla de negocio: si algo falta, va en `nucleo` o en el juego y se expone
 por `servicio`. Esta capa solo importa `ie123kit.servicio`.
@@ -70,6 +71,8 @@ ALIAS: dict[str, str] = {
     "voices": "voces",
     "subtitles": "subtitulos",
     "cro-dialogue-width": "cro-ancho-dialogo",
+    "help-screens": "ayuda",
+    "compilation-voice": "voz-recopilatorio",
 }
 
 #: Motores de `ie123 motor`: nombre → (juego por defecto, juegos admitidos).
@@ -79,6 +82,8 @@ _MOTORES: dict[str, tuple[str, tuple[str, ...]]] = {
     "cro-ancho-dialogo": ("ie2", ("ie2",)),
     "voces": ("ie2", ("ie2",)),
     "subtitulos": ("ie2", ("ie2",)),
+    "voz-recopilatorio": ("juego_principal", ("juego_principal",)),
+    "ayuda": ("ie2", ("ie2",)),
 }
 
 
@@ -126,6 +131,16 @@ def _parser_motor(sub: Any, comunes: argparse.ArgumentParser) -> None:
         elif nombre == "subtitulos":
             m.add_argument("--dat", required=True, help="movie/txt/<n>.dat de la NDS española.")
             m.add_argument("--fotogramas", type=int, default=None, help="Fotogramas del vídeo (opcional).")
+        elif nombre == "ayuda":
+            m.add_argument("--archive", required=True, help="archive.fa japonés de partida.")
+            m.add_argument("--capturas-nds", required=True, dest="capturas_nds",
+                           help="Carpeta pic3d/script/sp de la NDS española.")
+            m.add_argument("--rutas", default=None, help="Solo estos .arc, separados por comas (opcional).")
+            m.add_argument("--salida", required=True, help="Carpeta extra/ de salida (no se sobrescribe).")
+        elif nombre == "voz-recopilatorio":
+            m.add_argument("--sonido", required=True, help="Carpeta con CM_000.SWD/CM_000.SED japoneses.")
+            m.add_argument("--fuente", required=True, help="Audio de la voz española (lo lee ffmpeg).")
+            m.add_argument("--salida", required=True, help="Carpeta de salida (no se sobrescribe).")
 
 
 def construir_parser() -> argparse.ArgumentParser:
@@ -273,6 +288,12 @@ def _parametros_motor(nombre: str, args: argparse.Namespace) -> dict[str, Any]:
         bancos = [b.strip() for b in args.bancos.split(",") if b.strip()]
         return {"sonido_3ds": args.sonido_3ds, "sonido_nds": args.sonido_nds, "bancos": bancos,
                 "salida": args.salida, "base": args.base}
+    if nombre == "voz-recopilatorio":
+        return {"sonido": args.sonido, "fuente": args.fuente, "salida": args.salida}
+    if nombre == "ayuda":
+        rutas = [r.strip() for r in args.rutas.split(",") if r.strip()] if args.rutas else None
+        return {"archive": args.archive, "capturas_nds": args.capturas_nds, "salida": args.salida,
+                "rutas": rutas}
     return {"dat": args.dat, "fotogramas": args.fotogramas}
 
 

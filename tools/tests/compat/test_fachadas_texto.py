@@ -87,7 +87,7 @@ def test_rutas_build_glossary():
     import json
     assert json.loads(r.stdout) == [
         raiz,
-        os.path.join(raiz, "work", "fa_extract", "inazuma1", "data_iz", "logic"),
+        os.path.join(raiz, "work", "shared", "fa_extract", "inazuma1", "data_iz", "logic"),
         os.path.join(raiz, "work", "ie1", "fuentes", "nds_es", "data_iz", "logic", "sp"),
         os.path.join(raiz, "translation", "shared", "glossary"),
     ]
