@@ -746,6 +746,15 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
 - Motor 2 (v3): los textos con bigramas (byte inicial ≥ 0x88) vuelven al paso fijo para que las piezas encajen.
   Recuadro de objetivos IE2/IE3: una sola línea (y = 220); ancho subido de 480 a 608.
 
+- ❌ (2026-09-23, 2.ª tanda) Las filas SJIS 0x85, 0x86 y 0x87 (NEC fila 13: ①, Ⅰ, ㍉…) tienen puntero en la tabla de
+  code.bin 0x2a1c18, pero TODAS sus casillas dan U+3000: comparten glifo y no sirven como códigos. 8161 da U+2016
+  (cp932: U+2225). De ED/EE solo quedan 6 sin glifo y aparecen en texto real. Lo que queda son kanji que ya no usa
+  ningún texto: `rotulos_completos/escaneo_streaming.py` (escaneo v88 por entradas, válido para archives > 2 GiB) +
+  `pool2.py` → 720 códigos (498 de nivel 2). ❌ No usar `en_cadena` para decidir si un kanji es texto en evet/unitbase
+  ni en los eventos del IE1: el texto no lleva NUL justo delante (byte de longitud, `%1F`) y daba por libres kanji en uso.
+- Rótulos del IE3 con 2 px entre palabras: «RestauranteRaiRai» apenas separa las palabras (pendiente de ver en juego).
+  «Parte superior faro» tenía mal el CWDH de EEFB/EEFC en la candidata (0/10/10 y −2/10/8); la 2.ª tanda lo deja en −1/10/8.
+
 ## ⚠️ Diálogo del IE3 que la v16 dejó en japonés: causas (auditoría, 2026-09-23)
 
 - **Ogro entero en japonés** (39.145 mensajes de `inazuma3_ogre` eve/evet y 793 de mch/mcht): la capa de emisión solo
