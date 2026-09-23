@@ -767,3 +767,30 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
   sound.pkb` (673 entradas con los mismos hash que el europeo; 79 SED distintos). Capa `work/ie3/shared/capas/media/voces_bancos`.
 - menu_slot.arc y open_demo_b.arc: recortar la textura europea dentro de la japonesa rompe los rótulos; sus QNA europeos
   tienen los mismos grupos y escenas, así que va el .arc europeo entero (`graficos/caja_partida_y_avisos`, sin probar).
+
+## ❌ Subtítulos grabados del IE3 leyendo el .dat europeo a 30 Hz (v16, corregido el 2026-09-23)
+
+- Síntoma (usuario, v16): subtítulos de las cinemáticas desfasados respecto al vídeo y la voz (a3m02a, «- Inglaterra -»,
+  la presentación de selecciones al empezar la partida; el vídeo está en `inazuma3_ogre/…/movie/` pero lo usa también Fuego/Rayo).
+- Causa: `es/…/movie/txt/*.dat` de la CIA europea **cuenta fotogramas del vídeo (24 fps)**, no ticks de 30 Hz como el
+  japonés y la NDS. En las 51 pistas con pareja japonesa: europeo ≈ 0,80 × japonés (= 24/30), y el europeo cae en los
+  fotogramas donde el japonés lleva su subtítulo grabado. La capa `media/subtitulos` usaba el modelo del IE2 (30 Hz):
+  cada subtítulo salía al 80 % de su instante (a3m02a: ~30 s antes al final).
+- No era un problema de fps: los 67 MOFLEX europeos van a 24 fps (cabecera y ffprobe), con los mismos fotogramas que el
+  japonés, y cada .SAD español dura lo mismo que su vídeo (±0,1 s). La recodificación ya mantenía 24 fps.
+- Arreglo: `tick(k) = k` para el .dat europeo; la capa lee los fps de la fuente y los conserva al recodificar.
+- ⚠️ La capa `textos_medios/subtitulos` copia esos tiempos europeos (fotogramas) a `.dat` que el motor japonés lee a 30 Hz.
+  Hoy no se ven (la 3DS no enseña `movie/txt`), pero si algún día se mostraran irían un 20 % adelantados: hay que convertirlos
+  (× 30/24) al escribirlos.
+
+## ⚠️ Menú de campo del IE3: textos por GetString en el europeo y anchos de lista (2026-09-23, sin probar en juego)
+
+- El CRO europeo no tiene los rótulos: los pide a `iz::localize::GetString(id)` (tabla española del `.code` del ExeFS,
+  0x2B4A18). El `.code` de Bomber tiene otro hash que el de Spark, pero las mismas anclas y los mismos textos.
+- Las listas del menú (0x175614) usan una textura de **64 px** si el ancho que pasa quien llama menos 20 es ≤ 64 y de
+  128 si no. El japonés pasa 80 al menú de campo y a Estrategias: «Estrategias» (80 px) no cabe. El europeo pasa 100
+  (y 110/116 a Inventario/Jugadores), títulos de 128 px y más baldosas/otras x en el panel superior; además pone un
+  espaciado de −2 px al generar las listas (global de code.bin, necesitaría código nuevo: no portado).
+- `0x10b358` compara la entrada de guardar con una copia de «セーブ» (0x10b410, 8 B): si no coincide, guardar bloqueado
+  sale «？？？？». Escribir ahí el mismo texto que la entrada («Guardar» cabe en 8 B con el NUL).
+- Capas `work/ie3/shared/capas/menus_cro/menu_campo` (textos) y `menu_campo_geometria` (inmediatos del europeo).
