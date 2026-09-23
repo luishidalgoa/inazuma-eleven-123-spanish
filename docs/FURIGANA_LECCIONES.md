@@ -664,3 +664,13 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
   acaba en el final del marco (sp+0x6c0, 152 B), **sin comprobar el tamaño**. Más allá pisa d8/d9, los registros
   guardados y, a 220 B, el retorno. El japonés llega a 129 B; la v16 metió textos de hasta 261 B.
 - **Regla:** cada texto del blog del IE1, codificado, ≤ 149 B (tope `MAX_BYTES` en `work/ie1/capas/blog/oficial`).
+
+## ⚠️ Ficha del Registro (IE3): el paso fijo es FontGetCharWidth, una constante por fuente (2026-09-23)
+
+- `ina_main3ogre.cro` 0xa5548 dibuja el comentario (CommentX/Y o ExCommentX/Y) con el motor 2 (0x19e4c). Cada letra
+  avanza `FontGetCharWidth(tipo)` (code.bin 0x164660), que devuelve la tabla fija `{FONT12 12, FONT8 8, FONT12T 12,
+  RUBI 4}` **sin mirar la letra**; solo un ancho forzado > 0 lo cambia. Por eso ni la NFTR proporcional ni quitar los
+  anchos por defecto lo arreglaron. En pantalla: 1,25 × avance + 2,5 px por letra.
+- Cambio (v16, pendiente de prueba): capa `work/ie3/shared/capas/menus_cro/ficha_registro_proporcional` (28 palabras
+  en 0x1a468-0x1a4a0 y 0x1a52c-0x1a55c): avance = ancho BCFNT real de la letra. Si se montan, probar `--sin-deriva`.
+  Afecta a todo el texto del motor 2 sin ancho forzado: vigilar otras pantallas.
