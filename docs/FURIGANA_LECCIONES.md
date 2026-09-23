@@ -832,3 +832,18 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
 - Fuera de estas capas: IE1 unitbase +16/+0 tiene 345 nombres cortos distintos del europeo, 308 cortados a 7 letras a mitad
   de palabra («Winters» por «Wintersea», «Poseido»). 340 cabrían en 7 casillas con pares del registro, pero la pestaña
   (FONT8, paso 10) usa las casillas compactas de columna de la v08: hay que rehacerlos con ese diseño, no con pares centrados.
+
+## ❌ v75 `glifos_eu`: la hoja europea de FONT12 se leyó con paso de 16 px (análisis, 2026-09-23)
+
+- La FONT12 europea (IE1 e IE3, sha `28671c9c…`: celda 14×17, hoja 32×128, 2×7 celdas) tiene paso horizontal de
+  **15 px** (1 px de margen + 14) y origen x = 1 + columna × 15, no 16 como suponía `glifos_eu/apply.py`
+  (`sx = sheet_w // ncols`). Con 16, los glifos de la columna 0 de la hoja parecían tener 1 px de margen izquierdo
+  (lb = 1) que no existe, y la v75 les dio avance = europeo + 2 en lugar de + 1.
+- Afecta a `b d f h j l n p r t v x z`, sus mayúsculas, `¡ . ,`: espaciado irregular («me ter», «cua tro»).
+  En la europea todos los glifos tienen left = 0 y la tinta empieza en la columna 0 de su celda.
+- Regla: calcular el origen de celda como hace libctru (`fontCalcGlyphPos`: celda de `cell_w + 1` px), y
+  comprobar que el mínimo de tinta de cada glifo europeo sea 0 antes de derivar márgenes.
+- Relacionado: el `code.bin` europeo cambió `FontGetCharWidth` (IE3 0x2282ec, IE1 0x224544) para que devuelva el
+  avance real de la BCFNT; el japonés (0x164660) devuelve 12 fijo. El 0x301a europeo pasa ancho 0x100 y la rejilla
+  de página es 0x220 (IE3 `ina_main3ogre.cro` 0x52f58/0x3e09c; IE1 `ina_main1.cro` 0x5d214/0x47608). Con eso el
+  europeo nunca reajusta: sus líneas (máx. 258 px) se dibujan con los `\n`/`\f` del texto tal cual.
