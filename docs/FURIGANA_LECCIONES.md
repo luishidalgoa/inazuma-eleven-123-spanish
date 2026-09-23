@@ -717,3 +717,17 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
   necesitan 6-9 líneas de la caja de 192 px DS. Con el texto íntegro solo caben 5 entradas, 27 títulos y 1
   comentario (capa `work/ie3/shared/capas/blog/oficial`). Para el resto hace falta ampliar el búfer de 0x17fc4c
   (como `bufer_pagina`) y más líneas por caja; no condensar.
+
+## ⚠️ Textos de logic/ del IE3: límites de lectura y pintores con furigana (2026-09-23, sin probar en juego)
+
+- Los pintores con furigana de `ina_main3ogre.cro` (0x17fc4c y 0x181370) pasan el texto por 0x23fd0, que copia
+  solo los caracteres de 2 bytes, `\n` y la sintaxis `[kanji/lectura]`: **descarta todo byte 0x20-0x7E** (el latín de
+  1 byte no se ve) y escribe en un búfer de pila de 256 B sin comprobar el tamaño. Donde el japonés lleva furigana
+  (descripciones de técnicas, objetos, tácticas y jugadores, condiciones, cápsulas, tiendas, Contactos…) solo vale el
+  ancho completo.
+- Las descripciones de command/item/tacticscmd/unitbase.STR se leen con tamaño fijo 0x80 (0x113218/0x113244/0x113284,
+  0xd24a4/0xd24d4, 0x126e6c/0x126eb8, 0x251ee0) a búferes de 128 B dentro de objetos seguidos de otros campos: ≤ 127 B
+  (63 letras de ancho completo). No se amplían como en la ficha del Registro.
+- rpgtitle.STR: 0x1fb118 lee 0x13 B (≤ 18 B). sp_binder.STR (Ogro): 0x1b62e4 toma el desplazamiento con `ldrsh`
+  (< 0x8000; el japonés ya ocupa 32.826 B) y lo copia a un búfer de 0x100.
+- Capas `work/ie3/shared/capas/textos_logic/*` (issue #91): lo que no cabe se queda en japonés y consta en su informe.json.
