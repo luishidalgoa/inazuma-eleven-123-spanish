@@ -617,3 +617,18 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
 - ✅ v15: 0xc054 usa una marca con la fila japonesa guardada en el último byte del campo del nombre corto
   (+0x1C+15) y, si no la hay, la lógica kana original. El fichero conserva el orden japonés y cada tramo va por
   orden alfabético. Capa `work/ie3/amenaza_del_ogro/capas/nombres/lista_registro_abc`.
+
+## ❌/⚠️ Letras de 1 byte en el modo DS y anchos forzados del ITX (v15, probado el 2026-09-23)
+
+- ❌ El rótulo del IE2 «Z. residencial» en latín de 1 byte salía «Z .   r», y los objetivos de 1 byte, muy separados.
+  La NFTR solo tiene letras de ancho completo: un carácter de 1 byte sin entrada en el CMAP toma el glifo y el ancho
+  por defecto (FINF: «？», 11 px). Arreglo (v16): un bloque CMAP 0x21-0x7E que apunta cada letra ASCII al glifo de
+  su equivalente de ancho completo (`nftr_proporcional.mapa_ascii`).
+- El texto de ancho completo sí mejoró con la NFTR proporcional: el blog del IE2 quedó bien.
+- ⚠️ El blog del IE1 siguió a paso fijo por otra razón: `import/sItxInazuma1.itx` fija el ancho de letra por pantalla
+  (`CSubAdventureScreenBlog_ArticleCharSpace = 11`, `CMainAdventureScreenBlog_TitleCharSpace = 12`), y con un valor
+  > 0 el motor no mira la fuente. La v16 los pone a 0 en un `import/sItxInazuma1.itx` suelto; falta ver si el juego
+  lo lee de la romfs. Hay más `*CharacterSpace`/`*CharaSpace` en los ITX de los tres juegos.
+- ⚠️ La descripción de la ficha del Registro (IE3) sigue a paso fijo con la NFTR proporcional, los dos motores sin
+  ancho por defecto y ningún parámetro del Registro en el ITX: el ancho viene de otro sitio (ancho global de pantalla
+  +0xeef6c o el del gestor, +0x28). Sin localizar.
