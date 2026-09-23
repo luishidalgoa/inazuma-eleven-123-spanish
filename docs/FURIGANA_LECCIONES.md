@@ -686,3 +686,12 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
 - La barra de equipo de la formación antes del partido es `pic2d/team/po_s` (256×32, escudo + nombre), no mgu_td.
   El número del sprite no siempre es el id del equipo: el registro de team.pkb lleva en +0x2A el sprite que usa
   (Inazuma Japón = 15, Raimon = 1). Capa `work/ie3/shared/capas/graficos/rotulo_equipo_barra`.
+
+## ⚠️ Gráficos DS sustituidos por texturas 3DS (a_data_replace) (2026-09-23)
+
+- El port de 3DS no dibuja algunos sprites DS: los **sustituye** por texturas CTPK de
+  `<raíz>/data_iz/a_data_replace/<tipo>/data/…arc`. La barra de la formación (po_s) sale de `formation_emblem`
+  (512×32, el po_s copiado 1:1 en x = 32). Antes de traducir un sprite de pic2d, comprobar si tiene su textura
+  en a_data_replace: traducir solo el sprite no cambia nada en pantalla.
+- formation_emblem: IE1 = las 16 europeas (es/); IE2 = pintadas desde el po_s de la NDS; IE3 Ogro ya en
+  español; IE3 Fuego/Rayo no la tiene (usa po_s). Capa `work/shared/capas/graficos/formation_emblem`.
