@@ -21,6 +21,7 @@ from ie123kit.ie3.comun.literales_visibles import parchear_submenus
 from ie123kit.ie3.comun.medios_es import leer_video, planificar_audio, planificar_videos
 from ie123kit.ie3.comun.perfiles import cargar_perfil
 from ie123kit.ie3.comun.rectangulo_menu import parchear_rectangulo_menu
+from ie123kit.ie3.comun.revision_visual import leer_codigo, revisar_dialogos, verificar_revision
 from ie123kit.ie3.comun.tablas_ui import (
     recursos_tablas_ui,
     verificar_consumidor,
@@ -29,7 +30,6 @@ from ie123kit.ie3.comun.tablas_ui import (
 from ie123kit.ie3.comun.text import load_text_table
 from ie123kit.ie3.comun.tipografia import FuenteBCFNT
 from ie123kit.ie3.comun.ui_visibles import ATLAS_VISIBLES, construir_payloads_visibles
-from ie123kit.ie3.comun.revision_visual import leer_codigo, revisar_dialogos, verificar_revision
 from ie123kit.nucleo.config.raiz import find_root
 from ie123kit.nucleo.contenedores.fa import FaArchive, reemplazar_entrada
 

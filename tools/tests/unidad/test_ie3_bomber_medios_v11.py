@@ -1,5 +1,4 @@
 """Pruebas sintéticas. No contienen ROMs, fuentes, pistas ni vídeos comerciales."""
-import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -432,6 +431,7 @@ def test_v11_verifier_rejects_policy_change(environment):
 
 def test_v11_exporter_is_readonly_and_hash_checked(environment, monkeypatch):
     import zipfile
+
     from ie123kit.ie3 import bomber_opening_diagnostico as exporter
     root, base, source, output, motor = environment
     monkeypatch.setattr(exporter, "VIDEOS", core.VIDEOS)

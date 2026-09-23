@@ -14,8 +14,15 @@ import zipfile
 from pathlib import Path
 
 from .comun.bomber_medios_integracion_v11 import (
-    VIDEOS, CANCIONES, MOVIE_PREFIX, SOUND_PREFIX, contrato_bytes,
-    digest, leer_json, motor_real, ruta_interna,
+    CANCIONES,
+    MOVIE_PREFIX,
+    SOUND_PREFIX,
+    VIDEOS,
+    contrato_bytes,
+    digest,
+    leer_json,
+    motor_real,
+    ruta_interna,
 )
 from .comun.bomber_video_qa import validar_resultado
 
@@ -74,7 +81,7 @@ def exportar(root: Path, source: Path, *, motor=None) -> Path:
         "no_media_modified": True, "runtime_verified": False,
         "warning": "El ZIP contiene recursos originales para análisis privado; no publicarlo en Git.",
     }
-    token = dt.datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + uuid.uuid4().hex[:8]
+    token = dt.datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + uuid.uuid4().hex[:8]  # noqa: DTZ005 (hora local para el nombre del registro)
     folder = root / "work/informes/bomber_opening" / token
     folder.mkdir(parents=True, exist_ok=False)
     output = folder / "op00b_originales_para_diagnostico.zip"
@@ -96,8 +103,8 @@ def main(argv=None) -> int:
     parser.add_argument("--fuente", help="archive_bz.fa; por defecto el perfil Bomber")
     args = parser.parse_args(argv)
     try:
-        from ie123kit.nucleo.config.raiz import find_root
         from ie123kit.ie3.comun.perfiles import cargar_perfil
+        from ie123kit.nucleo.config.raiz import find_root
         root = find_root().resolve()
         source = (root / (args.fuente or cargar_perfil("bomber").oficial)).resolve()
         output = exportar(root, source)
@@ -106,7 +113,7 @@ def main(argv=None) -> int:
         print("No se ha modificado la ROM, ningún original ni la candidata base.")
         print("Este ZIP contiene los medios originales. Compártelo solo para diagnóstico privado.")
         return 0
-    except (Exception, KeyboardInterrupt) as exc:
+    except (Exception, KeyboardInterrupt) as exc:  # noqa: BLE001 (se registra la traza y se sigue)
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
 

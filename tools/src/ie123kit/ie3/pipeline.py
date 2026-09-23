@@ -787,7 +787,7 @@ def cmd_reinsert(args):
         # individuales de nombres; los bigramas v5 se retiraron porque la
         # prueba visual demostró que fusionaban trazos.
         from ie123kit.ie3.comun.nombres import caracteres_cortos
-        from ie123kit.ie3.comun.tipografia import adaptar_font12, adaptar_font8_nombres
+        from ie123kit.ie3.comun.tipografia import adaptar_font8_nombres, adaptar_font12
 
         oficial_archive = WORK / "ie3" / "rayo_celeste" / "fuentes" / "3ds_eu" / "romfs" / "archive_sz.fa"
         if not oficial_archive.is_file():

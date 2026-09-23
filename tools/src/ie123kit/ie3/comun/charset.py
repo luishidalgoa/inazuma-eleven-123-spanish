@@ -52,9 +52,9 @@ def comprobar_fuentes(archive_path: Path, base_fonts: Path,
     )
     official = FaArchive(str(official_archive))
     try:
-        from ie123kit.ie3.comun.text import TextTable
         from ie123kit.ie3.comun.nombres import caracteres_cortos
-        from ie123kit.ie3.comun.tipografia import adaptar_font12, adaptar_font8_nombres
+        from ie123kit.ie3.comun.text import TextTable
+        from ie123kit.ie3.comun.tipografia import adaptar_font8_nombres, adaptar_font12
 
         tabla_es = TextTable.from_codetable(official.read("font/CodeTable.bin"))
         unitbase = "inazuma3/data_iz/logic/unitbase.dat"

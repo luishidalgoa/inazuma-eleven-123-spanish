@@ -6,8 +6,12 @@ import pytest
 from ie123kit.ie3.comun.nombres import caracteres_cortos
 from ie123kit.ie3.comun.text import TextTable
 from ie123kit.ie3.comun.tipografia import (
-    FuenteBCFNT, _PORTADORES, _codepoint_destino, _codepoint_origen,
-    adaptar_font12, adaptar_font8_nombres,
+    _PORTADORES,
+    FuenteBCFNT,
+    _codepoint_destino,
+    _codepoint_origen,
+    adaptar_font8_nombres,
+    adaptar_font12,
 )
 from ie123kit.nucleo.config.raiz import find_root
 from ie123kit.nucleo.contenedores.fa import FaArchive

@@ -25,6 +25,7 @@ def run(cmd, log, allow_failure=False):
 
     result = subprocess.run(
         cmd,
+        check=False,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
