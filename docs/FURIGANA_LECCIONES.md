@@ -813,3 +813,22 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
   animación y el zoom de la etiqueta. Hay que traducir pieza a pieza (capa `work/ie2/shared/capas/graficos/logo_animado`).
 - Los destellos ina_p00/ina_p01 llevan recortada la silueta de las letras japonesas (pasan «por detrás»):
   al cambiar el rótulo hay que rehacer ese recorte, y el respaldo blanco de las letras vive en la textura del balón.
+
+## ⚠️ Nombres oficiales restaurados con casillas del registro (IE1/IE2, 2026-09-23, sin probar en juego)
+
+- Capas `work/ie1/capas/nombres/restaurar_oficiales` y `work/ie2/shared/capas/nombres/restaurar_oficiales` (común en
+  `work/shared/capas/nombres/restaurar_oficiales/comun.py`). Los motores 1/2 v3 dibujan a paso fijo todo texto con un
+  código ≥ 0x88, así que un nombre en casillas del registro ocupa las mismas casillas que antes: se restaura el oficial
+  solo si cabe en el límite de casillas y bytes ya vigente (equipos 9, objetos 9/18 B, técnicas 15/30 B, títulos 9/18 B).
+- Solo pares centrados (sin «clave») con glifo en todas las fuentes del campo: 209 pares en FONT12+FONT8+FONT12T y 402 en
+  FONT12+FONT8. Es el cuello de botella: la mayoría de lo que se queda corto necesita 10-13 casillas.
+- ⚠️ La huella `pixeles_sha1` de FONT12T (LA4) no se reproduce con el lector de `celdas.FuenteBCFNT` (pensado para A4):
+  comprobar FONT12T por el sha256 del fichero (`fuentes_dibujadas`).
+- Error encontrado: IE1 team.pkb ID 235 decía «OB oB» (la v50 escribió el portador griego Β de la «é» como B latina).
+  Corregido a «Oé, oé».
+- Camino proporcional (latín de 1 byte sin casillas): con la NFTR proporcional y el motor 1 v3 la causa de ❌ v47 podría
+  haber desaparecido, pero **no se ha probado**: cada informe marca `cabria_si_fuera_proporcional`. Hace falta una sonda en
+  Azahar (una lista de objetos y el cuadro de pachanga) antes de usarlo.
+- Fuera de estas capas: IE1 unitbase +16/+0 tiene 345 nombres cortos distintos del europeo, 308 cortados a 7 letras a mitad
+  de palabra («Winters» por «Wintersea», «Poseido»). 340 cabrían en 7 casillas con pares del registro, pero la pestaña
+  (FONT8, paso 10) usa las casillas compactas de columna de la v08: hay que rehacerlos con ese diseño, no con pares centrados.
