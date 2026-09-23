@@ -695,3 +695,14 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
   en a_data_replace: traducir solo el sprite no cambia nada en pantalla.
 - formation_emblem: IE1 = las 16 europeas (es/); IE2 = pintadas desde el po_s de la NDS; IE3 Ogro ya en
   español; IE3 Fuego/Rayo no la tiene (usa po_s). Capa `work/shared/capas/graficos/formation_emblem`.
+
+## ⚠️ Motor de texto 2: paso fijo en blog del IE1, objetivos del IE2 y ficha del IE3; los .itx del romfs no se leen (2026-09-23)
+
+- La segunda copia del motor es la misma en las tres CRO (IE1 0x2ed24, IE2 0x33408, IE3 0x19e4c) y avanza cada
+  letra `FontGetCharWidth` (constante por fuente). Capas v2 con el ancho BCFNT real: `ie1/capas/menus_cro/
+  blog_proporcional`, `ie2/shared/capas/menus_cro/objetivos_proporcional`, `ie3/shared/capas/menus_cro/
+  ficha_registro_proporcional` (38 palabras cada una). El diálogo usa la primera copia y no cambia.
+- Cambia todo el texto del motor 2 sin ancho forzado (IE1: ~86 llamadas: guardado, comandos, estado, tienda…):
+  revisar esas pantallas. Los objetivos del IE1 también pasan a proporcionales.
+- Los `g_Itx*` que usa el juego están compilados en code.bin (ro); los `import/*.itx` del romfs parecen no leerse:
+  por eso poner a 0 los CharSpace del blog no hizo nada.
