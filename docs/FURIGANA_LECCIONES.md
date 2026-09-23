@@ -655,3 +655,12 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
   kanji reasignados de FONT8: «Ed. principal - 1.º»).
 - **Regla:** los rótulos de lugar del IE1/IE2 van en bigramas; no escribir latín suelto en 0x4037/3. La capa
   `rotulos_bigramas` devuelve los de la v34. Un nombre nuevo o más largo exige bigramas nuevos en el registro.
+
+## ❌ Blog del IE1 con textos oficiales largos: cuelgue al abrirlo (v16, 2026-09-23)
+
+- **Síntoma:** «Undefined Instruction» con PC y registros llenos de letras de ancho completo (0x82xx).
+- **Causa (ina_main1.cro):** el pintor del blog 0xbda58 pasa el texto por 0x374cc, que copia los caracteres de
+  2 bytes y los saltos (no el latín de 1 byte, ni la lectura de la furigana) a un búfer de la pila en sp+0x628 que
+  acaba en el final del marco (sp+0x6c0, 152 B), **sin comprobar el tamaño**. Más allá pisa d8/d9, los registros
+  guardados y, a 220 B, el retorno. El japonés llega a 129 B; la v16 metió textos de hasta 261 B.
+- **Regla:** cada texto del blog del IE1, codificado, ≤ 149 B (tope `MAX_BYTES` en `work/ie1/capas/blog/oficial`).
