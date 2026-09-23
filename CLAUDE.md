@@ -1,7 +1,7 @@
 # Guía para Claude (y colaboradores) — Proyecto de traducción Inazuma Eleven 1·2·3
 
-> TIPOGRAFÍA BLOQUEADA por petición explícita del usuario: v34 es la referencia
-> visual aprobada (actualizada desde v20 el 2026-09-19). Cumplir el bloqueo de AGENTS.md y tools/dialogue_lock.py.
+> TIPOGRAFÍA BLOQUEADA por petición explícita del usuario: la referencia visual aprobada es la
+> candidata v16 (2026-09-23: espaciado europeo, saltos EU 1:1; antes v34 y v20). Cumplir el bloqueo de AGENTS.md y tools/dialogue_lock.py.
 > No cambiar caja, fuentes, codificación, espaciado o saltos ni desactivar sus
 > comprobaciones al continuar la traducción. Requiere una nueva petición explícita
 > del usuario sobre la tipografía; no una orden general de continuar.

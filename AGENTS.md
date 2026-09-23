@@ -15,6 +15,12 @@
   37 caracteres en ancho completo. La codificación sigue siendo la misma (2 B por letra): el usuario
   rechazó expresamente pasar a 1 byte. No modificar caja, dimensiones, posición, tamaño de letra,
   glifos, espaciado, fuentes, codificación ni algoritmo de saltos sin una nueva petición expresa.
+- **Ampliado el 2026-09-23** (petición expresa del usuario, «sí a todo», y aprobado en juego: «ya está perfecto
+  la caja de texto»): avances europeos de los glifos latinos en FONT12 (dibujo intacto; corrige el paso de 15 px
+  de la hoja de la v75), FONT8 a ancho real, diálogo del IE1 y del IE3 con los `
+`/`` europeos 1:1, IE2
+  repartido por ancho real (≤ 314/314/300 px, hasta 55 caracteres), ventana/rejilla del diálogo 0x280/0x2A0 en los
+  tres CRO y espacio de 1 byte en el diálogo del IE2 e IE3. Referencia: candidata `probe_ie3_fuego_v16`.
 - Las cinco fuentes exactas se verifican con `tools/dialogue_lock.py`.
 - Las nuevas traducciones deben adaptarse a esta configuración. Un texto largo
   no autoriza a cambiar la caja, las fuentes o el motor para hacerlo caber.
