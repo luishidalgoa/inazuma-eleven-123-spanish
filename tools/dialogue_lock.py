@@ -8,7 +8,7 @@ from pathlib import Path
 FONT_HASHES = {
     'font/FONT12.bcfnt': '222ae0f22ebf0d6dd55a2b76fa13b8d17857da350bb2532305af48681f88e3ff',
     'font/FONT12T.bcfnt': 'eb2a12cc633cb134cb1e668efef75eb57960cc52a6620e348ff4559bf8d35d8d',
-    'font/FONT8.bcfnt': '345fe5cfa4bc86af37320d83cbcb76a8c55d7531214786de8f87595030a7d6bf',
+    'font/FONT8.bcfnt': '9f4680559f8890746d348e1e504c239fec80141f3854e59514dc4c508c36ed09',
     'inazuma1/data_iz/font/FONT12.NFTR': 'ef2841a5af60b21fa230a3cc35bedbf30aa8ddc18045abff852de3af38c88848',
     'inazuma1/data_iz/font/FONT8.NFTR': '548efc8649876fb98af8b26757702d723efe5aa58974a96dda73de4c060f6512',
 }
