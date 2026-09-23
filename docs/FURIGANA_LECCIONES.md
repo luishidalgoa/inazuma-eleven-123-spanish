@@ -674,3 +674,15 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
 - Cambio (v16, pendiente de prueba): capa `work/ie3/shared/capas/menus_cro/ficha_registro_proporcional` (28 palabras
   en 0x1a468-0x1a4a0 y 0x1a52c-0x1a55c): avance = ancho BCFNT real de la letra. Si se montan, probar `--sin-deriva`.
   Afecta a todo el texto del motor 2 sin ancho forzado: vigilar otras pantallas.
+
+## ✅/⚠️ Corrección: pestañas «Por nombre» del Registro (IE3) y rótulos de equipo po_s (2026-09-23)
+
+- La entrada «Pestañas "Por nombre" del Registro» de arriba se equivocaba: la lista **no** reparte usearch en tramos
+  del tamaño de los contadores. La letra (1..46) se calcula al abrir la lista con `0x26b568` a partir del nombre
+  mostrado; los contadores guardados (bss+0x1aca0) solo atenúan pestañas vacías. Con nombres ASCII la función
+  japonesa devolvía 0 (v14-v16: la lista solo veía los nombres en kana y 0x26e7cc escribía `vector[-1]`).
+  Capa nueva `work/ie3/amenaza_del_ogro/capas/nombres/lista_registro_latina` (sustituye a lista_registro_abc;
+  pestañas A-C…Z en los índices kana, contadores recalculados al abrir; ver su NOTAS.md). Pendiente de prueba.
+- La barra de equipo de la formación antes del partido es `pic2d/team/po_s` (256×32, escudo + nombre), no mgu_td.
+  El número del sprite no siempre es el id del equipo: el registro de team.pkb lleva en +0x2A el sprite que usa
+  (Inazuma Japón = 15, Raimon = 1). Capa `work/ie3/shared/capas/graficos/rotulo_equipo_barra`.
