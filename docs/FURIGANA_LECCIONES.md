@@ -745,3 +745,25 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
   `work/ie3/shared/capas/rotulos_objetivos/rotulos_sonda` (solo «Casa de Mark»).
 - Motor 2 (v3): los textos con bigramas (byte inicial ≥ 0x88) vuelven al paso fijo para que las piezas encajen.
   Recuadro de objetivos IE2/IE3: una sola línea (y = 220); ancho subido de 480 a 608.
+
+## ⚠️ Diálogo del IE3 que la v16 dejó en japonés: causas (auditoría, 2026-09-23)
+
+- **Ogro entero en japonés** (39.145 mensajes de `inazuma3_ogre` eve/evet y 793 de mch/mcht): la capa de emisión solo
+  corre el perfil `bomber`; el perfil `ogre` apunta a `archive_oz.fa` (CIA de Team Ogre Attacks), que ya no está. La CIA
+  de Fuego Explosivo **sí** trae `es/inazuma3_ogre` (eve/evet y también mch/mcht, al contrario de lo que decía
+  `pachangas/extraer.py`) y re-extrae los 36.705 textos del corpus del Ogro. Capa `work/ie3/shared/capas/dialogo/restantes`.
+- **«correspondencia_ambigua»** (3.440 en Fuego/Rayo): parejas «probable» del alineamiento que el corpus marcó «revisar»
+  y el resolver descarta. Con fila única, re-extracción en el evet europeo del mismo evento, corpus unánime y sin cruzar
+  anclas de identidad del evento, entran 3.174 (Fuego/Rayo) y 2.012 (Ogro); ninguna cruzó las anclas.
+- Lo que queda: `%s` de personajes (productor **0x4002**; falta demostrar la cota del temporal de 32 B, ~2.200 por guion),
+  registros > 252 B (u8 del registro; ~320-370 por guion) y frases sin pareja europea (sobre todo 3700xxxx, vacías).
+- Guardado: «第一章» es `第` + tabla de numerales 0x34f400 + `章` en `ina_main3ogre.cro` 0x1526a8 (CMainMenuScreenSave,
+  lienzo DS 224×128). Los rótulos «チームレベル/プレイタイム/なかま/時間/分/勝/チーム名/オプション/もどる» son texturas de
+  `menu_slot.arc` (`ie03_slot_b_font01`, 128×128 en JP frente a 256×128 en la UE).
+- La frase del inicio «なーに 寝ぼけてるの！これから南アフリカの…» (32510110) está bloqueada por el u8 del registro (260 B > 252).
+  Con el espacio de 1 byte del IE2 cabrían 301/317 (Fuego/Rayo) y 355/371 (Ogro): pendiente de que el usuario lo pida
+  para el IE3 (bloqueo tipográfico).
+- Narración de los carteles de capítulo: no es un .SAD sino `2D_020_01..10.SED` dentro de `inazuma3_ogre/data_iz/sound/
+  sound.pkb` (673 entradas con los mismos hash que el europeo; 79 SED distintos). Capa `work/ie3/shared/capas/media/voces_bancos`.
+- menu_slot.arc y open_demo_b.arc: recortar la textura europea dentro de la japonesa rompe los rótulos; sus QNA europeos
+  tienen los mismos grupos y escenas, así que va el .arc europeo entero (`graficos/caja_partida_y_avisos`, sin probar).
