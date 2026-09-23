@@ -574,3 +574,21 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
   («alcampo»). En el IE3, la misma caja muestra bien el latín de 1 byte con portadores (`es_encode`).
   Desde la v12 (candidata del IE3) los objetivos del IE2 van como en el IE3: texto oficial íntegro de ≤ 63 B
   (`work/ie2/shared/capas/rotulos_objetivos/objetivos_1byte`).
+
+## ✅ Diálogo del IE2 dentro de la caja: el motor suma 1 px por carácter (aprobado el 2026-09-23)
+
+- La caja del IE2 con espacios estrechos se salía por la derecha con topes de 296, 290 y 284 px medidos solo
+  con la CWDH. El motor suma **1 px por carácter** (`BUG_FIX_MODE_X_ADD = 1` en `import/sItxInazuma123.itx`):
+  con ese píxel, las tres capturas dan un borde real de ~320 px. Con 314/314/300 px (tercera línea con el
+  icono) el usuario la dio por buena (candidata IE3 v13). Capa `work/ie2/shared/capas/dialogo/espacio_estrecho`.
+- Al reejecutar un reparto sobre texto ya repartido, devolver antes el espacio 0x20 a 0x8140: si no, el
+  repartidor no rehace nada (117 153 registros «no rehechos» en silencio).
+
+## ⚠️ Rótulo de lugar: 10 baldosas de 8×8 en la VRAM emulada (IE1, IE2 e IE3)
+
+- El rótulo (0x4037 argumento 3) se dibuja en un mapa de bits de 80×8 en VRAM+0x1500 (0x140 B = 10
+  baldosas de 32 B): IE1 0x7a3bc, IE2 0x8a548, IE3 0x83bf8. Cada carácter ocupa una baldosa, ocupe 1 o 2
+  bytes, así que el máximo son **10 caracteres**. En el IE3, VRAM+0x1e40 es otro rótulo de 32×8, y no se
+  sabe qué hay entre los dos: no ampliar el búfer sin comprobar en el emulador qué hay en VRAM+0x1640.
+- Los nombres europeos del IE3 que pasan de 10 caracteres (365 de 576 rótulos) se escribieron hasta 20 B:
+  según la lección de la v76, esa placa sale vacía. Pendiente de verlo en juego.
