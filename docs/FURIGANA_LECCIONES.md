@@ -794,3 +794,10 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
 - `0x10b358` compara la entrada de guardar con una copia de «セーブ» (0x10b410, 8 B): si no coincide, guardar bloqueado
   sale «？？？？». Escribir ahí el mismo texto que la entrada («Guardar» cabe en 8 B con el NUL).
 - Capas `work/ie3/shared/capas/menus_cro/menu_campo` (textos) y `menu_campo_geometria` (inmediatos del europeo).
+- (ampliación, 2026-09-23) Textos que no caben: el relleno a cero tras `.rodata` (0x2ce9c8..0x2cf000) es legible y se
+  alcanza sin relocaciones nuevas con un trampolín de 16 B en un hueco liberado de `.text`
+  («ldr rd,[pc,#4]; add rd,pc,rd; b vuelta; .word desplazamiento»). Un puntero con relocación se reapunta en la
+  relocación y `.rodata` se amplía en la tabla de segmentos. El relleno de `.text` (0x29bf48..) ya lo usa otra capa.
+- Mensaje de objeto conseguido (0x714c0): el texto va en buf+8 y las lecturas de furigana en ranuras fijas desde
+  buf+0x40; si el texto pasa de 56 B, las copias de lecturas lo cortan. Con el verbo delante (europeo) se anulan esas
+  copias (nop) y el prefijo se concatena desde una cueva en el pool liberado. Sin probar en juego.
