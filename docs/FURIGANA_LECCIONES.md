@@ -552,3 +552,25 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
   la codificación. Antes el reparto dejaba una sola línea por caja.
 - En el IE3 el salto de página `\f` **funciona** (la conclusión contraria de la bitácora de IE3 era un
   efecto del fallo de offsets que comía bytes, ya resuelto con las referencias `@offset,longitud`).
+
+## ❌ Pantalla de guardado del IE1 con los rótulos europeos (candidata IE3 v11/v12, probado el 2026-09-23)
+
+- **Qué se probó:** en `ina_main1.cro` (función 0x719e4, caja de partida):
+  - quitar el avance fijo por defecto de FONT8 (0xe62ac `beq 0xe6304`);
+  - pasar el argumento 0x98 de las llamadas de dibujo a 0xb8, como el CRO europeo (0x71a1c);
+  - rótulos completos en latín de 1 byte («Niv. Equipo», «Jugadores», «Elige un espacio de guardado.»).
+- **Resultado en Azahar:** pantalla rota.
+  - Las letras siguen a paso fijo (~10,5 px): el paso de esta caja **no sale del avance por defecto de FONT8**.
+  - Con 0xb8 los rótulos se descolocan y bajan de fila: **0x98 no es un ancho**. El motor de texto del
+    IE1 europeo es otro, así que sus argumentos no valen para el japonés.
+  - «Elige un espacio de guardado.» parte en dos líneas y la segunda no se ve.
+- **Regla:** con paso fijo, cada rótulo tiene el número de caracteres del japonés (5 antes del nivel, 3 antes
+  de los jugadores, una línea de ~16 en la barra inferior). Los latín de 1 byte se dibujan con el mismo paso
+  que el ancho completo. No copiar argumentos de llamadas del CRO europeo.
+
+## ❌ Objetivos del IE2 en «casillas» (bigramas a paso fijo) (probado el 2026-09-23)
+
+- En la caja de objetivos del IE2 las casillas de la v22 se montan («r», «m», «i») y se comen espacios
+  («alcampo»). En el IE3, la misma caja muestra bien el latín de 1 byte con portadores (`es_encode`).
+  Desde la v12 (candidata del IE3) los objetivos del IE2 van como en el IE3: texto oficial íntegro de ≤ 63 B
+  (`work/ie2/shared/capas/rotulos_objetivos/objetivos_1byte`).
