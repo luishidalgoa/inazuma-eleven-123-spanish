@@ -644,3 +644,14 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
   dilatación 8-conexa del relleno (101/108 sprites), 1 columna entre letras, 5 en el espacio, centrado en 120 px.
   Capa `work/ie3/shared/capas/graficos/rotulo_equipo` (letras extraídas de los sprites de la NDS; los nombres que
   no caben usan espacio de 3/2 y letras estrechadas quitando una columna interior repetida, sin abreviar).
+
+## ❌ Rótulos de lugar en latín de 1 byte con la fuente proporcional (v15/v16, probado el 2026-09-23)
+
+- **Qué se probó:** capa `work/shared/capas/rotulos_objetivos/rotulos_lugar`: nombres completos de hasta 20 B en
+  latín de 1 byte, confiando en que la NFTR proporcional (y el mapa ASCII de la v16) juntaran las letras.
+- **Resultado en Azahar:** «Pas», «Segun», «Zona de»: una letra por casilla, muy separadas y cortadas a las 10.
+- **Causa:** el rótulo reserva y pinta **una baldosa de 8 px por carácter** (0x2ed24); la fuente no cambia el paso.
+  Además, la capa pisó los rótulos buenos del IE1 y del IE2, hechos con **bigramas** (dos letras por baldosa en
+  kanji reasignados de FONT8: «Ed. principal - 1.º»).
+- **Regla:** los rótulos de lugar del IE1/IE2 van en bigramas; no escribir latín suelto en 0x4037/3. La capa
+  `rotulos_bigramas` devuelve los de la v34. Un nombre nuevo o más largo exige bigramas nuevos en el registro.
