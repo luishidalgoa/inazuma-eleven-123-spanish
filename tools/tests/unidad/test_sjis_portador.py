@@ -1,6 +1,6 @@
 """Pruebas de nucleo.texto.sjis_portador y de la fachada _legado.reinsert (F1.4, T2).
 
-Las salidas esperadas se capturaron ejecutando tools/reinsert.py del commit 0af2abd con
+Las salidas esperadas se capturaron ejecutando tools/reinsert.py (hoy ``ie123kit._legado.reinsert``) del commit 0af2abd con
 entradas sintéticas y una tabla de anchos inyectada (sin datos de juego).
 """
 from __future__ import annotations
@@ -8,10 +8,10 @@ from __future__ import annotations
 import hashlib
 import inspect
 import json
-import sys
 
 import pytest
 
+from ie123kit.nucleo.config.congelados import preparar
 from ie123kit.nucleo.config.raiz import find_root
 from ie123kit.nucleo.texto import sjis_portador
 
@@ -137,10 +137,7 @@ def tabla(monkeypatch):
 
 @pytest.fixture
 def R(tabla):
-    tools = str(find_root() / "tools")
-    if tools not in sys.path:
-        sys.path.insert(0, tools)
-    import reinsert
+    from ie123kit._legado import reinsert
     return reinsert
 
 
@@ -186,9 +183,7 @@ def test_identidades_reinsert(R):
 
 
 def test_layout_hash():
-    tools = str(find_root() / "tools")
-    if tools not in sys.path:
-        sys.path.insert(0, tools)
+    preparar(find_root())
     import build_ie1_probe
     import dialogue_lock
     fuente = inspect.getsource(build_ie1_probe.layout).replace("\r\n", "\n")

@@ -117,7 +117,8 @@ def regenerar_capa(raiz=None):
 
 
 def _reconstruir(raiz, base, capa, salida, cro=None):
-    orden = [sys.executable, '-X', 'utf8', str(raiz / 'tools' / 'build_ui_revision.py'),
+    # F2.7: sin shims en tools/, el congelado se lanza con los alias de congelados.preparar.
+    orden = [sys.executable, '-X', 'utf8', '-m', 'ie123kit.nucleo.compat.congelados', 'build_ui_revision',
              '--base', str(base), '--ui', str(raiz / capa), '--output', str(salida)]
     if cro is not None:
         orden += ['--cro', str(cro)]

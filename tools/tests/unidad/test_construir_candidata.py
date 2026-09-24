@@ -62,7 +62,8 @@ def test_equivalencia_con_congelado(tmp_path):
     o2 = tmp_path / "o2" / "archive.fa"
     env = dict(os.environ)
     env.pop("IE123_ROOT", None)
-    r = subprocess.run([sys.executable, "-X", "utf8", "tools/build_ui_revision.py", "--base", str(base),
+    r = subprocess.run([sys.executable, "-X", "utf8", "-m", "ie123kit.nucleo.compat.congelados",
+                        "build_ui_revision", "--base", str(base),
                         "--ui", str(ui), "--output", str(o1), "--extra", str(extra)],
                        cwd=RAIZ, env=env, capture_output=True, text=True, encoding="utf-8", check=False)
     assert r.returncode == 0, r.stderr

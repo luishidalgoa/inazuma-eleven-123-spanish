@@ -12,14 +12,13 @@ Example:
 import argparse
 import hashlib
 import json
-import sys
 from pathlib import Path
 
+from ie123kit.nucleo.config.congelados import preparar
 from ie123kit.nucleo.config.raiz import find_root
 
 ROOT = find_root()
-if str(ROOT / 'tools') not in sys.path:
-    sys.path.insert(0, str(ROOT / 'tools'))
+preparar(ROOT)
 from dialogue_lock import validate  # noqa: E402
 from build_ie1_probe import layout  # noqa: E402
 from ie123kit.nucleo.contenedores.fa import FaArchive  # noqa: E402,F401

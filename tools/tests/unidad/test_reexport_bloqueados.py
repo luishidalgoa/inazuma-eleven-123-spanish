@@ -30,7 +30,8 @@ def test_identidades():
         import sys
         from ie123kit.nucleo.texto import tipografia_v20, ancho_completo
         from ie123kit.nucleo.fuentes import glifos
-        sys.path.insert(0, 'tools')
+        from ie123kit.nucleo.config.congelados import preparar
+        preparar()  # F2.7: los congelados importan nombres planos que ya no son shims
         import build_ie1_probe, dialogue_typography, font_patch, dialogue_lock
         assert tipografia_v20.layout is build_ie1_probe.layout
         assert ancho_completo.encode_fullwidth is dialogue_typography.encode_fullwidth
