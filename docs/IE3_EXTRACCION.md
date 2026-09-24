@@ -254,17 +254,17 @@ Roms/ie3/amenaza_del_ogro/00040000000F8000 IE3 Team Ogre Attacks! ....cia
 Todo de una vez (~20 min la primera vez por los RomFS, ~40 s después):
 
 ```bash
-python tools/ie3_pipeline.py run
+python -m ie123kit.ie3.pipeline run
 ```
 
 Por partes:
 
 ```bash
-python tools/ie3_pipeline.py extract Roms/shared/IE123_JP_CTR-P-AETJ.3ds --lang jp --tag jp
-python tools/ie3_pipeline.py align      # cruza japonés y español
-python tools/ie3_pipeline.py sheet      # hoja de traducción + dialogo_oficial.csv
-python tools/ie3_pipeline.py validate   # revalida
-python tools/ie3_pipeline.py info <rom> # identifica una ROM sin extraer nada
+python -m ie123kit.ie3.pipeline extract Roms/shared/IE123_JP_CTR-P-AETJ.3ds --lang jp --tag jp
+python -m ie123kit.ie3.pipeline align      # cruza japonés y español
+python -m ie123kit.ie3.pipeline sheet      # hoja de traducción + dialogo_oficial.csv
+python -m ie123kit.ie3.pipeline validate   # revalida
+python -m ie123kit.ie3.pipeline info <rom> # identifica una ROM sin extraer nada
 ```
 
 Admite `.3ds`, `.trim.3ds`, `.cci`, `.cxi`, `.app`, `.cia` y carpetas de RomFS ya
@@ -292,7 +292,7 @@ de directorios no mide lo que declara la cabecera, un PKH apunta más allá del 
 PKB, un bloque LZ10 produce un tamaño distinto del declarado, las tres secciones de un
 SSD no suman el tamaño del bloque o una entrada de texto se sale del bloque.
 
-Comprobación cruzada de contenedores: `tools/fa_unpack.py` (núcleo) y el lector B123 de
+Comprobación cruzada de contenedores: `ie123kit._legado.fa_unpack` (núcleo) y el lector B123 de
 IE3 extraen **los mismos 15 547 ficheros** del `archive.fa` japonés.
 
 ---

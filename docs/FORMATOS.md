@@ -34,7 +34,7 @@ traducción oficial con mínimos retoques.
 Es una **variante del formato ARC0/XFSA de Level-5**, pero con las **tablas SIN
 comprimir** y entradas de directorio de **24 bytes** (ARC0 usa 20 y comprimidas).
 Por eso las herramientas de la comunidad (Pingouin/StudioElevenLib) **no lo abren**:
-solo aceptan los magics `ARC0/XFSA/XFSP/XPCK`. → Parser propio: `tools/fa_unpack.py`.
+solo aceptan los magics `ARC0/XFSA/XFSP/XPCK`. → Parser propio: `ie123kit._legado.fa_unpack`.
 
 **Cabecera (72 bytes):**
 | Offset | Tipo | Campo |
@@ -56,7 +56,7 @@ fileNameBase), dataOffset(u32, relativo a DataOffset), size(u32).
 
 Los archivos internos pueden estar **crudos** o con compresión Level-5
 (None/LZ10/Huffman4/Huffman8/RLE/ZLib; cabecera de 4 B: 3 bits método + 29 bits
-tamaño). `fa_unpack.py` detecta cuál es por magic/plausibilidad.
+tamaño). `ie123kit._legado.fa_unpack` detecta cuál es por magic/plausibilidad.
 
 ## Mapa de contenido (15.547 archivos) y dónde está el TEXTO
 
@@ -134,7 +134,7 @@ asociado (`item.dat` → offsets dentro del `.STR`). Herramienta histórica: `st
 0xDF→¡, 0xD9→Í`. El 3DS usa Shift-JIS con furigana `[kanji/lectura]`.
 
 Glosario generado: ver [`translation/shared/glossary/`](../translation/shared/glossary/) y
-`tools/build_glossary.py`. Resultado: ~1327 parejas exactas (jugadores, títulos
+`ie123kit._legado.build_glossary`. Resultado: ~1327 parejas exactas (jugadores, títulos
 de equipo, menús).
 
 **Pendiente:** (1) parsear los índices `.dat` de objetos/técnicas para alinear con
@@ -157,7 +157,7 @@ NDS "te ha unido!").
 MISMA estructura** → una vez parseado el formato de script, **alinear** los mensajes
 JP(3DS)↔ES(NDS) y reutilizar la traducción oficial en lugar de traducir desde cero.
 
-**Índice `.pkh` RESUELTO** (`tools/pkb_unpack.py`):
+**Índice `.pkh` RESUELTO** (`ie123kit._legado.pkb_unpack`):
 - 16 B: `"PackNum YYYYMMDD"` · `+0x10 u32`: tamaño del pkh
 - `+0x30`: tabla de entradas de **12 B**: `{event_id u32, offset u32, size u32}`.
   Los `event_id` son IDs de mapa/evento (`10010001`…). Offsets cubren el pkb exacto.
@@ -169,7 +169,7 @@ operandos de un **script compilado (bytecode)**: plantillas printf (`%s`, `\n`,
 `%2F`, `$`) + **códigos de control de 1 byte entrelazados con el Shift-JIS** (e
 incluso NUL dentro de una palabra). Hay que **catalogar los códigos de control** y
 parsear el bytecode para extraer/​reinsertar el diálogo limpio. Diagnóstico:
-`tools/pkb_unpack.py --text` (volcado best-effort, fragmentado).
+`ie123kit._legado.pkb_unpack --text` (volcado best-effort, fragmentado).
 
 ### Estructura interna del evento "SSD" — DECODIFICADA (2026-06)
 
@@ -213,7 +213,7 @@ cadena 40-80% (valores aleatorios). game1: ~6 slots-string; game2: ~45.
 agranda el diálogo a texto completo y **reubica SOLO los operandos de slots-string**
 que apuntan a un chunk movido (offset-fixup preciso), dejando intactos contadores/
 índices. Validado offline: 0 operandos no-string alterados, 0 referencias rotas.
-La reinserción in-place de MISMO tamaño (`tools/reinsert.py`) queda como alternativa.
+La reinserción in-place de MISMO tamaño (`ie123kit._legado.reinsert`) queda como alternativa.
 
 **Furigana (clave del bloqueo de pantalla negra):** un chunk de diálogo (tipo
 `0x01`) lleva N marcadores `%NF` (N = nº de caracteres base que reciben ruby;
@@ -253,7 +253,7 @@ para el byte `0x83A0` es el del Unicode `0x0392`, no el del SJIS). → hay que r
 glifo del **codepoint UNICODE**, no el del SJIS (patchear el SJIS no tiene efecto: el juego
 no lo usa). Los **15 griegos mayúsculos Unicode (`0x0391-0x039F`)** están TODOS en el cmap de
 las 3 fuentes → cubren los 15 acentos 1:1. `font_patch.PLAN` (codepoints Unicode) es la única
-fuente de verdad; `reinsert.GREEK` deriva el portador = `chr(cp)` → siempre coinciden.
+fuente de verdad; `ie123kit._legado.reinsert.GREEK` deriva el portador = `chr(cp)` → siempre coinciden.
 
 ## Contexto de herramientas de la comunidad (research 2026-06)
 

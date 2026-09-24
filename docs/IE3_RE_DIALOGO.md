@@ -444,7 +444,7 @@ codigo que la implementaba, no solo anotarlo en el documento.
    recorre entradas de 12 bytes da la función de búsqueda, y su valor de retorno
    es el puntero al bloque. Desde ahí se ve cómo se indexa dentro.
 3. **Experimento en emulador, que es lo más barato.** Con la build de
-   diagnóstico (`tools/ie3_pipeline.py diagnostico`) se puede montar un caso
+   diagnóstico (`ie123kit.ie3.pipeline diagnostico`) se puede montar un caso
    controlado: encoger a propósito un registro anterior una cantidad conocida y
    ver si la regla empieza desplazada esa misma cantidad. Eso confirma o descarta
    ❌#16 sin desensamblar nada.
@@ -497,7 +497,7 @@ que el fichero tenga a cero.
 - `pip install capstone` (lo documenta `DESARROLLO.md` para esto).
 - Desensamblada la cadena hasta `0x08A610`. El hilo se corta ahí porque la
   función se llama por puntero y las tablas del CRO están a cero en el fichero.
-- Herramienta nueva: `tools/ie3_verificar_offsets.py`, comprobación obligatoria
+- Herramienta nueva: `ie123kit.ie3.comun.verificar_offsets`, comprobación obligatoria
   antes de construir. Dice si algún diálogo se ha movido de su offset.
 
 ### 2026-09-19 · revisión tipográfica v7 (sin crecimiento de eventos)

@@ -339,7 +339,8 @@ La lista blanca de limpieza.py los protege. ie1/graficos/nds_piezas.py solo los 
 
 (f) Bytes de salida: no se cambian políticas por defecto (SSZL raw/keep/literal, fuente arialbd, truncado de es_encode, tabla DS_TABLE frente a NDS_DEC).
 
-(g) Retirada de shims: módulo a módulo, y solo cuando el comprobador AST y un smoke de importación real muestren cero importadores en work/ y el propietario lo apruebe. Los 5 ficheros congelados y el shim de bcfnt nunca se retiran.
+(g) Retirada de shims: módulo a módulo, y solo cuando el comprobador AST y un smoke de importación real muestren cero importadores en work/ y el propietario lo apruebe. Los 5 ficheros congelados nunca se retiran.
+- **Actualización F2.7 (#102, petición del usuario):** retirados los 22 shims restantes, `bcfnt` incluido. Antes se migraron todos sus importadores (capas de work/, tests, paquete, CI, docs) a `ie123kit.<...>`. Los congelados, que no se pueden editar, siguen importando 7 nombres planos (`fa_unpack`, `fa_repack`, `lz10`, `pkb_unpack`, `reinsert`, `ssd_records`, `bcfnt`): los resuelve `ie123kit.nucleo.config.congelados.preparar()` con un resolutor en `sys.meta_path` que devuelve el mismo objeto módulo que daba el shim. Como script se lanzan con `python -m ie123kit.nucleo.compat.congelados <nombre> …`. La tabla de equivalencias queda en `nucleo.compat.shims.DESTINOS` y `tools/README.md`.
 
 (h) Capas antiguas: nunca se reescriben dentro de la migración. `ie123 <objetivo> capas aplicar` las ejecuta en subproceso con cwd=raíz.
 
@@ -398,7 +399,7 @@ Cinco niveles. Ningún fixture contiene datos extraídos (Norma 2): son sintéti
 
 5) GOLDEN, local con ROM (@requiere_rom, tools/tests/requiere_rom):
 - (a) Regenerar work/ie1/capas/v67/titulo_logo/apply.py, cuya base probe_ie1_v66 existe hoy. Antes se hace copia de seguridad de su extra/ en el temporal del sistema y después se compara sha256 de cada fichero de extra/ con capas_v67.sha256. Si hay diferencia se restaura y el gate falla.
-- (b) Reconstruir la candidata: `python tools/build_ui_revision.py --base work/shared/candidatas/probe_ie1_v66/archive.fa --ui work/ie1/capas/v67/titulo_logo --output <TEMP>/ie123_regen/probe_ie1_v67/archive.fa`. El sha256 debe ser 72ef7133924e981e4736e240368f716140ca35f62a5c131d7f01c1ead9cffa91 (archive_sha256 de probe_ie1_v67/archive.build.json) y la CRO resultante debe coincidir con probe_ie1_v67/romfs/cro/ina_main1.cro. En fase 2 se exige lo mismo con `ie123 construir`.
+- (b) Reconstruir la candidata: `python -m ie123kit.nucleo.compat.congelados build_ui_revision --base work/shared/candidatas/probe_ie1_v66/archive.fa --ui work/ie1/capas/v67/titulo_logo --output <TEMP>/ie123_regen/probe_ie1_v67/archive.fa`. El sha256 debe ser 72ef7133924e981e4736e240368f716140ca35f62a5c131d7f01c1ead9cffa91 (archive_sha256 de probe_ie1_v67/archive.build.json) y la CRO resultante debe coincidir con probe_ie1_v67/romfs/cro/ina_main1.cro. En fase 2 se exige lo mismo con `ie123 construir`.
 - (c) `ie123 verificar` devuelve el mismo informe que verify_candidate.py (sin campos de tiempo ni rutas absolutas).
 - (d) bloqueo.validar sobre probe_ie1_v67.
 - (e) Round-trips de exportar e importar sin cambios sobre menu/title.arc e inazuma1/data_iz/a_title/title_t.arc: las entradas quedan idénticas.
@@ -511,7 +512,7 @@ Cinco niveles. Ningún fixture contiene datos extraídos (Norma 2): son sintéti
 (1) `python -m unittest discover -s tools -p "test_*.py"` devuelve «Ran 27 tests … OK (skipped=1)».
 (2) `python tools/tests/compat/importaciones.py --work work --baseline tools/tests/compat/baseline_importaciones.json` termina con 0 no resueltos nuevos.
 (3) `python tools/tests/compat/golden.py comprobar --capa work/ie1/capas/v67/titulo_logo` regenera extra/ byte a byte.
-(4) `python tools/build_ui_revision.py --base work/shared/candidatas/probe_ie1_v66/archive.fa --ui work/ie1/capas/v67/titulo_logo --output %TEMP%/ie123_regen/probe_ie1_v67/archive.fa` produce archive sha256 72ef7133924e981e4736e240368f716140ca35f62a5c131d7f01c1ead9cffa91 y la CRO coincide con probe_ie1_v67.
+(4) `python -m ie123kit.nucleo.compat.congelados build_ui_revision --base work/shared/candidatas/probe_ie1_v66/archive.fa --ui work/ie1/capas/v67/titulo_logo --output %TEMP%/ie123_regen/probe_ie1_v67/archive.fa` produce archive sha256 72ef7133924e981e4736e240368f716140ca35f62a5c131d7f01c1ead9cffa91 y la CRO coincide con probe_ie1_v67.
 (5) Tras `git worktree add %TEMP%/ie123_clon HEAD`, el sha256 de tools/font_patch.py y tools/dialogue_typography.py en el clon coincide con SOURCE_HASHES, lo que prueba que el bloqueo se reproduce desde git.
 
 ### 2. F1.1: Esqueleto del paquete y reglas de arquitectura (fase1_segmentacion)
@@ -630,6 +631,13 @@ Cinco niveles. Ningún fixture contiene datos extraídos (Norma 2): son sintéti
 **Gate:** (1) `python -m pytest tools/tests -m "not requiere_rom" -q` en verde en toolkit.yml, incluido test_flujo_gui sintético: solo cambia la entrada editada, el bloqueo pasa y todos los eventos serializan según esquema.
 (2) `python -m ie123kit.nucleo.compat.importaciones --work work --baseline …` devuelve 0.
 (3) `python -m pytest tools/tests/requiere_rom -q`: el flujo GUI real sobre inazuma1/data_iz/a_title/title_t.arc genera una capa gui_* y una candidata cuya única entrada distinta de la base es esa. La regeneración de v67 es idéntica, y la reconstrucción de probe_ie1_v67 sigue dando sha 72ef7133…fa91.
+
+### 12. F2.7: Retirada de los shims restantes (#102)
+- Migrar cada `import X` / `from X import` / `python tools/X.py` / `sys.path` hacia `tools/` de los 22 shims al módulo real de `ie123kit`, en work/ (en su sitio), tools/tests, el paquete, la CI y la documentación.
+- Borrar los 22 shims. `nucleo.compat.shims.MAPA` queda vacío; `DESTINOS` guarda la equivalencia y `RETIRADOS` los 31 retirados desde la F2.4; `shims comprobar` falla si uno reaparece.
+- `nucleo.config.congelados.preparar()` + `nucleo.compat.congelados` sustituyen a los shims para los 5 congelados.
+
+**Gate:** (1) `python -m pytest tools/tests -m "not requiere_rom"` en verde. (2) `python -m ie123kit.nucleo.compat.importaciones --work work --baseline …` sin nuevos fallos por los nombres retirados. (3) grep de los 22 nombres en todo el repo y en work/: 0 usos activos. (4) Guardias `bloqueados` y `git` en verde.
 
 ## Preguntas para el propietario
 - Nombre del paquete y de la orden. Propuesta por defecto: paquete `ie123kit` (coincide con el catálogo de auditoría) y orden `ie123`. Alternativa: `inazuma` para ambos, más fácil de recordar pero genérico.

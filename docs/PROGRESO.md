@@ -1,3 +1,10 @@
+> Actualización 2026-09-24: toolkit F2.7 (#102), `tools/` sin shims
+>
+> Retirados los 22 shims de `tools/`: todo el código (capas de `work/`, tests, paquete, CI y documentación)
+> importa ya `ie123kit.<...>`. En `tools/` solo quedan los 5 congelados del bloqueo tipográfico y los `.ps1`.
+> Equivalencias en [`tools/README.md`](../tools/README.md) y
+> [`toolkit/ESTADO_MIGRACION.md`](toolkit/ESTADO_MIGRACION.md). Sin cambios en la tipografía ni en las candidatas.
+
 > Actualización 2026-09-11: v33, partidos de historia, rótulos, CRO, datos y texturas
 >
 > Candidata `work/shared/candidatas/probe_ie1_v33/archive.fa` (SHA-256

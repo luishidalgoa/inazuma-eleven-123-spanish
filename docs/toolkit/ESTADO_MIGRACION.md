@@ -241,6 +241,32 @@ la **textura del logo** en `juego_principal.banner`, y los **títulos del SMDH**
 | QA en emulador | pendiente del usuario |
 
 
+## F2.7 (#102): sin shims en `tools/`, en la rama `toolkit-f2.7-sin-shims` (PR apilado sobre `toolkit-f2.6-limpieza`)
+
+Petición del usuario: trabajar solo con el paquete `ie123kit`. Se retiran los **22 shims** que quedaban
+(`audit_dialogo_ids`, `bcfnt`, `build_glossary`, `ctpk_ui`, `ds_official`, `fa_repack`, `fa_unpack`,
+`ie1_keyboard`, `ie3_pipeline`, `ie3_verificar_offsets`, `legacy_sprite`, `lz10`, `mods_to_moflex`,
+`nftr_metrics`, `patch_smdh_title`, `pkb_unpack`, `qna_regions`, `reinsert`, `ssd_records`, `sszl`,
+`translate_ui_textures`, `ui_archive`). Ninguno tenía lógica propia (`shims comprobar`: 22 sin lógica).
+
+- **Usos migrados** al módulo real (`import ie123kit.<...> as X`, `from ie123kit.<...> import …`):
+  358 imports en 173 scripts de `work/` (capas vivas e `historial/`, editadas en su sitio; el `sys.path`
+  hacia `tools/` pasa a `tools/src`), el paquete (`validar.bloqueo`, `_legado.verify_candidate`,
+  `compat.golden`), los tests de compat y la documentación viva (órdenes `python -m …`).
+- **Los 10 que la F2.6 daba por irretirables**: los congelados no se pueden editar y siguen importando
+  `fa_unpack`, `fa_repack`, `lz10`, `pkb_unpack`, `reinsert`, `ssd_records` y `bcfnt` por nombre plano.
+  Ahora los resuelve `ie123kit.nucleo.config.congelados.preparar()`, un resolutor perezoso en
+  `sys.meta_path` (mismo objeto módulo que daba el shim). `cargar()` ya lo llama; las 79 capas que
+  importan un congelado directamente lo llaman justo antes. `dialogue_typography`, `dialogue_lock` y
+  `font_patch` nunca fueron shims: son los propios congelados.
+- **Lanzar un congelado**: `python -m ie123kit.nucleo.compat.congelados build_ui_revision …` (también
+  `build_ie1_probe` y `font_patch`) sustituye a `python tools/build_ui_revision.py`, que sin shims ya no
+  encuentra sus imports. `compat.golden` y `test_construir_candidata` lo usan así.
+- `nucleo.compat.shims`: `MAPA` vacío, `DESTINOS` (tabla de equivalencias, `shims listar`), `RETIRADOS`
+  (31) y `comprobar` que falla si un retirado reaparece; `generar` se niega a recrearlo.
+  `ie123 compat equivalencias` da la orden nueva de cada uno.
+- Ningún hash del bloqueo tipográfico ni ninguno de los 5 congelados cambia.
+
 ## Pendiente
 
 - **F2.3**: revisión y fusión de la rama `toolkit-f2.3` (la decide el usuario).
@@ -249,6 +275,7 @@ la **textura del logo** en `juego_principal.banner`, y los **títulos del SMDH**
 - **F2.5 (#51)**: revisión y fusión de la rama `toolkit-f2.5` (después de la F2.4). Queda del issue la QA
   en emulador de una candidata construida con `ie123`.
 - **F2.6 (#55)**: revisión y fusión de la rama `toolkit-f2.6-limpieza` (después de la F2.5).
+- **F2.7 (#102)**: revisión y fusión de la rama `toolkit-f2.7-sin-shims` (después de la F2.6).
 - Mejoras menores abiertas: #53, #54, #56, #57, #60, #61, #62, #63.
 - **Decisiones que siguen siendo del propietario**, no del agente: abrir el issue de la GUI con la
   tecnología que elija; si se liberan los 22 códigos de celdas duplicadas del registro de bigramas (toca

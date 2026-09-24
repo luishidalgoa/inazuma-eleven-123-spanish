@@ -5,7 +5,7 @@ está comprimida con LZ10 de Nintendo**. Tras descomprimir, el texto son cadenas
 Shift-JIS separadas por NUL. (Lo que parecían "códigos de control" eran flags y
 back-references de LZ10.) Reinserción: pendiente recomprimir + fixup de offsets.
 
-## Contenedor PackNum (RESUELTO — `tools/pkb_unpack.py`)
+## Contenedor PackNum (RESUELTO — `ie123kit._legado.pkb_unpack`)
 
 - `.pkh`: `"PackNum YYYYMMDD"` (16 B) · `+0x10 u32` tamaño · `+0x30` tabla de
   entradas de **12 B**: `{event_id u32, offset u32, size u32}`.
@@ -16,7 +16,7 @@ back-references de LZ10.) Reinserción: pendiente recomprimir + fixup de offsets
 ## Compresión LZ10 (RESUELTO)
 
 Cada entrada del `.pkb` empieza por `10 XX XX 00` = **LZ10 de Nintendo**
-(`0x10` + tamaño descomprimido de 24 bits LE). `tools/pkb_unpack.py:lz10_decompress`.
+(`0x10` + tamaño descomprimido de 24 bits LE). `ie123kit._legado.pkb_unpack:lz10_decompress`.
 Hallado vía comunidad ([Kuriimu #249](https://github.com/IcySon55/Kuriimu/issues/249),
 GBAtemp). Tras descomprimir → cadenas Shift-JIS separadas por NUL.
 
@@ -26,11 +26,11 @@ GBAtemp). Tras descomprimir → cadenas Shift-JIS separadas por NUL.
 - **Furigana/ruby**: `%1F`/`%2F`/`%3F` marcan kanji; la **lectura** va como cadena
   aparte (solo hiragana) → se filtra con `is_furigana()`.
 - `\n` literal (backslash+n) = salto de línea.
-- Encoding: **Shift-JIS** (3DS) / Latin propia (NDS, ver `build_glossary.NDS_DEC`).
+- Encoding: **Shift-JIS** (3DS) / Latin propia (NDS, ver `ie123kit._legado.build_glossary.NDS_DEC`).
 
 ## Estado de extracción y alineado
 
-- `tools/pkb_unpack.py --text` → diálogo LIMPIO (descomprime + NUL-split + filtro).
+- `ie123kit._legado.pkb_unpack --text` → diálogo LIMPIO (descomprime + NUL-split + filtro).
   JP ~57k cadenas; ES ~22k.
 - `tools/align_events.py` → empareja por `event_id` (1289 comunes), quita furigana,
   dedup. **133 eventos con nº de líneas JP=ES idéntico → emparejado posicional
@@ -38,7 +38,7 @@ GBAtemp). Tras descomprimir → cadenas Shift-JIS separadas por NUL.
 
 ## Reinserción (etapa 7) — ciclo de datos VALIDADO
 
-`tools/lz10.py` (compresor LZ10 propio, roundtrip OK, salida ≤ original) +
+`ie123kit.nucleo.compresion.lz10` (compresor LZ10 propio, roundtrip OK, salida ≤ original) +
 `tools/reinsert_test.py` (PoC). Estrategia **bulletproof sin fixup de offsets**:
 1. Descomprimir el evento (LZ10).
 2. Sustituir cadenas por el ES **del mismo nº de bytes** (relleno/recorte) → el
@@ -72,9 +72,9 @@ Las frases no se emparejan por orden: cada una tiene un **ID de cadena**.
 - Los IDs son **posiciones en el bytecode**. En 621 eventos la NDS tiene instrucciones de más y los
   IDs se desplazan (+1, +2…) a partir de un punto. **El patrón de saltos entre IDs consecutivos se
   conserva**: se alinea esa secuencia y se valida con anclas ASCII (nombres de archivo, variables
-  `HikinukiX=%d`) que son idénticas en ambas ROMs. Herramienta: `tools/audit_dialogo_ids.py`
+  `HikinukiX=%d`) que son idénticas en ambas ROMs. Herramienta: `ie123kit._legado.audit_dialogo_ids`
   (18.343 pares; anclas 12.395 idénticas / 66 distintas).
 
-> ⚠️ `tools/ds_official.py` alineaba por patrón de repeticiones con difflib, que en eventos sin
+> ⚠️ `ie123kit._legado.ds_official` alineaba por patrón de repeticiones con difflib, que en eventos sin
 > frases repetidas equivale a emparejar **por posición**. Dejó 1.579 filas desalineadas en
 > `dialogo_oficial.csv` y 931 frases desplazadas en la build (issue #36). No usarlo para regenerar.

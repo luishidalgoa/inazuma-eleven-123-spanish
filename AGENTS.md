@@ -73,10 +73,13 @@
 
 ## Herramientas (ie123kit)
 
-- El código Python vive en `tools/src/ie123kit` (instalar con `pip install -e tools[dev]`); en `tools/`
-  solo hay shims generados con `python -m ie123kit.nucleo.compat.shims generar`. Mapa en `tools/README.md`.
+- El código Python vive en `tools/src/ie123kit` (instalar con `pip install -e tools[dev]`) y se importa
+  siempre como `ie123kit.<...>`: desde la F2.7 no queda ningún shim en `tools/` (tabla de equivalencias en
+  `tools/README.md` y `python -m ie123kit.nucleo.compat.shims listar`). No recrearlos.
 - Los 5 congelados (`dialogue_typography.py`, `font_patch.py`, `dialogue_lock.py`, `build_ie1_probe.py`,
-  `build_ui_revision.py`) siguen en `tools/` y no se tocan ni se copian.
+  `build_ui_revision.py`) siguen en `tools/` y no se tocan ni se copian. Quien los importe llama antes a
+  `ie123kit.nucleo.config.congelados.preparar()`; como script se lanzan con
+  `python -m ie123kit.nucleo.compat.congelados build_ui_revision …`.
 - Tests: `python -X utf8 -m pytest tools/tests -m "not requiere_rom"` (y `-m requiere_rom` en local con
   `work/`). Guardias: `python -m ie123kit.nucleo.compat.guardia bloqueados`, `... guardia git` y
   `python -m ie123kit.nucleo.compat.shims comprobar`.

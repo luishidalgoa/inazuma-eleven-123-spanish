@@ -33,7 +33,6 @@ tools/                        herramientas (CLI; ver tools/README.md)
     ie3/{comun,rayo_celeste,fuego_explosivo,amenaza_del_ogro}/
     _legado/                  fachadas CLI de los scripts antiguos y cuarentena (--legado-lo-se)
   tests/{unidad,arquitectura,compat,requiere_rom}/
-  <nombre>.py (20)            shims: alias puros de sys.modules hacia ie123kit
   dialogue_typography.py, font_patch.py, dialogue_lock.py,
   build_ie1_probe.py, build_ui_revision.py   congelados del bloqueo tipográfico (intactos)
   *.ps1, pyproject.toml       scripts PowerShell y configuración del paquete
@@ -129,8 +128,9 @@ work/<juego>/capas/
 4. `_legado` solo es una fachada: el código del paquete no depende de él.
 5. En `src/` no hay `parents[N]` ni rutas de máquina: la raíz sale de `find_root` o de `IE123_ROOT`.
 6. Importar un módulo no tiene efectos (ni E/S, ni `print`, ni `sys.exit`).
-7. Los shims de `tools/` son alias puros de `sys.modules`; los 5 congelados nunca se copian al paquete, se
-   cargan con re-exports perezosos.
+7. En `tools/` no hay shims (retirados en la F2.7, #102): todo se importa como `ie123kit.<...>`. Los 5
+   congelados nunca se copian al paquete; se cargan con re-exports perezosos, y los nombres planos que
+   importan los resuelve `nucleo.config.congelados.preparar()`.
 
 Los tests de `tools/tests/arquitectura` comprueban estas reglas y la CI (`.github/workflows/toolkit.yml`)
 los ejecuta en Windows y Ubuntu.

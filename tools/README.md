@@ -12,8 +12,8 @@ offline, la aprobación de un único piloto y la validación de toda una campañ
 ## Paquete ie123kit
 
 La fase 1 de la migración (épica #40, subfases F1.0-F1.5) está cerrada. El código vive en
-`tools/src/ie123kit`; en `tools/` solo quedan los 5 congelados, 20 shims de importación sin lógica (los 5
-de CLI se retiraron en la F2.4, #50), los 6 `.ps1` (`build_patch`, `extract_nds` y `extract_romfs` son
+`tools/src/ie123kit`; en `tools/` solo quedan los 5 congelados (ningún shim: los últimos 22 se retiraron
+en la F2.7 y todo el código importa `ie123kit.<...>`), los 6 `.ps1` (`build_patch`, `extract_nds` y `extract_romfs` son
 envoltorios de una orden `ie123`; `jugar` lanza Azahar y cosecha con `ie123 registro`; `setup_mobipeg`,
 `setup_vgmstream`), `bin/` (local, ignorado), `src/`, `tests/`, `pyproject.toml` y este README.
 
@@ -22,8 +22,12 @@ envoltorios de una orden `ie123`; `jugar` lanza Azahar y cosecha con `ie123 regi
 ### Inicio rápido
 
 - Instalar: `pip install -e tools[dev]` (Python 3.12; en Windows, `python -X utf8`).
-- Sin instalar también funciona: cada shim de `tools/` añade `src/` a `sys.path` por sí solo, así que
-  `python tools/fa_unpack.py …` o `import lz10` siguen igual.
+- Sin instalar: añadir `tools/src` a `sys.path` (o `PYTHONPATH`). Ya no existen `python tools/fa_unpack.py`
+  ni `import lz10`: se usa `python -m ie123kit._legado.fa_unpack` e `import ie123kit.nucleo.compresion.lz10`
+  (tabla de abajo; `ie123 compat equivalencias` o `python -m ie123kit.nucleo.compat.shims listar`).
+- Los congelados con CLI se lanzan con `python -m ie123kit.nucleo.compat.congelados build_ui_revision …`
+  (o `build_ie1_probe`, `font_patch`); quien los importe llama antes a
+  `ie123kit.nucleo.config.congelados.preparar()`.
 - Las órdenes nuevas se lanzan como módulo: `python -m ie123kit.<ruta.del.modulo>`.
 
 ### La orden `ie123` (CLI)
@@ -120,7 +124,7 @@ bloqueo tipográfico · `4` falta una herramienta externa · `5` operación no s
     `unidad/compresion/test_lz10.py`, `test_ssd_records` → `unidad/eventos/test_ssd.py` y `test_ui_formats`
     → `unidad/graficos/test_formatos_ui.py`. Todos pasan por ruff.
   - `arquitectura/`: reglas de importación del paquete (ver [`docs/ARQUITECTURA.md`](../docs/ARQUITECTURA.md)).
-  - `compat/`: mapa de shims, superficie pública, identidad de módulos y golden de candidatas.
+  - `compat/`: shims retirados y sus destinos, superficie pública, identidad de módulos y golden de candidatas.
   - `requiere_rom/`: `test_capa_referencia.py` (regenera en un temporal el `.arc` de
     `work/ie1/capas/graficos/titulo_logo` sobre `work/shared/base_3ds`),
     `test_candidata_referencia.py` (`build_ui_revision.py` y `ie123kit.nucleo.construir.candidata`, desde
@@ -174,52 +178,68 @@ mismo fichero. Ningún otro test se salta en un SO y no en el otro.
 ruff y black. El paquete los usa mediante re-exports perezosos que no copian código (cargan el fichero con
 `ie123kit.nucleo.config.congelados.cargar`).
 
-### Shims
+Como no se pueden editar, siguen importando por su nombre plano 7 módulos que ya no tienen shim
+(`fa_unpack`, `fa_repack`, `lz10`, `pkb_unpack`, `reinsert`, `ssd_records` y, desde `font_patch`, `bcfnt`).
+`ie123kit.nucleo.config.congelados.preparar()` pone `tools/` en `sys.path` e instala en `sys.meta_path` un
+resolutor que devuelve el módulo real de cada uno (`ALIAS_CONGELADOS`), con la misma identidad que daba el
+shim. `cargar` ya lo llama; una capa que importe un congelado directamente debe llamarlo antes:
 
-- Cada `tools/<nombre>.py` sustituye su entrada de `sys.modules` por el módulo real: `import fa_unpack` o
-  `from lz10 import compress` devuelven los mismos objetos y las mutaciones de globales (p. ej.
-  `lz10.MAX_CAND`) llegan al módulo real. No se editan a mano.
-- Se generan con `python -m ie123kit.nucleo.compat.shims generar <nombre>` (destino según `MAPA`; `lz10`
-  con `--cli ninguno`), se listan con `… shims listar` y se verifican por AST con `… shims comprobar`.
+```python
+from ie123kit.nucleo.config.congelados import preparar as _preparar_congelados; _preparar_congelados()
+from dialogue_typography import encode_fullwidth
+```
+
+Para lanzarlos como script: `python -m ie123kit.nucleo.compat.congelados build_ui_revision --base … --ui …
+--output …` (también `build_ie1_probe` y `font_patch`), en lugar del antiguo `python tools/build_ui_revision.py`.
+
+### Shims (retirados)
+
+- Hasta la F2.7 cada `tools/<nombre>.py` era un alias que sustituía su entrada de `sys.modules` por el
+  módulo real. En la F2.7 se migraron todos sus usos (capas de `work/`, tests, paquete, documentación) a
+  `ie123kit.<...>` y se borraron los 22 que quedaban: `tools/` ya no tiene ninguno.
+- `ie123kit.nucleo.compat.shims` conserva la tabla (`DESTINOS`, `… shims listar`), la lista de retirados
+  (`RETIRADOS`) y el comprobador: `… shims comprobar` falla si reaparece en `tools/` un shim retirado o un
+  fichero con lógica disfrazado de shim. `generar` se niega a recrear un retirado.
 - **Fachada `_legado`**: `nucleo` no imprime ni termina el proceso, así que los módulos con CLI que escribe
   en pantalla dejan la lógica en `nucleo` y el `main()` original en `ie123kit/_legado/<nombre>.py`, que
   reexporta todos los nombres de antes, privados incluidos.
 - **Cuarentena**: `ds_roster`, `reinsert_var`, `ssd_reinsert` y `validate` solo ejecutan su CLI con
   `--legado-lo-se`; `ds_official` exige la misma bandera para `main`/`align` (o `IE123_LEGADO_LO_SE=1`
-  si `align` se llama desde código). Los cuatro en cuarentena **ya no tienen shim plano** desde la F2.6
-  (#55): se invocan con `python -m ie123kit._legado.<modulo> --legado-lo-se`.
+  si `align` se llama desde código). Se invocan con `python -m ie123kit._legado.<modulo> --legado-lo-se`.
 
 ### Equivalencias `tools/<antiguo>.py` → módulo real
 
-| Antiguo (`tools/`) | Módulo real (destino del shim) | Lógica en | Tipo |
+| Antiguo (`tools/`, retirado) | Módulo real: `import …` / `python -m …` | Lógica en | Tipo |
 |---|---|---|---|
-| `audit_dialogo_ids.py` | `ie123kit._legado.audit_dialogo_ids` | `nucleo.eventos.alineado_ids` | fachada |
-| `bcfnt.py` | `ie123kit._legado.bcfnt` | `nucleo.fuentes.bcfnt` | fachada permanente (`font_patch.py` hace `from bcfnt import BCFNT`) |
+| `audit_dialogo_ids.py` | `ie123kit._legado.audit_dialogo_ids` | `nucleo.eventos.alineado_ids` | fachada; **retirado en F2.7** |
+| `bcfnt.py` | `ie123kit._legado.bcfnt` | `nucleo.fuentes.bcfnt` | fachada permanente (`font_patch.py` hace `from bcfnt import BCFNT`); **retirado en F2.7** |
 | `blz.py` | `ie123kit._legado.blz` | `nucleo.compresion.blz` | **retirado en F2.4**: `python -m ie123kit._legado.blz in out` |
-| `build_glossary.py` | `ie123kit._legado.build_glossary` | `nucleo.texto.nds_latin` | fachada |
-| `ctpk_ui.py` | `ie123kit.nucleo.graficos.ctpk` | — | alias directo |
-| `ds_official.py` | `ie123kit._legado.ds_official` | `nucleo.texto.nds_latin` + `nucleo.eventos.alineado_ids` | fachada (`--legado-lo-se`) |
+| `build_glossary.py` | `ie123kit._legado.build_glossary` | `nucleo.texto.nds_latin` | fachada; **retirado en F2.7** |
+| `ctpk_ui.py` | `ie123kit.nucleo.graficos.ctpk` | — | alias directo; **retirado en F2.7** |
+| `ds_official.py` | `ie123kit._legado.ds_official` | `nucleo.texto.nds_latin` + `nucleo.eventos.alineado_ids` | fachada (`--legado-lo-se`); **retirado en F2.7** |
 | `ds_roster.py` | `ie123kit._legado.ds_roster` | — | **retirado en F2.6**, cuarentena: `python -m ie123kit._legado.ds_roster --legado-lo-se` |
-| `fa_repack.py` | `ie123kit._legado.fa_repack` | `nucleo.contenedores.fa` (`fe_offset_of`) | fachada |
-| `fa_unpack.py` | `ie123kit._legado.fa_unpack` | `nucleo.contenedores.fa` | fachada |
+| `fa_repack.py` | `ie123kit._legado.fa_repack` | `nucleo.contenedores.fa` (`fe_offset_of`) | fachada; **retirado en F2.7** |
+| `fa_unpack.py` | `ie123kit._legado.fa_unpack` | `nucleo.contenedores.fa` | fachada; **retirado en F2.7** |
 | `harvest_log.py` | `ie123kit._legado.harvest_log` | `nucleo.construir.registro_azahar` | **retirado en F2.4**: `ie123 registro` |
-| `ie1_keyboard.py` | `ie123kit.ie1.graficos.teclado` | — | alias directo |
-| `legacy_sprite.py` | `ie123kit.nucleo.graficos.pac_sprite` | — | alias directo |
+| `ie1_keyboard.py` | `ie123kit.ie1.graficos.teclado` | — | alias directo; **retirado en F2.7** |
+| `legacy_sprite.py` | `ie123kit.nucleo.graficos.pac_sprite` | — | alias directo; **retirado en F2.7** |
 | `limpiar_work.py` | `ie123kit._legado.limpiar_work` | `nucleo.construir.limpieza` | **retirado en F2.4**: `ie123 work limpiar [--borrar]` |
-| `lz10.py` | `ie123kit.nucleo.compresion.lz10` | — | alias directo sin CLI (autotest: `python -m ie123kit.nucleo.compresion.lz10`) |
-| `mods_to_moflex.py` | `ie123kit._legado.mods_to_moflex` | `nucleo.media.moflex` + `nucleo.media.subtitulos_dat` | fachada |
+| `lz10.py` | `ie123kit.nucleo.compresion.lz10` | — | alias directo sin CLI (autotest: `python -m ie123kit.nucleo.compresion.lz10`); **retirado en F2.7** |
+| `mods_to_moflex.py` | `ie123kit._legado.mods_to_moflex` | `nucleo.media.moflex` + `nucleo.media.subtitulos_dat` | fachada; **retirado en F2.7** |
 | `nds_unpack.py` | `ie123kit._legado.nds_unpack` | `nucleo.contenedores.nds_rom` | **retirado en F2.4**: `ie123 extraer nds` |
-| `nftr_metrics.py` | `ie123kit._legado.nftr_metrics` | `nucleo.fuentes.nftr` | fachada |
-| `patch_smdh_title.py` | `ie123kit._legado.patch_smdh_title` | `nucleo.ejecutable.smdh` | fachada |
-| `pkb_unpack.py` | `ie123kit._legado.pkb_unpack` | `nucleo.eventos.packnum` + `nucleo.texto.nds_latin` | fachada |
-| `qna_regions.py` | `ie123kit.nucleo.graficos.qna` | — | alias directo |
-| `reinsert.py` | `ie123kit._legado.reinsert` | `nucleo.texto.sjis_portador` + `nucleo.texto.tipografia_v20` | fachada |
+| `nftr_metrics.py` | `ie123kit._legado.nftr_metrics` | `nucleo.fuentes.nftr` | fachada; **retirado en F2.7** |
+| `patch_smdh_title.py` | `ie123kit._legado.patch_smdh_title` | `nucleo.ejecutable.smdh` | fachada; **retirado en F2.7** |
+| `pkb_unpack.py` | `ie123kit._legado.pkb_unpack` | `nucleo.eventos.packnum` + `nucleo.texto.nds_latin` | fachada; **retirado en F2.7** |
+| `qna_regions.py` | `ie123kit.nucleo.graficos.qna` | — | alias directo; **retirado en F2.7** |
+| `reinsert.py` | `ie123kit._legado.reinsert` | `nucleo.texto.sjis_portador` + `nucleo.texto.tipografia_v20` | fachada; **retirado en F2.7** |
 | `reinsert_var.py` | `ie123kit._legado.reinsert_var` | — | **retirado en F2.6**, cuarentena: `python -m ie123kit._legado.reinsert_var --legado-lo-se` |
-| `ssd_records.py` | `ie123kit.nucleo.eventos.ssd` | — | alias directo |
+| `ssd_records.py` | `ie123kit.nucleo.eventos.ssd` | — | alias directo; **retirado en F2.7** |
 | `ssd_reinsert.py` | `ie123kit._legado.ssd_reinsert` | — | **retirado en F2.6**, cuarentena: `python -m ie123kit._legado.ssd_reinsert --legado-lo-se` |
-| `sszl.py` | `ie123kit.nucleo.compresion.sszl` | — | alias directo |
-| `translate_ui_textures.py` | `ie123kit._legado.translate_ui_textures` | `nucleo.graficos.pintado` | fachada |
-| `ui_archive.py` | `ie123kit._legado.ui_archive` | `nucleo.contenedores.arcv` + `nucleo.compresion.sszl` | fachada |
+| `sszl.py` | `ie123kit.nucleo.compresion.sszl` | — | alias directo; **retirado en F2.7** |
+| `ie3_pipeline.py` | `ie123kit.ie3.pipeline` | — | alias directo; **retirado en F2.7**: `python -m ie123kit.ie3.pipeline` |
+| `ie3_verificar_offsets.py` | `ie123kit.ie3.comun.verificar_offsets` | — | alias directo; **retirado en F2.7**: `python -m ie123kit.ie3.comun.verificar_offsets` |
+| `translate_ui_textures.py` | `ie123kit._legado.translate_ui_textures` | `nucleo.graficos.pintado` | fachada; **retirado en F2.7** |
+| `ui_archive.py` | `ie123kit._legado.ui_archive` | `nucleo.contenedores.arcv` + `nucleo.compresion.sszl` | fachada; **retirado en F2.7** |
 | `validate.py` | `ie123kit._legado.validate` | — | **retirado en F2.6**, cuarentena: `python -m ie123kit._legado.validate --legado-lo-se` |
 | `verify_candidate.py` | `ie123kit._legado.verify_candidate` | `nucleo.validar.candidata` + `ie1.verificar` | **retirado en F2.4**: `ie123 verificar` o `python -m ie123kit._legado.verify_candidate` |
 | `dialogue_typography.py` | se queda en `tools/` | re-export `nucleo.texto.ancho_completo` (+ `decode_fullwidth` nuevo) | congelado |
@@ -237,10 +257,11 @@ son **PELIGROSO: no reutilizar** están en
 
 ### Órdenes útiles
 
-- Invocaciones de siempre que siguen vivas: `python tools/fa_unpack.py` y `python tools/patch_smdh_title.py`.
-  Los shims de CLI `nds_unpack`, `harvest_log`, `limpiar_work`, `blz` y `verify_candidate` se retiraron en la
-  F2.4 (#50) y `ds_roster`, `reinsert_var`, `ssd_reinsert` y `validate` en la F2.6 (#55): ninguna capa los
-  importaba; `ie123 compat equivalencias` da la orden nueva de cada uno.
+- Las invocaciones antiguas pasan a módulo: `python -m ie123kit._legado.fa_unpack` y
+  `python -m ie123kit._legado.patch_smdh_title`. Los shims de CLI `nds_unpack`, `harvest_log`, `limpiar_work`,
+  `blz` y `verify_candidate` se retiraron en la F2.4 (#50), `ds_roster`, `reinsert_var`, `ssd_reinsert` y
+  `validate` en la F2.6 (#55) y los 22 restantes en la F2.7; `ie123 compat equivalencias` da la orden nueva
+  de cada uno.
 - `python -m ie123kit.ie1.media.voces [--stage]` (sustituye al retirado `ie1_media.py --stage`).
 - `python -m ie123kit.nucleo.construir.candidata --base … --ui … --output …`.
 - Puerta del bloqueo v20 sobre una candidata: `python -m ie123kit.nucleo.validar.bloqueo --candidata
@@ -262,7 +283,7 @@ son **PELIGROSO: no reutilizar** están en
 - `python -m ie123kit.ie1.media.voces --stage` (antes `ie1_media.py --stage`): inventaría los SADL de IE1 DS/3DS y prepara los 70
   reemplazos europeos en el mod local de volumen 1.
 - `setup_mobipeg.ps1`: descarga y verifica la versión portátil x86 de mobipeg 2.1.
-- `mods_to_moflex.py`: convierte una película `.mods` de DS, incrusta su pista
+- `python -m ie123kit._legado.mods_to_moflex` (antes `tools/mods_to_moflex.py`): convierte una película `.mods` de DS, incrusta su pista
   española `.dat` y restaura la orientación MOFLEX `0x16` de la recopilación.
 - `work/ie1/capas/media/cinematicas/build.py`: genera las 21 cinemáticas europeas de IE1
   (sustituye a `build_ie1_movies.py`, retirado; ver [`SCRIPTS_RETIRADOS.md`](../docs/toolkit/SCRIPTS_RETIRADOS.md)).
@@ -328,10 +349,11 @@ son **PELIGROSO: no reutilizar** están en
 - `dialogue_lock.py` — bloqueo de la tipografía v20 aprobada por el usuario
   (fuentes, codificación fullwidth, métrica 11 px / 220 px). Todo script que
   toque texto lo valida; no desactivarlo.
-- `translate_ui_textures.py` — aplica un manifiesto JSON de rectángulos de texto a
+- `ie123kit._legado.translate_ui_textures` (antes `tools/translate_ui_textures.py`) — aplica un manifiesto JSON de rectángulos de texto a
   texturas CTPK sin cambiar tamaños ni metadatos. Borrado: relleno plano,
   `row_sample`, `bright` o `none` (cuando operaciones previas ya restauraron el fondo).
-- `build_ui_revision.py` — genera una candidata `archive.fa` sobre la anterior:
+- `build_ui_revision.py` (congelado; se lanza con `python -m ie123kit.nucleo.compat.congelados
+  build_ui_revision …`) — genera una candidata `archive.fa` sobre la anterior:
   eventos SSD con identidad de registros comprobada (`<ui>/events`), capas de
   archivos repetibles (`--extra`, la última gana) y CRO (`--cro`). Nunca
   sobrescribe una candidata existente.
@@ -353,7 +375,7 @@ son **PELIGROSO: no reutilizar** están en
 
 Secuencia histórica (CSV → ROM jugable), con los **flags de la build v27**:
 ```
-python tools/reinsert.py                                  # fuentes (acentos) + roster + UI -> work/archive_es.fa
+python tools/reinsert.py                                  # (hoy: python -m ie123kit._legado.reinsert) fuentes (acentos) + roster + UI -> work/archive_es.fa
 python tools/reinsert_var.py game1                        # dialogo (long. variable) -> work/eve_var/
 SKIP_CRO=1 NO_CODE_PATCH=1 python tools/_archivo/build_3ds_var.py game1   # (archivado) VALIDA y compila -> work/build/*.3ds
 pwsh -File tools/build_patch.ps1 -Translated "work\build\inazuma123_es_var.3ds" -Patch "patch\inazuma123-es-vNN.xdelta"

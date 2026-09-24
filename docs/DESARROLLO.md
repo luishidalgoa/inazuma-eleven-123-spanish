@@ -98,19 +98,19 @@ extracción de la ROM. Para reconstruirlos desde tus ROMs:
 pwsh -File tools/extract_romfs.ps1
 
 # B) desempaquetar el contenedor Level-5 archive.fa -> work/fa_extract/
-python tools/fa_unpack.py work/shared/base_3ds/romfs/archive.fa -o work/fa_extract
+python -m ie123kit._legado.fa_unpack work/shared/base_3ds/romfs/archive.fa -o work/fa_extract
 
 # C) extraer las NDS ES (referencia oficial) -> work/ie1/fuentes/nds_es/, work/ie2_es/
 pwsh -File tools/extract_nds.ps1 -Rom "roms/Inazuma Eleven.nds" -Name ie1_es
 pwsh -File tools/extract_nds.ps1 -Rom "roms/Inazuma Eleven 2 - Tormenta de Fuego.nds" -Name ie2_es
 
 # D) regenerar el diálogo OFICIAL (alinea 3DS-JP <-> NDS-ES) — GITIGNORED, copyright
-python tools/ds_official.py game1     # -> translation/ie1/dialogo_oficial.csv
-python tools/ds_official.py game2     # -> translation/ie2/dialogo_oficial.csv
+python -m ie123kit._legado.ds_official game1     # -> translation/ie1/dialogo_oficial.csv
+python -m ie123kit._legado.ds_official game2     # -> translation/ie2/dialogo_oficial.csv
 
 # E) (opcional) regenerar glosarios (jugadores/equipos/menús)
-python tools/build_glossary.py game1
-python tools/build_glossary.py game2
+python -m ie123kit._legado.build_glossary game1
+python -m ie123kit._legado.build_glossary game2
 ```
 
 > `dialogo_oficial.csv` (game1 ~7.516 líneas, game2 ~24.338) es el **texto oficial de Nintendo**
@@ -129,7 +129,7 @@ python tools/build_glossary.py game2
 
 ```bash
 # 1) fuentes (acentos) + roster + UI  ->  work/archive_es.fa   (una vez por sesión)
-python tools/reinsert.py
+python -m ie123kit._legado.reinsert
 
 # 2) diálogo de longitud variable     ->  work/eve_var/gameN.pkb/.pkh
 python tools/reinsert_var.py game1            # (sin arg = game1 + game2)
