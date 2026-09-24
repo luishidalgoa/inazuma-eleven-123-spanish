@@ -110,5 +110,5 @@ def test_dos_inserciones_en_un_evento():
     assert [regs[r.registros[0]].raw for r in refs] == [b"1a", b"1b", b"3a", b"3b"]
     assert {x.ident: x for x in instrucciones(s2)}[3].valores == (4,)   # 0x3002 apuntaba a la 3 original, que ahora es la 4
     assert T.aplicar("p", 9, s2, e2) == (s2, e2)
-    s3, e3 = T.revertir("p", 9, s2, e2)
+    s3, _e3 = T.revertir("p", 9, s2, e2)
     assert instrucciones(s3) == instrucciones(ssd)
