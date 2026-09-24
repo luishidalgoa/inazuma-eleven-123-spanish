@@ -12,7 +12,7 @@ del NDS europeo en castellano, que comparten el mismo orden de entidades:
 El 3DS usa Shift-JIS; el NDS una codificacion Latin propia (ver NDS_DEC).
 
 Uso (rutas por defecto a work/, ignorado por git):
-    python tools/build_glossary.py
+    python -m ie123kit._legado.build_glossary
 Salida: CSV en translation/shared/glossary/ (solo nombres/terminos, sin descripciones).
 """
 import csv

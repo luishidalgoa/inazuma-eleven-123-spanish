@@ -13,7 +13,7 @@ Acentos: de momento se romanizan (a/e/i/o/u/n, ! ?). La fuente (etapa 6) los
 restaura luego. Solo se aplican lineas con es_final (estado != pendiente).
 
 Uso:
-    python tools/reinsert.py            # patчea work/shared/base_3ds/romfs/archive.fa -> work/archive_es.fa
+    python -m ie123kit._legado.reinsert           # patчea work/shared/base_3ds/romfs/archive.fa -> work/archive_es.fa
 """
 import csv
 import os
@@ -110,7 +110,7 @@ def load_translations(game):
         if row["estado"] == "pendiente" or not row["es_final"]:
             continue
         out.setdefault(int(row["event_id"]), {})[row["japones"]] = reflow(row["es_final"])
-    # OFICIAL: el diálogo oficial del DS (tools/ds_official.py -> dialogo_oficial.csv)
+    # OFICIAL: el diálogo oficial del DS (ie123kit._legado.ds_official -> dialogo_oficial.csv)
     # tiene PRIORIDAD sobre la IA (texto oficial de Nintendo, mismo evento+línea).
     # SOLO en eventos STRIP (historia): meterlo en la apertura PROTEGIDA (furigana)
     # descuadra el crear-partida (pantalla negra). Fichero local gitignored (copyright).

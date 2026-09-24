@@ -1,7 +1,8 @@
-"""Traslados de F1.3 (#44): los 16 módulos de motor de tools/ pasan a ie123kit con shims de alias.
+"""Traslados de F1.3 (#44): los 16 módulos de motor de tools/ pasaron a ie123kit con shims de alias.
 
-Sin ROM. Un módulo cuyo tools/<nombre>.py todavía no es un shim se salta
-(«aún sin trasladar»), para que cada commit intermedio de la subfase pase.
+Sin ROM. Desde la F2.7 ya no queda ningún shim: se comprueba que el módulo real conserva la
+superficie del script original y que los congelados resuelven sus nombres planos al paquete
+mediante ``ie123kit.nucleo.config.congelados.preparar``.
 """
 import os
 import subprocess
@@ -10,7 +11,6 @@ from pathlib import Path
 
 import pytest
 
-import ie123kit
 from ie123kit.nucleo.compat import shims
 from ie123kit.nucleo.config.raiz import find_root
 
@@ -36,17 +36,12 @@ TRASLADOS = {
 
 RAIZ = find_root()
 TOOLS = RAIZ / "tools"
-SRC_PAQUETE = Path(ie123kit.__file__).resolve().parent
 SUPERFICIE = Path(__file__).resolve().parent / "superficie_v0.json"
 
-_SUBPROCESO_SHIM = """\
-import importlib, json, sys
-sys.path.insert(0, 'tools')
+_SUBPROCESO_MODULO = """import importlib, json, sys
+sys.path.insert(0, 'tools/src')
 nombre, destino, superficie = sys.argv[1], sys.argv[2], sys.argv[3]
-m = importlib.import_module(nombre)
-real = importlib.import_module(destino)
-assert m is real, (m, real)
-assert sys.modules[nombre] is real
+m = importlib.import_module(destino)
 faltan = []
 with open(superficie, encoding='utf-8') as fh:
     nombres = json.load(fh)[nombre]
@@ -59,11 +54,6 @@ for n in nombres:
         faltan.append(n)
 assert not faltan, f'{nombre}: faltan nombres de superficie_v0.json: {faltan}'
 """
-
-
-def _trasladado(nombre: str) -> bool:
-    ruta = TOOLS / f"{nombre}.py"
-    return ruta.is_file() and "sys.modules[__name__]" in ruta.read_text(encoding="utf-8", errors="replace")
 
 
 def _python(codigo: str, *args: str) -> subprocess.CompletedProcess:
@@ -82,41 +72,35 @@ def _python(codigo: str, *args: str) -> subprocess.CompletedProcess:
     )
 
 
-def test_mapa_coincide_con_traslados():
+def test_destinos_coinciden_con_traslados():
     assert len(TRASLADOS) == 16
-    distintos = {n: (shims.MAPA.get(n), d) for n, d in TRASLADOS.items()
-                 if n not in shims.RETIRADOS and shims.MAPA.get(n) != d}
-    assert not distintos, f"MAPA difiere de TRASLADOS (actual, esperado): {distintos}"
+    distintos = {n: (shims.DESTINOS.get(n), d) for n, d in TRASLADOS.items() if shims.DESTINOS.get(n) != d}
+    assert not distintos, f"DESTINOS difiere de TRASLADOS (actual, esperado): {distintos}"
+    assert set(TRASLADOS) <= shims.RETIRADOS
     assert not set(TRASLADOS) & shims.CONGELADOS
 
 
-@pytest.mark.parametrize("nombre", sorted(shims.RETIRADOS))
-def test_shims_de_cli_retirados_en_f24(nombre):
-    """F2.4 (#50): el shim de CLI ya no está en tools/ ni en MAPA, pero el módulo real sigue."""
+@pytest.mark.parametrize("nombre", sorted(TRASLADOS))
+def test_shim_retirado_y_modulo_real(nombre):
+    """F2.4 (#50) y F2.7: el shim ya no está en tools/ ni en MAPA; el módulo real conserva la superficie."""
     assert not (TOOLS / f"{nombre}.py").exists(), f"tools/{nombre}.py debería estar retirado"
     assert nombre not in shims.MAPA
-    r = _python(f"import sys; sys.path.insert(0, 'tools/src'); import ie123kit._legado.{nombre}")
+    r = _python(_SUBPROCESO_MODULO, nombre, TRASLADOS[nombre], str(SUPERFICIE))
     assert r.returncode == 0, r.stderr
 
 
-@pytest.mark.parametrize("nombre", [n for n in TRASLADOS if n not in shims.RETIRADOS])
-def test_shim_trasladado(nombre):
-    ruta = TOOLS / f"{nombre}.py"
-    if not _trasladado(nombre):
-        pytest.skip("aún sin trasladar")
-    ok, motivo = shims.es_shim_sin_logica(ruta)
-    assert ok is True, f"{ruta}: {motivo}"
-    assert shims.destino_de_shim(ruta) == TRASLADOS[nombre]
-    r = _python(_SUBPROCESO_SHIM, nombre, TRASLADOS[nombre], str(SUPERFICIE))
-    assert r.returncode == 0, r.stderr
+def test_nombre_plano_ya_no_importa():
+    r = _python("import sys; sys.path.insert(0, 'tools'); import lz10")
+    assert r.returncode != 0 and "ModuleNotFoundError" in r.stderr
 
 
-def test_lz10_mutacion_de_globales():
-    if not _trasladado("lz10"):
-        pytest.skip("aún sin trasladar")
+def test_lz10_mutacion_de_globales_por_alias_de_congelados():
+    """El alias que usan los congelados es el mismo objeto módulo: mutar uno muta el otro."""
     codigo = (
         "import sys\n"
-        "sys.path.insert(0, 'tools')\n"
+        "sys.path.insert(0, 'tools/src')\n"
+        "from ie123kit.nucleo.config.congelados import preparar\n"
+        "preparar()\n"
         "import lz10\n"
         "import ie123kit.nucleo.compresion.lz10 as real\n"
         "assert lz10 is real\n"
@@ -129,33 +113,27 @@ def test_lz10_mutacion_de_globales():
 
 
 def test_font_patch_y_build_ui_revision_resuelven_al_paquete():
-    if not (_trasladado("bcfnt") and _trasladado("fa_unpack")):
-        pytest.skip("bcfnt o fa_unpack aún sin trasladar")
-    comprobar_repack = _trasladado("fa_repack")
     codigo = (
         "import importlib.util, sys\n"
-        "sys.path.insert(0, 'tools')\n"
-        "import font_patch, bcfnt\n"
+        "sys.path.insert(0, 'tools/src')\n"
+        "from ie123kit.nucleo.config.congelados import preparar\n"
+        "preparar()\n"
+        "import font_patch\n"
+        "import ie123kit._legado.bcfnt as bcfnt\n"
         "assert font_patch.BCFNT is bcfnt.BCFNT\n"
         "import ie123kit.nucleo.contenedores.fa as fa\n"
         "spec = importlib.util.spec_from_file_location('build_ui_revision_importado', 'tools/build_ui_revision.py')\n"
         "mod = importlib.util.module_from_spec(spec)\n"
         "spec.loader.exec_module(mod)\n"  # sin __main__: no ejecuta main() ni ningún build
         "assert mod.FaArchive is fa.FaArchive, (mod.FaArchive, fa.FaArchive)\n"
-        f"if {comprobar_repack!r}:\n"
-        "    assert mod.fe_offset_of is fa.fe_offset_of, (mod.fe_offset_of, fa.fe_offset_of)\n"
+        "assert mod.fe_offset_of is fa.fe_offset_of, (mod.fe_offset_of, fa.fe_offset_of)\n"
     )
     r = _python(codigo)
     assert r.returncode == 0, r.stderr
     assert r.stdout == ""
 
 
-def test_src_sin_parents_indexado():
-    fallos = []
-    for ruta in sorted(SRC_PAQUETE.rglob("*.py")):
-        if "__pycache__" in ruta.parts:
-            continue
-        for n, linea in enumerate(ruta.read_text(encoding="utf-8").splitlines(), 1):
-            if "parents[" in linea or "dirname(dirname" in linea:
-                fallos.append(f"{ruta.relative_to(RAIZ).as_posix()}:{n}: {linea.strip()}")
-    assert not fallos, "\n".join(fallos)
+def test_congelado_sin_preparar_no_importa():
+    """Sin preparar(), los nombres planos de los congelados ya no existen (no hay shims)."""
+    r = _python("import sys; sys.path.insert(0, 'tools'); import build_ie1_probe")
+    assert r.returncode != 0 and "ModuleNotFoundError" in r.stderr

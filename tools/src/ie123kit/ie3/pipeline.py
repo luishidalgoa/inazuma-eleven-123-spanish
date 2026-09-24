@@ -22,10 +22,10 @@ Ordenes:
 
 Ejemplos:
 
-    python tools/scripts/ie3_pipeline.py run
-    python tools/scripts/ie3_pipeline.py extract roms/IE123_JP.3ds --lang jp --tag jp
-    python tools/scripts/ie3_pipeline.py extract CIAS/rayo.3ds --lang es --tag rayo
-    python tools/scripts/ie3_pipeline.py align
+    python -m ie123kit.ie3.pipeline run
+    python -m ie123kit.ie3.pipeline extract roms/IE123_JP.3ds --lang jp --tag jp
+    python -m ie123kit.ie3.pipeline extract CIAS/rayo.3ds --lang es --tag rayo
+    python -m ie123kit.ie3.pipeline align
 """
 
 import argparse
@@ -434,7 +434,7 @@ def load_extract(tag, game, pack, lang):
     if not path.exists():
         die(
             f"Falta {path.relative_to(ROOT)}. "
-            f"Ejecuta primero:  python tools/scripts/ie3_pipeline.py run"
+            f"Ejecuta primero:  python -m ie123kit.ie3.pipeline run"
         )
     return read_csv(path)
 
@@ -639,7 +639,7 @@ def cmd_sheet(args):
         if not src.exists():
             die(
                 f"Falta {src.relative_to(ROOT)}. Ejecuta primero:  "
-                f"python tools/scripts/ie3_pipeline.py align"
+                f"python -m ie123kit.ie3.pipeline align"
             )
 
         rows = read_csv(src)
@@ -649,7 +649,7 @@ def cmd_sheet(args):
                 f"pipeline y no trae la columna `opcode`, que es lo que "
                 f"distingue el texto real de los nombres de recurso. "
                 f"Vuelve a generarlo con: "
-                f"python tools/scripts/ie3_pipeline.py run --force"
+                f"python -m ie123kit.ie3.pipeline run --force"
             )
 
         sheet_rows, technical, glossary, stats = sheetlib.build(rows, game)
@@ -748,7 +748,7 @@ def cmd_reinsert(args):
     destino = Path(args.salida) if args.salida else WORK / "archive_es.fa"
 
     if not origen.is_file():
-        die(f"No existe {origen}. Ejecuta antes: python tools/reinsert.py")
+        die(f"No existe {origen}. Ejecuta antes: python -m ie123kit._legado.reinsert")
 
     log(f"Base:    {origen.name}")
     if destino.resolve() != origen.resolve():

@@ -6,7 +6,7 @@ Estrategia eficiente: NO se reescribe 1,3 GB. Se **anaden** los archivos nuevos
 dataOffset explicito por archivo). El dato viejo queda como hueco muerto. Solo se
 parchean unos pocos FileEntry (off+size). El contenedor crece lo justo.
 
-Uso: python tools/fa_repack.py <archive_in.fa> <archive_out.fa>
+Uso: python -m ie123kit._legado.fa_repack <archive_in.fa> <archive_out.fa>
      (lee work/eve_var/game1.pkb/.pkh y game2.* si existen)
 """
 import os, struct, sys

@@ -1,4 +1,4 @@
-"""Fija el contenido final de la raíz de tools/ y que los shims salen tal cual del generador."""
+"""Fija el contenido final de la raíz de tools/: los 5 congelados, los .ps1 y ningún shim (F2.7)."""
 from __future__ import annotations
 
 import shutil
@@ -11,7 +11,6 @@ from ie123kit.nucleo.config.raiz import find_root
 
 RAIZ = find_root()
 TOOLS = RAIZ / "tools"
-SRC = TOOLS / "src"
 
 PS1 = frozenset(
     {
@@ -30,9 +29,6 @@ OPCIONALES = frozenset({"bin"})
 # Cachés locales toleradas: hoy .gitignore ya ignora __pycache__/, .pytest_cache/,
 # .ruff_cache/ y *.egg-info/, así que este conjunto queda vacío a propósito.
 CACHES_TOLERADAS: frozenset[str] = frozenset()
-
-# El módulo real de lz10 tiene un bloque __main__ de auto-test sin main(): su shim no expone CLI.
-CLI_EXPLICITO: dict[str, str | None] = {"lz10": None}
 
 ESPERADO = (
     frozenset(f"{n}.py" for n in shims.CONGELADOS)
@@ -73,21 +69,15 @@ def test_contenido_raiz_tools():
     assert not sobrantes and not faltantes, f"sobrantes: {sobrantes}; faltantes: {faltantes}"
 
 
-def _cli(nombre: str) -> str | None:
-    if nombre in CLI_EXPLICITO:
-        return CLI_EXPLICITO[nombre]
-    fuente = shims.fuente_de(shims.MAPA[nombre], SRC)
-    assert fuente is not None, f"no se encuentra el módulo real de {nombre}"
-    return shims.detectar_cli(fuente)
-
-
-@pytest.mark.parametrize("nombre", sorted(shims.MAPA))
-def test_shims_regenerados(nombre):
-    ruta = TOOLS / f"{nombre}.py"
-    actual = ruta.read_bytes().decode("utf-8").replace("\r\n", "\n")
-    assert actual == shims.renderizar(shims.MAPA[nombre], _cli(nombre))
-    ok, motivo = shims.es_shim_sin_logica(ruta)
-    assert ok is True, motivo
+def test_sin_shims_en_tools():
+    """F2.7: no queda ningún shim en tools/; todo se importa como ie123kit.<...>."""
+    assert shims.MAPA == {}
+    reaparecidos = sorted(n for n in shims.RETIRADOS if (TOOLS / f"{n}.py").exists())
+    assert not reaparecidos, f"shims retirados de vuelta en tools/: {reaparecidos}"
+    con_alias = sorted(
+        p.name for p in TOOLS.glob("*.py") if "sys.modules[__name__]" in p.read_bytes().decode("utf-8")
+    )
+    assert not con_alias, f"ficheros de tools/ que son shims: {con_alias}"
 
 
 @pytest.mark.parametrize("nombre", sorted(shims.CONGELADOS))

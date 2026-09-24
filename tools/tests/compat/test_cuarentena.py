@@ -2,7 +2,7 @@
 
 Desde la F2.6 (#55) los cuatro en cuarentena ya no tienen shim plano en ``tools/`` (nadie los
 importaba): se comprueban directamente sobre ``ie123kit._legado.<mod>`` y su CLI se lanza con
-``python -m ie123kit._legado.<mod>``.
+``python -m ie123kit._legado.<mod>``. En la F2.7 se retiró también el shim de ``reinsert``.
 """
 from __future__ import annotations
 
@@ -41,10 +41,8 @@ def test_cli_se_niega_sin_bandera(nombre):
 @pytest.mark.parametrize("nombre", CUARENTENA + ("reinsert",))
 def test_superficie(nombre):
     """La superficie pública del módulo real sigue siendo la del script original de tools/."""
-    if nombre in CUARENTENA:
-        assert nombre in shims.RETIRADOS and not (TOOLS / f"{nombre}.py").exists()
-    else:
-        assert shims.MAPA[nombre] == f"ie123kit._legado.{nombre}"
+    assert nombre in shims.RETIRADOS and not (TOOLS / f"{nombre}.py").exists()
+    assert shims.DESTINOS[nombre] == f"ie123kit._legado.{nombre}"
     mod = _importar(nombre)
     for atributo in SUPERFICIE[nombre]:
         getattr(mod, atributo)

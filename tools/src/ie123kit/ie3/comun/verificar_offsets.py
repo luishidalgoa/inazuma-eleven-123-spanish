@@ -1,6 +1,6 @@
 """COMPROBACION OBLIGATORIA antes de construir una ROM de IE3.
 
-Uso:  python tools/ie3_verificar_offsets.py work/archive_es_vNNN.fa
+Uso:  python -m ie123kit.ie3.comun.verificar_offsets work/archive_es_vNNN.fa
 
 Invariante definitivo: cada DIALOGO del japones sigue empezando en su offset.
 

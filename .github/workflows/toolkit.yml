@@ -68,7 +68,7 @@ jobs:
       - name: Guardia de ficheros rastreados (Norma 2)
         run: python -X utf8 -m ie123kit.nucleo.compat.guardia git
 
-      - name: Comprobar shims
+      - name: Comprobar que no vuelven los shims (retirados en la F2.7)
         run: python -X utf8 -m ie123kit.nucleo.compat.shims comprobar
 
       # tools/pyproject.toml excluye los 5 ficheros bloqueados v20, y documenta

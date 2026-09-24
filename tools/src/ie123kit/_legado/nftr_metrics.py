@@ -1,6 +1,6 @@
 """Read NFTR character maps and advances without modifying game assets.
 
-Usage: python tools/nftr_metrics.py path/to/FONT12.NFTR
+Usage: python -m ie123kit._legado.nftr_metrics path/to/FONT12.NFTR
 NFTR map keys in the IE1 assets are Shift-JIS codes, not Unicode code points.
 """
 import json

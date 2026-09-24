@@ -7,7 +7,7 @@ from __future__ import annotations
 
 __all__ = ["EQUIVALENCIAS"]
 
-#: Orden antigua -> (orden nueva, nota). Incluye los shims retirados en la F2.4 (#50) y en la F2.6
+#: Orden antigua -> (orden nueva, nota). Incluye los shims retirados en la F2.4 (#50), la F2.6 y la F2.7
 #: (#55) y los scripts archivados en la F1.2/F1.4 (``docs/toolkit/SCRIPTS_RETIRADOS.md``).
 EQUIVALENCIAS: dict[str, tuple[str, str]] = {
     # Scripts PowerShell (siguen existiendo como envoltorios de una orden)
@@ -66,4 +66,32 @@ EQUIVALENCIAS: dict[str, tuple[str, str]] = {
     "work/shared/capas/media/voz_titulo_recopilatorio/apply.py": (
         "ie123 motor voz-recopilatorio --sonido DIR --fuente AUDIO --salida DIR",
         "la capa es ya un envoltorio del motor (juego_principal.voz_titulo)"),
+    # Shims planos retirados en la F2.7: en código se importa el módulo real (misma identidad)
+    "tools/lz10.py": ("import ie123kit.nucleo.compresion.lz10 as lz10", "sin CLI propia"),
+    "tools/sszl.py": ("import ie123kit.nucleo.compresion.sszl as sszl", "sin CLI propia"),
+    "tools/ui_archive.py": ("import ie123kit._legado.ui_archive as ui_archive", "sin CLI propia"),
+    "tools/qna_regions.py": ("import ie123kit.nucleo.graficos.qna as qna_regions", "sin CLI propia"),
+    "tools/legacy_sprite.py": ("import ie123kit.nucleo.graficos.pac_sprite as legacy_sprite", "sin CLI propia"),
+    "tools/nftr_metrics.py": ("python -m ie123kit._legado.nftr_metrics", "en código: import ie123kit._legado.nftr_metrics as nftr_metrics"),
+    "tools/bcfnt.py": ("python -m ie123kit._legado.bcfnt", "en código: import ie123kit._legado.bcfnt as bcfnt"),
+    "tools/ctpk_ui.py": ("import ie123kit.nucleo.graficos.ctpk as ctpk_ui", "sin CLI propia"),
+    "tools/ssd_records.py": ("import ie123kit.nucleo.eventos.ssd as ssd_records", "sin CLI propia"),
+    "tools/fa_unpack.py": ("python -m ie123kit._legado.fa_unpack", "en código: import ie123kit._legado.fa_unpack as fa_unpack"),
+    "tools/fa_repack.py": ("python -m ie123kit._legado.fa_repack", "en código: import ie123kit._legado.fa_repack as fa_repack"),
+    "tools/patch_smdh_title.py": ("python -m ie123kit._legado.patch_smdh_title", "en código: import ie123kit._legado.patch_smdh_title as patch_smdh_title"),
+    "tools/ie1_keyboard.py": ("import ie123kit.ie1.graficos.teclado as ie1_keyboard", "sin CLI propia"),
+    "tools/ie3_pipeline.py": ("python -m ie123kit.ie3.pipeline", "en código: import ie123kit.ie3.pipeline as ie3_pipeline"),
+    "tools/ie3_verificar_offsets.py": ("python -m ie123kit.ie3.comun.verificar_offsets", "en código: import ie123kit.ie3.comun.verificar_offsets as ie3_verificar_offsets"),
+    "tools/pkb_unpack.py": ("python -m ie123kit._legado.pkb_unpack", "en código: import ie123kit._legado.pkb_unpack as pkb_unpack"),
+    "tools/build_glossary.py": ("python -m ie123kit._legado.build_glossary", "en código: import ie123kit._legado.build_glossary as build_glossary"),
+    "tools/ds_official.py": ("python -m ie123kit._legado.ds_official --legado-lo-se", "en código: import ie123kit._legado.ds_official as ds_official"),
+    "tools/reinsert.py": ("python -m ie123kit._legado.reinsert", "en código: import ie123kit._legado.reinsert as reinsert"),
+    "tools/translate_ui_textures.py": ("python -m ie123kit._legado.translate_ui_textures", "en código: import ie123kit._legado.translate_ui_textures as translate_ui_textures"),
+    "tools/mods_to_moflex.py": ("python -m ie123kit._legado.mods_to_moflex", "en código: import ie123kit._legado.mods_to_moflex as mods_to_moflex"),
+    "tools/audit_dialogo_ids.py": ("python -m ie123kit._legado.audit_dialogo_ids", "en código: import ie123kit._legado.audit_dialogo_ids as audit_dialogo_ids"),
+    # Congelados con CLI (F2.7): ya no se lanzan como `python tools/<nombre>.py`
+    "tools/build_ui_revision.py": ("python -m ie123kit.nucleo.compat.congelados build_ui_revision --base ... --ui ... --output ...",
+                                   "mismo fichero congelado, con los alias de congelados.preparar"),
+    "tools/build_ie1_probe.py": ("python -m ie123kit.nucleo.compat.congelados build_ie1_probe ...",
+                                 "mismo fichero congelado, con los alias de congelados.preparar"),
 }

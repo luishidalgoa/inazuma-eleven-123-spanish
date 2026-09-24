@@ -1,4 +1,4 @@
-"""Codificación SJIS con portadores griegos del diálogo (copia literal desde tools/reinsert.py).
+"""Codificación SJIS con portadores griegos del diálogo (copia literal del antiguo tools/reinsert.py).
 
 Portadores griegos: cada acento o signo del español (á, é, ñ, ¿, ¡…) se sustituye por
 un carácter griego «portador» (``chr(cp)`` de ``font_patch.PLAN``) cuyo glifo está
