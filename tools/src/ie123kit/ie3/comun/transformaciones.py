@@ -17,8 +17,9 @@ cambios en cada pasada. Tipos:
    insertado justo detrás (ID original + 1). Se renumeran los IDs posteriores, los operandos tipo 4 (IDs), los
    propietarios de la tabla de textos y los contadores de la cabecera.
 
-Los datos (qué eventos y los cuerpos codificados, que son texto del juego) viven fuera del repositorio:
-``work/ie3/shared/capas/dialogo/bytecode_declarado/declaraciones.json``. Sin ese fichero no se aplica nada.
+Los datos (qué eventos y los cuerpos codificados, que son texto del juego) viven fuera del paquete: quien los tenga
+llama a :func:`cargar` (lista de declaraciones o ruta a un JSON ``{"declaraciones": [...]}``). Sin declaraciones
+registradas no se aplica nada.
 """
 
 from __future__ import annotations
@@ -31,19 +32,31 @@ from ie123kit.ie3.comun.referencias import instrucciones, leer_referencias, reco
 from ie123kit.ie3.comun.ssd import parse_flat_text, parse_ssd
 from ie123kit.ie3.comun.text import TextTable
 
-_RUTA = Path(__file__).resolve().parents[5] / "work/ie3/shared/capas/dialogo/bytecode_declarado/declaraciones.json"
-_CACHE: dict | None = None
+_REGISTRO: dict[tuple[str, int], list[dict]] = {}
+
+
+def cargar(fuente) -> int:
+    """Registra declaraciones (lista de dicts o ruta a JSON). Sustituye las anteriores. Devuelve cuántas."""
+    if isinstance(fuente, (str, Path)):
+        ruta = Path(fuente)
+        lista = json.loads(ruta.read_text(encoding="utf-8"))["declaraciones"] if ruta.exists() else []
+    else:
+        lista = list(fuente)
+    _REGISTRO.clear()
+    for d in lista:
+        if d["tipo"] not in ("intercambio", "insercion"):
+            raise ValueError(f"tipo de declaración desconocido: {d['tipo']}")
+        _REGISTRO.setdefault((d["perfil"], int(d["evento"])), []).append(d)
+    for ds in _REGISTRO.values():
+        # aplicar va de la instrucción más alta a la más baja (una inserción no desplaza a las anteriores) y
+        # revertir, al revés
+        ds.sort(key=lambda d: -int(d["instruccion"]))
+    return len(lista)
 
 
 def declaraciones() -> dict:
-    """{(perfil, evento): [declaración, ...]} desde el JSON de work/ (vacío si no existe)."""
-    global _CACHE
-    if _CACHE is None:
-        _CACHE = {}
-        if _RUTA.exists():
-            for d in json.loads(_RUTA.read_text(encoding="utf-8"))["declaraciones"]:
-                _CACHE.setdefault((d["perfil"], int(d["evento"])), []).append(d)
-    return _CACHE
+    """{(perfil, evento): [declaración, ...]} registradas con :func:`cargar`."""
+    return _REGISTRO
 
 
 # ------------------------------------------------------------------------------------------ utilidades SSD
@@ -101,14 +114,14 @@ def _es_intercambiado(i) -> bool:
 def _intercambiar(ssd: bytes, ident: int) -> bytes:
     """Intercambia los operandos 1 y 2 (tipo y valor) y los slots de sus textos. Es su propia inversa."""
     ins = {i.ident: i for i in instrucciones(ssd)}[ident]
-    if len(ins.tipos) != 4:
-        raise ValueError("intercambio: solo operandos (texto, lectura, nombre, lectura)")
+    if len(ins.tipos) < 4 or len(ins.tipos) > 8:
+        raise ValueError("intercambio: se esperan de 4 a 8 operandos (texto, lectura, nombre, lectura, …)")
     b = bytearray(ssd)
     t = list(ins.tipos)
     t[1], t[2] = t[2], t[1]
     b[ins.offset + 8] = t[0] | (t[1] << 4)
     b[ins.offset + 9] = t[2] | (t[3] << 4)
-    base = ins.offset + 12                      # 1 palabra de tipos (argc 4)
+    base = ins.offset + 12                      # 1 palabra de tipos (argc ≤ 8)
     v1, v2 = struct.unpack_from("<II", b, base + 4)
     struct.pack_into("<II", b, base + 4, v2, v1)
     s1, s2 = 2, 3                               # slots físicos = palabras de tipos (1) + índice del operando
@@ -172,8 +185,17 @@ def revertir(perfil: str | None, evento: int, ssd: bytes, evet: bytes | None):
     return ssd, evet
 
 
+def _con_marca(ssd: bytes, ds: list) -> bool:
+    marcas = {d.get("marca") for d in ds if d["tipo"] == "insercion"}
+    return any(i.opcode == 0x301D and len(i.tipos) == 1 and i.valores[0] in marcas for i in instrucciones(ssd))
+
+
 def aplicar(perfil: str | None, evento: int, ssd: bytes, evet: bytes | None):
-    for d in declaraciones().get((perfil, evento), []):
+    ds = declaraciones().get((perfil, evento), [])
+    ya = _con_marca(ssd, ds)            # inserciones ya aplicadas (los IDs ya no son los japoneses)
+    for d in ds:
+        if d["tipo"] == "insercion" and ya:
+            continue
         if d["tipo"] == "intercambio":
             i = {i.ident: i for i in instrucciones(ssd)}[d["instruccion"]]
             if not _es_intercambiado(i):

@@ -206,6 +206,40 @@ class Cro:
                     nombres.setdefault(p - 4, f"{modulo}@{seg_ofs:x}")
         return nombres
 
+    def import_patches(self, nombre: str) -> list[tuple[int, int, int]]:
+        """``[(destino, sumando, offset_del_registro)]`` de la importación con nombre ``nombre``."""
+        base, numero = self._u32(_IMP_OFF), self._u32(_IMP_NUM)
+        segs = self.segments
+        salida = []
+        for i in range(numero):
+            nombre_off, parche_off = struct.unpack_from("<II", self.datos, base + 8 * i)
+            if self._cadena(nombre_off) != nombre:
+                continue
+            p = parche_off
+            while True:
+                so, _typ, ultimo, _u0, _u, add = struct.unpack_from("<IBBBBI", self.datos, p)
+                salida.append((segs[so & 0xF].offset + (so >> 4), add, p))
+                if ultimo:
+                    break
+                p += 12
+        return salida
+
+    def retarget_import(self, nombre: str, destino: int, nuevo: int, esperado: int | None = None) -> int:
+        """Cambia el sumando de la entrada de importación ``nombre`` que parchea ``destino``.
+
+        Sirve para apuntar una llamada a otro campo del mismo símbolo importado (p. ej. otro bloque
+        de un ``g_Itx*``). Exige una sola coincidencia y, si se da, el sumando ``esperado``
+        (o ``nuevo``: idempotente). Devuelve el sumando anterior.
+        """
+        hits = [(add, p) for t, add, p in self.import_patches(nombre) if t == destino]
+        if len(hits) != 1:
+            raise ValidacionError("importacion_ambigua", detalle=f"{nombre} 0x{destino:x}: {len(hits)}")
+        add, p = hits[0]
+        if esperado is not None and add not in (esperado, nuevo):
+            raise ValidacionError("importacion_inesperada", detalle=f"0x{destino:x}: 0x{add:x} != 0x{esperado:x}")
+        struct.pack_into("<I", self.datos, p + 8, nuevo)
+        return add
+
     def to_bytes(self) -> bytes:
         return bytes(self.datos)
 
