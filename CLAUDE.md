@@ -44,14 +44,16 @@ solo "en la cabeza" o en el chat. En concreto:
 - Commits incrementales y descriptivos. Documenta los formatos en `docs/FORMATOS.md`
   y el avance en `docs/PROGRESO.md`.
 - Herramientas en `tools/` (Python/PowerShell, sin GUI: el proyecto se maneja por CLI).
-- El código Python vive en el paquete `tools/src/ie123kit`; en `tools/` quedan shims con los
-  nombres antiguos y los 5 ficheros congelados del bloqueo tipográfico.
+- El código Python vive en el paquete `tools/src/ie123kit` y se importa como `ie123kit.<...>`
+  (o `python -m ie123kit...`); en `tools/` solo quedan los 5 ficheros congelados del bloqueo
+  tipográfico y los `.ps1` (los shims se retiraron en la F2.7, #102; equivalencias en `tools/README.md`).
+  El trabajo nuevo se hace sobre `ie123kit`: es la base de la futura herramienta gráfica de traducción.
 
 - **Los diálogos no se reescriben para que quepan.** Se usa el texto oficial íntegro (el port europeo de 3DS para el IE1, la NDS española para el IE2, la CIA europea de Fuego Explosivo para el IE3). Si una frase no cabe en la ventana, se reparte en más cajas o páginas, o se amplía la ventana, pero nunca se condensa ni se le quitan palabras.
 
 ## Norma 4 — NO repetir errores ya detectados
 
-Antes de tocar la **reinserción de diálogo / furigana** (`tools/reinsert.py`, código real en `ie123kit._legado.reinsert`), lee
+Antes de tocar la **reinserción de diálogo / furigana** (`ie123kit._legado.reinsert`), lee
 **[`docs/FURIGANA_LECCIONES.md`](docs/FURIGANA_LECCIONES.md)**: lista cada enfoque que
 YA se probó en emulador y FALLÓ (con el motivo). Cada entrada costó una build de
 ~15 min + una prueba del usuario. **No reintentar lo que está marcado como ❌.**
