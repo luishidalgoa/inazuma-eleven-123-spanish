@@ -76,6 +76,15 @@
 - El código Python vive en `tools/src/ie123kit` (instalar con `pip install -e tools[dev]`) y se importa
   siempre como `ie123kit.<...>`: desde la F2.7 no queda ningún shim en `tools/` (tabla de equivalencias en
   `tools/README.md` y `python -m ie123kit.nucleo.compat.shims listar`). No recrearlos.
+- **Norma del usuario (2026-09-24): `ie123kit` es el núcleo de la futura app gráfica de traducción para
+  usuarios.** Todo trabajo nuevo se orienta a eso:
+  - la lógica reutilizable (formatos, parches de motor, emparejamiento, codificación, reparto en cajas)
+    vive en el paquete, como funciones con API clara: datos de entrada y salida, sin `print` ni
+    `sys.argv` ni rutas fijas, progreso por callback;
+  - cada función lleva sus pruebas en `tools/tests`;
+  - informes y errores estructurados (JSON) y legibles para un usuario;
+  - las capas de `work/` son envoltorios finos que llaman al paquete; no se añade lógica nueva solo en
+    `work/`.
 - Los 5 congelados (`dialogue_typography.py`, `font_patch.py`, `dialogue_lock.py`, `build_ie1_probe.py`,
   `build_ui_revision.py`) siguen en `tools/` y no se tocan ni se copian. Quien los importe llama antes a
   `ie123kit.nucleo.config.congelados.preparar()`; como script se lanzan con

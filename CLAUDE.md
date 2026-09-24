@@ -47,7 +47,9 @@ solo "en la cabeza" o en el chat. En concreto:
 - El código Python vive en el paquete `tools/src/ie123kit` y se importa como `ie123kit.<...>`
   (o `python -m ie123kit...`); en `tools/` solo quedan los 5 ficheros congelados del bloqueo
   tipográfico y los `.ps1` (los shims se retiraron en la F2.7, #102; equivalencias en `tools/README.md`).
-  El trabajo nuevo se hace sobre `ie123kit`: es la base de la futura herramienta gráfica de traducción.
+  **Norma del usuario (2026-09-24): `ie123kit` es el núcleo de la futura app gráfica de traducción
+  para usuarios.** Toda lógica nueva va al paquete con API reutilizable (sin prints, `sys.argv` ni rutas
+  fijas) y pruebas; las capas de `work/` solo la llaman. Detalle en `AGENTS.md` → Herramientas.
 
 - **Los diálogos no se reescriben para que quepan.** Se usa el texto oficial íntegro (el port europeo de 3DS para el IE1, la NDS española para el IE2, la CIA europea de Fuego Explosivo para el IE3). Si una frase no cabe en la ventana, se reparte en más cajas o páginas, o se amplía la ventana, pero nunca se condensa ni se le quitan palabras.
 
