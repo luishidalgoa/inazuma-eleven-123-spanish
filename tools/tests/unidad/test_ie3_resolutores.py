@@ -36,7 +36,7 @@ def test_intercambiar_referencia():
 
 
 def test_cortar_en_dos():
-    t = "Hola, amigo. ¿Qué tal estás?\fMuy bien, gracias."
+    t = "Hola, amigo. ¿Qué tal estás?\\fMuy bien, gracias."
     assert RS.cortar_en_dos(t, lambda s: len(s) < 40) == ("Hola, amigo. ¿Qué tal estás?", "Muy bien, gracias.")
     t = "Uno dos tres. Cuatro cinco seis siete ocho."
     a, b = RS.cortar_en_dos(t, lambda s: len(s) <= 30)

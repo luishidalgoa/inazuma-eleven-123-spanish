@@ -24,7 +24,8 @@ __all__ = ["cortar_en_dos", "indexar_lineas", "intercambiar_referencia", "memori
            "repite_vecina"]
 
 _FURIGANA = re.compile(r"%\d+F")
-SALTO = "\\n"
+SALTO = "\\n"          # salto de línea literal del texto (barra + n)
+PAGINA = "\\f"         # salto de página literal (barra + f)
 
 
 def memoria_unanime(filas: Iterable[Mapping], oficiales: set[str],
@@ -90,25 +91,27 @@ _FIN = re.compile(r"[.!?…»\"”)]$")
 def cortar_en_dos(texto: str, cabe) -> tuple[str, str] | None:
     """Corta ``texto`` en dos partes que cumplan ``cabe(parte) -> bool``, sin quitar ni cambiar palabras.
 
-    Solo corta en un separador (``\f``, ``\n`` literales o espacio), que desaparece. Preferencia: salto de página;
+    Solo corta en un separador (``\\f``, ``\\n`` literales o espacio), que desaparece. Preferencia: salto de página;
     luego fin de oración; luego coma; después cualquier separador. Dentro de cada clase, el corte más equilibrado.
     Devuelve None si ningún corte deja las dos partes dentro de ``cabe``.
     """
     cortes = []
     i = 0
     while i < len(texto):
-        for sep in ("\f", "\n", " "):
+        for sep in (PAGINA, SALTO, " "):
             if texto.startswith(sep, i):
                 izq, der = texto[:i], texto[i + len(sep):]
                 if izq.strip() and der.strip():
-                    if sep == "\f":
+                    if sep == PAGINA:
                         clase = 0
                     elif _FIN.search(izq.rstrip()):
                         clase = 1
                     elif izq.rstrip().endswith(","):
                         clase = 2
-                    else:
+                    elif sep == SALTO:
                         clase = 3
+                    else:
+                        clase = 4
                     cortes.append((clase, abs(len(izq) - len(der)), izq, der))
                 i += len(sep) - 1
                 break
