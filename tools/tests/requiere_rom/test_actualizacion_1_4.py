@@ -39,3 +39,16 @@ def test_relocaliza_la_candidata_en_la_1_4(rutas, nombre):
     assert r.ok, [p.a_dict() for p in r.fallidos][:5]
     assert verificar_estructura(dest, r.datos, r.rangos) == []
     assert verificar_relocalizacion(base, cand, dest, r) == []
+
+
+def test_bufer_rubi_en_la_1_0_y_relocalizado_en_la_1_4(rutas):
+    """La capa bufer_rubi se aplica a la candidata 1.0 y se relocaliza entera en la 1.4 (#87)."""
+    from ie123kit.ie3.comun.bufer_rubi import aplicar_bufer_rubi
+
+    base, cand, dest = ((d / "ina_main3ogre.cro").read_bytes() for d in rutas)
+    cand_rubi, informe = aplicar_bufer_rubi(cand)
+    assert informe["parches"] or informe["ya_aplicado"]
+    r = relocalizar(base, cand_rubi, dest, absolutas=ABSOLUTAS)
+    assert r.ok
+    assert b"\xcd\xde\x4d\xe2" in r.datos  # sub sp, sp, #0xcd0 en la 1.4
+    assert verificar_relocalizacion(base, cand_rubi, dest, r) == []
