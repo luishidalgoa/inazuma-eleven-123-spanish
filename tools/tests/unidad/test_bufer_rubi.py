@@ -38,17 +38,17 @@ def test_localiza_y_amplia():
     d = cro_con_pintor()
     assert localizar(d) == F
     salida, informe = aplicar_bufer_rubi(d)
-    assert not informe["ya_aplicado"] and informe["funcion"] == hex(F)
+    assert not informe["ya_aplicado"] and informe["funciones"] == {"pintor_rubi_a": hex(F)}
     md = Cs(CS_ARCH_ARM, CS_MODE_ARM)
     texto = {p.direccion - F: next(md.disasm(p.despues.to_bytes(4, "little"), p.direccion)).op_str
              for p in parches(d, F)}
     assert texto == {
-        0x0C: "sp, sp, #0xcd0",
-        0x10: "r1, sp, #0xa00",      # base de los argumentos (vldr [r1, #0x31c...])
-        0x14: "r3, sp, #0xa00",      # base de los argumentos (ldm r3 tras +0x324)
+        0x0C: "sp, sp, #0xed0",
+        0x10: "r1, sp, #0xc00",      # base de los argumentos (vldr [r1, #0x31c...])
+        0x14: "r3, sp, #0xc00",      # base de los argumentos (ldm r3 tras +0x324)
         0x30: "r6, r6, #0x2d0",      # búfer de texto -> sp+0xad0
-        0x48: "r1, [sp, #0xd18]",
-        0x54: "sp, sp, #0xcd0",
+        0x48: "r1, [sp, #0xf18]",
+        0x54: "sp, sp, #0xed0",
     }
     otra, inf2 = aplicar_bufer_rubi(salida)
     assert otra == salida and inf2["ya_aplicado"]

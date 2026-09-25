@@ -45,14 +45,15 @@ def test_relocaliza_la_candidata_en_la_1_4(rutas, nombre):
 @pytest.mark.parametrize("nombre", ["ina_main1.cro", "ina_main2.cro", "ina_main3ogre.cro"])
 def test_bufer_rubi_en_la_1_0_y_relocalizado_en_la_1_4(rutas, nombre):
     """La capa bufer_rubi se aplica a la CRO 1.0 original y se relocaliza entera en la 1.4 (#87)."""
-    from ie123kit.nucleo.ejecutable.bufer_rubi import aplicar_bufer_rubi, localizar
+    from ie123kit.nucleo.ejecutable.bufer_rubi import aplicar_bufer_rubi, localizar_todos
 
     base, _cand, dest = ((d / nombre).read_bytes() for d in rutas)
     con_rubi, informe = aplicar_bufer_rubi(base)
-    assert len(informe["parches"]) == 13
+    esperado = {"ina_main1.cro": 13, "ina_main2.cro": 25, "ina_main3ogre.cro": 25}[nombre]  # A 13 + B 12
+    assert len(informe["parches"]) == esperado
     r = relocalizar(base, con_rubi, dest)
     assert r.ok
     directo, _ = aplicar_bufer_rubi(dest)  # aplicarla directamente a la 1.4 da lo mismo
     assert r.datos == directo
     assert verificar_relocalizacion(base, con_rubi, dest, r) == []
-    assert localizar(dest) > 0
+    assert localizar_todos(dest)
