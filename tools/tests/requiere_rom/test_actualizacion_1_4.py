@@ -41,14 +41,18 @@ def test_relocaliza_la_candidata_en_la_1_4(rutas, nombre):
     assert verificar_relocalizacion(base, cand, dest, r) == []
 
 
-def test_bufer_rubi_en_la_1_0_y_relocalizado_en_la_1_4(rutas):
-    """La capa bufer_rubi se aplica a la candidata 1.0 y se relocaliza entera en la 1.4 (#87)."""
-    from ie123kit.ie3.comun.bufer_rubi import aplicar_bufer_rubi
 
-    base, cand, dest = ((d / "ina_main3ogre.cro").read_bytes() for d in rutas)
-    cand_rubi, informe = aplicar_bufer_rubi(cand)
-    assert informe["parches"] or informe["ya_aplicado"]
-    r = relocalizar(base, cand_rubi, dest, absolutas=ABSOLUTAS)
+@pytest.mark.parametrize("nombre", ["ina_main1.cro", "ina_main2.cro", "ina_main3ogre.cro"])
+def test_bufer_rubi_en_la_1_0_y_relocalizado_en_la_1_4(rutas, nombre):
+    """La capa bufer_rubi se aplica a la CRO 1.0 original y se relocaliza entera en la 1.4 (#87)."""
+    from ie123kit.nucleo.ejecutable.bufer_rubi import aplicar_bufer_rubi, localizar
+
+    base, _cand, dest = ((d / nombre).read_bytes() for d in rutas)
+    con_rubi, informe = aplicar_bufer_rubi(base)
+    assert len(informe["parches"]) == 13
+    r = relocalizar(base, con_rubi, dest)
     assert r.ok
-    assert b"\xcd\xde\x4d\xe2" in r.datos  # sub sp, sp, #0xcd0 en la 1.4
-    assert verificar_relocalizacion(base, cand_rubi, dest, r) == []
+    directo, _ = aplicar_bufer_rubi(dest)  # aplicarla directamente a la 1.4 da lo mismo
+    assert r.datos == directo
+    assert verificar_relocalizacion(base, con_rubi, dest, r) == []
+    assert localizar(dest) > 0
