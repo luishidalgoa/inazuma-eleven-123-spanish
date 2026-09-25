@@ -165,18 +165,17 @@ def main(argv=None) -> int:
     root = find_root().resolve()
     logs = root / "work/informes/complemento_bomber"
     logs.mkdir(parents=True, exist_ok=True)
-    log = logs / (dt.datetime.now().strftime("%Y%m%d_%H%M%S_%f") + ".log")
-    with log.open("w", encoding="utf-8") as handle:
-        with contextlib.redirect_stdout(_Tee(sys.stdout, handle)), \
+    log = logs / (dt.datetime.now().strftime("%Y%m%d_%H%M%S_%f") + ".log")  # noqa: DTZ005 (hora local para el nombre del registro)
+    with log.open("w", encoding="utf-8") as handle, contextlib.redirect_stdout(_Tee(sys.stdout, handle)), \
                 contextlib.redirect_stderr(_Tee(sys.stderr, handle)):
-            print(f"Log: {log}", flush=True)
-            try:
-                ejecutar(root, args)
-            except (Exception, KeyboardInterrupt):
-                traceback.print_exc()
-                print("\nDETENIDO. No se ha declarado una nueva ROM válida. Los originales se conservan.")
-                print(f"Comparte este log si necesitas revisar el fallo: {log}")
-                return 1
+        print(f"Log: {log}", flush=True)
+        try:
+            ejecutar(root, args)
+        except (Exception, KeyboardInterrupt):  # noqa: BLE001 (se registra la traza y se sigue)
+            traceback.print_exc()
+            print("\nDETENIDO. No se ha declarado una nueva ROM válida. Los originales se conservan.")
+            print(f"Comparte este log si necesitas revisar el fallo: {log}")
+            return 1
     return 0
 
 

@@ -11,9 +11,10 @@ import copy
 import hashlib
 import json
 import shutil
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Any, Callable
+from typing import Any
 
 from .bomber_video_qa import comparar_pareja, decodificar, escribir_json, validar_resultado
 
@@ -61,7 +62,7 @@ def leer_json(path: Path) -> dict:
         return result
     value = json.loads(path.read_text(encoding="utf-8-sig"), object_pairs_hook=sin_duplicados)
     if not isinstance(value, dict):
-        raise ValueError(f"Se esperaba objeto JSON: {path}")
+        raise ValueError(f"Se esperaba objeto JSON: {path}")  # noqa: TRY004 (error de contenido del JSON)
     return value
 
 
@@ -78,7 +79,7 @@ def exigir_huella(actual: dict, expected: dict, label: str) -> None:
     if (actual.get("sha256"), actual.get("size")) != (expected.get("sha256"), expected.get("size")):
         raise ValueError(f"Hash/tamaño modificado: {label}")
     if not isinstance(actual.get("sha256"), str) or not isinstance(actual.get("size"), int):
-        raise ValueError(f"Huella sin SHA/tamaño: {label}")
+        raise ValueError(f"Huella sin SHA/tamaño: {label}")  # noqa: TRY004 (error de contenido del JSON)
 
 
 def ruta_interna(base: Path, relative: str) -> Path:

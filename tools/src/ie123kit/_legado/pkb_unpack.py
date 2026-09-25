@@ -17,9 +17,9 @@ no se extrae 100% limpio sin un parser del bytecode (PENDIENTE: catalogar los
 codigos de control). Este modulo resuelve el INDICE y da un volcado best-effort.
 
 Uso:
-    python tools/pkb_unpack.py <pkh> <pkb> --list
-    python tools/pkb_unpack.py <pkh> <pkb> --extract-dir work/eve_entries
-    python tools/pkb_unpack.py <pkh> <pkb> --text work/eve_text.csv [--enc sjis|nds]
+    python -m ie123kit._legado.pkb_unpack <pkh> <pkb> --list
+    python -m ie123kit._legado.pkb_unpack <pkh> <pkb> --extract-dir work/eve_entries
+    python -m ie123kit._legado.pkb_unpack <pkh> <pkb> --text work/eve_text.csv [--enc sjis|nds]
 """
 import argparse
 import csv

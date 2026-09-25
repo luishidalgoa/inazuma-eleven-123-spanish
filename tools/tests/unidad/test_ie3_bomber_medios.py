@@ -1,5 +1,4 @@
 """Pruebas sintéticas. No contienen ROMs, fuentes, pistas ni vídeos comerciales."""
-import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path

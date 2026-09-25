@@ -65,7 +65,7 @@ class B123Error(RuntimeError):
 
 
 class B123Entry:
-    __slots__ = ("path", "name", "directory", "offset", "size", "index", "aux")
+    __slots__ = ("aux", "directory", "index", "name", "offset", "path", "size")
 
     def __init__(self, directory, name, offset, size, index, aux):
         self.directory = directory

@@ -20,7 +20,8 @@
         "LAYOUT_MOFLEX",
         "HERRAMIENTA_AUSENTE",
         "NOT_SUPPORTED",
-        "CONTENIDO_EN_GIT"
+        "CONTENIDO_EN_GIT",
+        "GATE_FALLIDO"
       ]
     },
     "severidad": {
@@ -51,5 +52,13 @@
     "codigo",
     "severidad",
     "mensaje"
+  ],
+  "examples": [
+    {
+      "codigo": "EXCEDE_PX",
+      "severidad": "aviso",
+      "mensaje": "se sale",
+      "activo_id": "ie1:grafico:inazuma1/data_iz/a_title/title_t.arc#ie01_title_t_tlogo.tga"
+    }
   ]
 }

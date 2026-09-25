@@ -40,14 +40,14 @@ Generar `work/ie3_es/inventario.json` con cada archivo del RomFS: ruta, tamaño,
 bytes (magic). Comparar la estructura con el 1·2·3 japonés (`work/shared/base_3ds/romfs`), donde el juego 3 vive en
 `inazuma3/` y `inazuma3_ogre/` dentro de `archive.fa`.
 Preguntas que el inventario debe responder:
-- ¿Hay `archive.fa` o los archivos van sueltos? (`tools/fa_unpack.py` lee `archive.fa`.)
+- ¿Hay `archive.fa` o los archivos van sueltos? (`ie123kit._legado.fa_unpack` lee `archive.fa`.)
 - ¿Existen `data_iz/script/eve.pkh` y `eve.pkb`? ¿Hay carpetas por idioma (`sp`, `es`, `EU`…)?
 - ¿Qué fuentes lleva (`font/*.bcfnt`, `*.NFTR`)?
 
 ### 3. Diálogos de NPC e historia → JSON
 
-- Índice y eventos: `tools/pkb_unpack.py` (`parse_index`) y `tools/lz10.py` (`decompress`).
-- Cada evento es un SSD: `tools/ssd_records.py` (`parse`) devuelve instrucciones y registros de texto.
+- Índice y eventos: `ie123kit._legado.pkb_unpack` (`parse_index`) y `ie123kit.nucleo.compresion.lz10` (`decompress`).
+- Cada evento es un SSD: `ie123kit.nucleo.eventos.ssd` (`parse`) devuelve instrucciones y registros de texto.
   Formato documentado en `docs/EVENT_SCRIPT_FORMAT.md` y `docs/SSD_REGISTROS_IE1.md`.
 - **Codificación: por determinar.** El 1·2·3 japonés usa Shift-JIS, y nuestra traducción mete las
   tildes como letras griegas. La versión europea puede usar otra tabla (Latin-1, UTF-16 o una tabla

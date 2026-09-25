@@ -105,7 +105,7 @@ def load_text_table(archive):
     """Saca la tabla del contenedor B123 del juego; identidad si no la trae."""
     try:
         blob = archive.read(CODETABLE_PATH)
-    except (KeyError, Exception):  # noqa: B014 - el contenedor lanza varias cosas
+    except (KeyError, Exception):  # noqa: BLE001 (se registra la traza y se sigue)
         return TextTable.identity()
     return TextTable.from_codetable(blob)
 

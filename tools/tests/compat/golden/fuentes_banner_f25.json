@@ -1,0 +1,25 @@
+{
+ "nota": "Solo hashes de las entradas y salidas vigentes de las capas de fuentes, menús y banner (Norma 2: ningún dato del juego). Se comprueban en tests/requiere_rom/test_equivalencia_fuentes_banner.py (F2.5, #51).",
+ "ficheros": {
+  "ie1/capas/historial/fuentes/v88_bigramas_total/extra/font/FONT12.bcfnt": "0cb49263f211ed429dcc6b3cc525b27ba1afb0d5fea3cd526ff0ff09e1f00e6d",
+  "ie1/capas/fuentes/bigramas_ritmo/extra/font/FONT12.bcfnt": "b409c24c8a955fe534a32cfc8ffd1c2148bcf2f89ce97208c232fc9a57eb7d23",
+  "ie1/capas/fuentes/bigramas_ritmo/registro.json": "bfbca8b4d309fc20af6b4987da637f17af3d4c0e579ed4129f5b63ff5008fdee",
+  "ie1/capas/fuentes/bigramas_ritmo/informe.json": "095f3e4a03a3e68a4143c5d5cd8d221d99413b96aa5aec5658b8e8ef2365f129",
+  "ie1/capas/fuentes/bigramas_ritmo/literales.json": "11093d5a051d1186ad618c4ae32041c7084f0221143d32644e2dd81ae55a4a62",
+  "ie2/shared/capas/rotulos_objetivos/menus_objetivos/extra/font/FONT12.bcfnt": "a4f37907715170ddc3df94e45a49006251d223e564d8add04fc0ea260de58841",
+  "ie2/shared/capas/rotulos_objetivos/menus_objetivos/extra/font/FONT8.bcfnt": "758093a4041a19e86e2284e01495c2ba122cedf0c19ef8afe37805b323cf1418",
+  "ie2/shared/capas/rotulos_objetivos/menus_objetivos/romfs/cro/ina_main2.cro": "b56aed962eca81305125d1ff27751edbbdca519ea737140c4e0eaa4ed7d2a8e4",
+  "ie2/shared/capas/rotulos_objetivos/menus_objetivos/registro.json": "f0a3404dc9379ea940a9973fd6492881f658f859e0c9b9d340002b6cd2cf2af3",
+  "ie2/shared/capas/menus_cro/menus/extra/font/FONT12.bcfnt": "2e2312671b0b136d3059b401d626050180ad7311b6f29fef7604116a3c5cc88e",
+  "ie2/shared/capas/menus_cro/menus/extra/font/FONT8.bcfnt": "bec491a0eedbe6c87454b68da3a7097e7d37730301fbec1f52e53fdc812be7db",
+  "ie2/shared/capas/menus_cro/menus/romfs/cro/ina_main2.cro": "8b0c331c8cbb2d91a4f3e693c69462bca025670f3b4b499d082e705abe30256d",
+  "ie2/shared/capas/menus_cro/menus/registro.json": "e9edbc0ae28b5dea61043b00d1c580d404976ae2f537474e85f4b62baacb42ac",
+  "shared/base_3ds/exefs/icon.icn": "78a5df152b95ff84b2731786cd88429af2929797016f0f12eeccfc2004483352",
+  "shared/base_3ds/exefs/banner.bnr": "0432ed08fa4d9270791ccbf2c4fda411b49e547c1e488c5e4e3b709d66b5ad62",
+  "shared/capas/graficos/banner_home/extra/COMMON1_es.png": "e6287bcd15ddd48a7859627e9ed90490e7b02aa6436a81dd07d85020a717ff49",
+  "shared/capas/graficos/banner_home/extra/banner_es.cgfx": "afd3f21a8c718809d3dce29035690c9f56fbcee04a8fea8bce75bc6d4d8cb78d",
+  "shared/capas/graficos/banner_home/extra/banner_es.bcwav": "1a08506cb8b39c8525b32a3cf26c1d713d58a8bb8421973a2af68766d1c91314",
+  "shared/capas/graficos/banner_home/salida/banner.bnr": "18af16838d452c1ab412be38c7da9b3791eb210716bbd8158a4910f4d8f6e7ca",
+  "shared/capas/graficos/banner_home/salida/icon.bin": "8759664d7a85121235b08a88e6ef246134a03f17093e05839abf2bf7044ddaa5"
+ }
+}

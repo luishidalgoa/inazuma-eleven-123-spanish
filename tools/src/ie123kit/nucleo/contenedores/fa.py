@@ -9,10 +9,10 @@ y asumen tablas comprimidas -> de ahi este parser propio.
 Descompresion Level-5 portada de StudioElevenLib (Tiniifan) / Kuriimu.
 
 Uso:
-    python tools/fa_unpack.py work/shared/base_3ds/romfs/archive.fa --tree            # listar todo
-    python tools/fa_unpack.py work/shared/base_3ds/romfs/archive.fa --tree --filter sItx
-    python tools/fa_unpack.py work/shared/base_3ds/romfs/archive.fa -o work/fa_extract --filter inazuma1
-    python tools/fa_unpack.py work/shared/base_3ds/romfs/archive.fa -o work/fa_extract # extraer todo
+    python -m ie123kit._legado.fa_unpack work/shared/base_3ds/romfs/archive.fa --tree            # listar todo
+    python -m ie123kit._legado.fa_unpack work/shared/base_3ds/romfs/archive.fa --tree --filter sItx
+    python -m ie123kit._legado.fa_unpack work/shared/base_3ds/romfs/archive.fa -o work/shared/fa_extract --filter inazuma1
+    python -m ie123kit._legado.fa_unpack work/shared/base_3ds/romfs/archive.fa -o work/shared/fa_extract # extraer todo
 
 NOTA: el contenido extraido tiene copyright; va a work/ (ignorado por git).
 """
@@ -224,6 +224,48 @@ class FaArchive:
         comodin = any(c in patron for c in "*?[")
         rutas = [p for p in self.index if (fnmatch.fnmatchcase(p, patron) if comodin else p.startswith(patron))]
         return {p: self.read(p) for p in sorted(rutas)}
+
+
+class FaArchiveMapeado(FaArchive):
+    """:class:`FaArchive` sobre ``mmap``: lee entradas de contenedores de varios GiB sin cargarlos.
+
+    Misma API de lectura (``entries``, ``index``, ``read``, ``glob``, ``exists``). Cerrar con
+    :meth:`cerrar` (o usar ``with``) antes de escribir en el mismo fichero.
+    """
+
+    def __init__(self, path):
+        import mmap
+
+        self.ruta = str(path)
+        self._indice = None
+        self._fh = open(path, "rb")  # noqa: SIM115 - se cierra en cerrar()
+        self.d = mmap.mmap(self._fh.fileno(), 0, access=mmap.ACCESS_READ)
+        d = self.d
+        if d[0:4] not in (b"B123", b"ARC0", b"XFSA"):
+            magic = bytes(d[0:4])
+            self.cerrar()
+            raise ValueError(f"Magic no soportado: {magic!r}")
+        self.de_off, self.dh_off, self.fe_off, self.name_off, self.data_off = struct.unpack_from("<5i", d, 4)
+        self.de_cnt = struct.unpack_from("<H", d, 24)[0]
+        self.fe_cnt = struct.unpack_from("<I", d, 28)[0]
+        self.entries = self._walk()
+
+    def _name(self, base):
+        o = self.name_off + base
+        e = self.d.find(b"\x00", o)
+        if e < 0:
+            raise ValueError(f"nombre sin terminar en 0x{o:x}")
+        return bytes(self.d[o:e]).decode("shift-jis", "replace")
+
+    def cerrar(self):
+        self.d.close()
+        self._fh.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.cerrar()
 
 
 def fe_offset_of(arc, suffix):

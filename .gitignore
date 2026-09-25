@@ -68,3 +68,4 @@ ie123.local.toml
 
 # Dialogo oficial de IE3 por version (copyright): solo local
 translation/*/*/dialogo_oficial.csv
+translation/*/*/pachangas_oficial.csv

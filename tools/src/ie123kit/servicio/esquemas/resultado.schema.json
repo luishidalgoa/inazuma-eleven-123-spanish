@@ -58,7 +58,8 @@
             "LAYOUT_MOFLEX",
             "HERRAMIENTA_AUSENTE",
             "NOT_SUPPORTED",
-            "CONTENIDO_EN_GIT"
+            "CONTENIDO_EN_GIT",
+            "GATE_FALLIDO"
           ]
         },
         "severidad": {
@@ -91,5 +92,19 @@
         "mensaje"
       ]
     }
-  }
+  },
+  "examples": [
+    {
+      "ok": true,
+      "datos": {
+        "n": 1
+      },
+      "incidencias": [],
+      "artefactos": [
+        "a.png"
+      ],
+      "duracion_s": 0.0,
+      "api_version": "1.0"
+    }
+  ]
 }

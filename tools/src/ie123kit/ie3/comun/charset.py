@@ -52,9 +52,9 @@ def comprobar_fuentes(archive_path: Path, base_fonts: Path,
     )
     official = FaArchive(str(official_archive))
     try:
-        from ie123kit.ie3.comun.text import TextTable
         from ie123kit.ie3.comun.nombres import caracteres_cortos
-        from ie123kit.ie3.comun.tipografia import adaptar_font12, adaptar_font8_nombres
+        from ie123kit.ie3.comun.text import TextTable
+        from ie123kit.ie3.comun.tipografia import adaptar_font8_nombres, adaptar_font12
 
         tabla_es = TextTable.from_codetable(official.read("font/CodeTable.bin"))
         unitbase = "inazuma3/data_iz/logic/unitbase.dat"
@@ -103,7 +103,7 @@ def main(argv: list[str] | None = None) -> int:
     root = find_root()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("archive", type=Path, help="archive.fa candidato o extraído de la ROM")
-    parser.add_argument("--base-fonts", type=Path, default=root / "work" / "fa_extract")
+    parser.add_argument("--base-fonts", type=Path, default=root / "work" / "shared" / "fa_extract")
     args = parser.parse_args(argv)
     rows = comprobar_codificacion()
     hashes = comprobar_fuentes(args.archive, args.base_fonts)

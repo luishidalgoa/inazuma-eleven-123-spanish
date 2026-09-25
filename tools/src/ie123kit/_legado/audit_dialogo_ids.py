@@ -18,7 +18,7 @@ Salida (work/, gitignored: contiene texto oficial):
   work/ie1/legacy/audit_dialogo/build_vs_nds.csv     filas de dialogo.csv cuyo es_final contradice al id
   work/ie1/legacy/audit_dialogo/resumen.json
 
-Uso: python tools/audit_dialogo_ids.py
+Uso: python -m ie123kit._legado.audit_dialogo_ids
 """
 import csv
 import collections

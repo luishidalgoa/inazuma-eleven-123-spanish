@@ -34,7 +34,7 @@ def _assetref(**kw) -> AssetRef:
 
 
 def test_codigos_estables() -> None:
-    assert len(CODIGOS) == 13
+    assert len(CODIGOS) == 14
     assert "NOT_SUPPORTED" in CODIGOS
 
 

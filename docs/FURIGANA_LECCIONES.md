@@ -520,3 +520,408 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
 - **Regla:** cada página debe cumplir `2 × caracteres + (líneas − 1) ≤ 131`, con líneas de hasta 37
   caracteres. Esto también afecta al reparto de 22 × 3: en la v10 hay 122 páginas de 132–134 B.
 - **Cómo cumplirla sin tocar el texto:** repartir el texto en más páginas, nunca recortarlo.
+
+## ⚠️ IE2: tres cosas que parecían texto y no lo eran (v20–v23, 2026-09-19)
+
+- **Los menús de opciones de los eventos** (Mapa/Caravana/Volver, Comprar/Vender/Salir…) son **sprites**:
+  la instrucción 0x308e solo cambia el fotograma. Están en `a_data_replace/field_board/data/`.
+- **Los argumentos del diálogo se usan en orden.** En japonés, el marcador de furigana consume antes su
+  lectura. Si se quita la furigana, el `%s` se queda con la lectura («fichar a いま»).
+  ❌ **NO reordenar los argumentos de la instrucción** (se probó en la v20–v23 y se instaló): el juego
+  **se cuelga** al abrir las máquinas de Hillman (Ojear y Fichar) y el videoteléfono. La caja de diálogo
+  se abre vacía, con la pestaña del nombre puesta, y no responde. Son 12 instrucciones con `%s` en
+  7 eventos de cada edición (23000021, 23000031, 23000081, 23000162, 25120100, 25130472, 25130473).
+  El orden de los argumentos **tiene que ser el del japonés**; se restaura con
+  `work/ie2/shared/capas/orden_argumentos/restaurar.py` (2026-09-20). Si el `%s` sale con la lectura
+  furigana, hay que arreglarlo por el lado del TEXTO, nunca moviendo argumentos.
+- **El menú de campo dibuja las letras según su anchura real, no con un paso fijo de 15 px** (al revés que
+  los rótulos). Tres rondas fallaron por usar el modelo de paso fijo. **Regla:** antes de dar por bueno un
+  cambio de texto, comprobar que la simulación reproduce la captura del usuario con el fallo tal cual.
+- El nombre de técnica del recuadro de partido es un gráfico (el cartel de la técnica), no `command.STR`:
+  solo se ven 86 px.
+
+## ✅ Búfer de página del diálogo ampliado a 256 B (IE3, probado en juego el 2026-09-22)
+
+- El tope «132 B por página» (`2 × caracteres + (líneas − 1) ≤ 131`) **sí se puede ampliar en su sitio**:
+  no hace falta hueco en el marco, se agranda el marco. En la función que dibuja la página
+  (IE3 `ina_main3ogre.cro` 0x3a75c, IE2 `ina_main2.cro` 0x4d4d8, IE1 `ina_main1.cro` 0x46f00) se cambian
+  13 inmediatos: `sub/add sp,sp,#F` → `F+0x100`, las 3 referencias al búfer → `sp+F` (zona nueva) y
+  los accesos a registros guardados `[sp,#k≥F]` → `k+0x100`. Sin código nuevo ni huecos.
+  Motor: `ie123kit.nucleo.ejecutable.bufer_pagina` (localiza la función y audita todos los accesos a sp).
+- Resultado en el IE3: cajas de 3 líneas × 37 caracteres en ancho completo (2 B por letra), sin cambiar
+  la codificación. Antes el reparto dejaba una sola línea por caja.
+- En el IE3 el salto de página `\f` **funciona** (la conclusión contraria de la bitácora de IE3 era un
+  efecto del fallo de offsets que comía bytes, ya resuelto con las referencias `@offset,longitud`).
+
+## ❌ Pantalla de guardado del IE1 con los rótulos europeos (candidata IE3 v11/v12, probado el 2026-09-23)
+
+- **Qué se probó:** en `ina_main1.cro` (función 0x719e4, caja de partida):
+  - quitar el avance fijo por defecto de FONT8 (0xe62ac `beq 0xe6304`);
+  - pasar el argumento 0x98 de las llamadas de dibujo a 0xb8, como el CRO europeo (0x71a1c);
+  - rótulos completos en latín de 1 byte («Niv. Equipo», «Jugadores», «Elige un espacio de guardado.»).
+- **Resultado en Azahar:** pantalla rota.
+  - Las letras siguen a paso fijo (~10,5 px): el paso de esta caja **no sale del avance por defecto de FONT8**.
+  - Con 0xb8 los rótulos se descolocan y bajan de fila: **0x98 no es un ancho**. El motor de texto del
+    IE1 europeo es otro, así que sus argumentos no valen para el japonés.
+  - «Elige un espacio de guardado.» parte en dos líneas y la segunda no se ve.
+- **Regla:** con paso fijo, cada rótulo tiene el número de caracteres del japonés (5 antes del nivel, 3 antes
+  de los jugadores, una línea de ~16 en la barra inferior). Los latín de 1 byte se dibujan con el mismo paso
+  que el ancho completo. No copiar argumentos de llamadas del CRO europeo.
+
+## ❌ Objetivos del IE2 en «casillas» (bigramas a paso fijo) (probado el 2026-09-23)
+
+- En la caja de objetivos del IE2 las casillas de la v22 se montan («r», «m», «i») y se comen espacios
+  («alcampo»). En el IE3, la misma caja muestra bien el latín de 1 byte con portadores (`es_encode`).
+  Desde la v12 (candidata del IE3) los objetivos del IE2 van como en el IE3: texto oficial íntegro de ≤ 63 B
+  (`work/ie2/shared/capas/rotulos_objetivos/objetivos_1byte`).
+
+## ✅ Diálogo del IE2 dentro de la caja: el motor suma 1 px por carácter (aprobado el 2026-09-23)
+
+- La caja del IE2 con espacios estrechos se salía por la derecha con topes de 296, 290 y 284 px medidos solo
+  con la CWDH. El motor suma **1 px por carácter** (`BUG_FIX_MODE_X_ADD = 1` en `import/sItxInazuma123.itx`):
+  con ese píxel, las tres capturas dan un borde real de ~320 px. Con 314/314/300 px (tercera línea con el
+  icono) el usuario la dio por buena (candidata IE3 v13). Capa `work/ie2/shared/capas/dialogo/espacio_estrecho`.
+- Al reejecutar un reparto sobre texto ya repartido, devolver antes el espacio 0x20 a 0x8140: si no, el
+  repartidor no rehace nada (117 153 registros «no rehechos» en silencio).
+
+## ⚠️ Rótulo de lugar: 10 baldosas de 8×8 en la VRAM emulada (IE1, IE2 e IE3)
+
+- El rótulo (0x4037 argumento 3) se dibuja en un mapa de bits de 80×8 en VRAM+0x1500 (0x140 B = 10
+  baldosas de 32 B): IE1 0x7a3bc, IE2 0x8a548, IE3 0x83bf8. Cada carácter ocupa una baldosa, ocupe 1 o 2
+  bytes, así que el máximo son **10 caracteres**. En el IE3, VRAM+0x1e40 es otro rótulo de 32×8, y no se
+  sabe qué hay entre los dos: no ampliar el búfer sin comprobar en el emulador qué hay en VRAM+0x1640.
+- Los nombres europeos del IE3 que pasan de 10 caracteres (365 de 576 rótulos) se escribieron hasta 20 B:
+  según la lección de la v76, esa placa sale vacía. Pendiente de verlo en juego.
+
+## ⚠️ El «paso fijo» de fichas, blog, objetivos y rótulos sale de la NFTR, no de la BCFNT (2026-09-23)
+
+- Qué pantallas: la ficha del Registro, el blog, los objetivos, la pantalla de guardado y los rótulos de lugar.
+  Dibujan en el modo emulado de la DS (DRAW_ON_CHARACTOR). La **posición** de cada letra sale de la fuente NFTR
+  del juego (`inazuma*/data_iz/font/FONT12.NFTR` y `FONT8.NFTR`) y solo el dibujo sale de la BCFNT.
+- Por qué se veía separado: en la NFTR japonesa las letras latinas de ancho completo avanzan 10-11 px DS (la «ｒ»
+  lleva además un margen de 4). El conjunto se escala ×1,5625 (256 → 400 px): ~17 px por letra. Las letras de
+  1 byte se buscan por su equivalente de ancho completo.
+- ❌ No sirvió (v12-v14): quitar los anchos forzados del ITX en los dos motores de texto, ni copiar el ASCII de la
+  BCFNT sobre el de ancho completo.
+- Cambio (v15, pendiente de prueba): capa `work/shared/capas/fuentes/nftr_proporcional`. Avance DS =
+  round((avance BCFNT + 1) / 1,5625), margen 0; espacios 3 (ASCII) y 4 (ancho completo). Las cifras no se tocan.
+- Rótulos de lugar: 0x2ed24 reserva `strlen/2` baldosas de 8 px (máximo 10). Con letras proporcionales, un nombre
+  de 1 byte de hasta 20 B cabe si su ancho es ≤ (bytes // 2) × 8. Capa `work/shared/capas/rotulos_objetivos/rotulos_lugar`.
+
+## ⚠️ Pestañas «Por nombre» del Registro: contadores guardados en la partida (2026-09-23)
+
+- El número de jugadores de cada pestaña es un contador de la partida (objeto+0x148+fila). Se suma al registrar un
+  jugador, con la fila que da 0xc054 a partir de su nombre corto. La lista reparte `usearch.dat` en tramos de ese
+  tamaño.
+- ❌ Pasar a pestañas latinas y reordenar el fichero (v14) descuadra las partidas existentes: todo cae en ABC.
+- ✅ v15: 0xc054 usa una marca con la fila japonesa guardada en el último byte del campo del nombre corto
+  (+0x1C+15) y, si no la hay, la lógica kana original. El fichero conserva el orden japonés y cada tramo va por
+  orden alfabético. Capa `work/ie3/amenaza_del_ogro/capas/nombres/lista_registro_abc`.
+
+## ❌/⚠️ Letras de 1 byte en el modo DS y anchos forzados del ITX (v15, probado el 2026-09-23)
+
+- ❌ El rótulo del IE2 «Z. residencial» en latín de 1 byte salía «Z .   r», y los objetivos de 1 byte, muy separados.
+  La NFTR solo tiene letras de ancho completo: un carácter de 1 byte sin entrada en el CMAP toma el glifo y el ancho
+  por defecto (FINF: «？», 11 px). Arreglo (v16): un bloque CMAP 0x21-0x7E que apunta cada letra ASCII al glifo de
+  su equivalente de ancho completo (`nftr_proporcional.mapa_ascii`).
+- El texto de ancho completo sí mejoró con la NFTR proporcional: el blog del IE2 quedó bien.
+- ⚠️ El blog del IE1 siguió a paso fijo por otra razón: `import/sItxInazuma1.itx` fija el ancho de letra por pantalla
+  (`CSubAdventureScreenBlog_ArticleCharSpace = 11`, `CMainAdventureScreenBlog_TitleCharSpace = 12`), y con un valor
+  > 0 el motor no mira la fuente. La v16 los pone a 0 en un `import/sItxInazuma1.itx` suelto; falta ver si el juego
+  lo lee de la romfs. Hay más `*CharacterSpace`/`*CharaSpace` en los ITX de los tres juegos.
+- ⚠️ La descripción de la ficha del Registro (IE3) sigue a paso fijo con la NFTR proporcional, los dos motores sin
+  ancho por defecto y ningún parámetro del Registro en el ITX: el ancho viene de otro sitio (ancho global de pantalla
+  +0xeef6c o el del gestor, +0x28). Sin localizar.
+
+## ⚠️ Rótulo del equipo en la formación (pic2d/team/mgu_td) (2026-09-23)
+
+- Cada entrada (LZ10) es un sprite DS de 120×16: cabecera 0x20, paleta 16×BGR555 en 0x20, mapa de 30 baldosas
+  (15×2, con bits de volteo 0x400/0x800) en 0x40 y baldosas 4bpp desde 0x80. Índice 0 = fondo transparente,
+  1 = contorno, 15 = relleno. Los del IE1 comparten baldosas (el mapa no es 0..29).
+- La CIA europea del IE3 **no tradujo** mgu_td (los 176 sprites son los japoneses): hay que pintarlos. El IE2 sale
+  de la NDS española y el IE1 del europeo de 3DS (sus ids 201-204 están en blanco también en el original).
+- Letra de la NDS: relleno de trazo 2 px (mayúsculas en las filas 4-11, minúsculas 6-11, acentos 3-4), contorno =
+  dilatación 8-conexa del relleno (101/108 sprites), 1 columna entre letras, 5 en el espacio, centrado en 120 px.
+  Capa `work/ie3/shared/capas/graficos/rotulo_equipo` (letras extraídas de los sprites de la NDS; los nombres que
+  no caben usan espacio de 3/2 y letras estrechadas quitando una columna interior repetida, sin abreviar).
+
+## ❌ Rótulos de lugar en latín de 1 byte con la fuente proporcional (v15/v16, probado el 2026-09-23)
+
+- **Qué se probó:** capa `work/shared/capas/rotulos_objetivos/rotulos_lugar`: nombres completos de hasta 20 B en
+  latín de 1 byte, confiando en que la NFTR proporcional (y el mapa ASCII de la v16) juntaran las letras.
+- **Resultado en Azahar:** «Pas», «Segun», «Zona de»: una letra por casilla, muy separadas y cortadas a las 10.
+- **Causa:** el rótulo reserva y pinta **una baldosa de 8 px por carácter** (0x2ed24); la fuente no cambia el paso.
+  Además, la capa pisó los rótulos buenos del IE1 y del IE2, hechos con **bigramas** (dos letras por baldosa en
+  kanji reasignados de FONT8: «Ed. principal - 1.º»).
+- **Regla:** los rótulos de lugar del IE1/IE2 van en bigramas; no escribir latín suelto en 0x4037/3. La capa
+  `rotulos_bigramas` devuelve los de la v34. Un nombre nuevo o más largo exige bigramas nuevos en el registro.
+
+## ❌ Blog del IE1 con textos oficiales largos: cuelgue al abrirlo (v16, 2026-09-23)
+
+- **Síntoma:** «Undefined Instruction» con PC y registros llenos de letras de ancho completo (0x82xx).
+- **Causa (ina_main1.cro):** el pintor del blog 0xbda58 pasa el texto por 0x374cc, que copia los caracteres de
+  2 bytes y los saltos (no el latín de 1 byte, ni la lectura de la furigana) a un búfer de la pila en sp+0x628 que
+  acaba en el final del marco (sp+0x6c0, 152 B), **sin comprobar el tamaño**. Más allá pisa d8/d9, los registros
+  guardados y, a 220 B, el retorno. El japonés llega a 129 B; la v16 metió textos de hasta 261 B.
+- **Regla:** cada texto del blog del IE1, codificado, ≤ 149 B (tope `MAX_BYTES` en `work/ie1/capas/blog/oficial`).
+
+## ⚠️ Ficha del Registro (IE3): el paso fijo es FontGetCharWidth, una constante por fuente (2026-09-23)
+
+- `ina_main3ogre.cro` 0xa5548 dibuja el comentario (CommentX/Y o ExCommentX/Y) con el motor 2 (0x19e4c). Cada letra
+  avanza `FontGetCharWidth(tipo)` (code.bin 0x164660), que devuelve la tabla fija `{FONT12 12, FONT8 8, FONT12T 12,
+  RUBI 4}` **sin mirar la letra**; solo un ancho forzado > 0 lo cambia. Por eso ni la NFTR proporcional ni quitar los
+  anchos por defecto lo arreglaron. En pantalla: 1,25 × avance + 2,5 px por letra.
+- Cambio (v16, pendiente de prueba): capa `work/ie3/shared/capas/menus_cro/ficha_registro_proporcional` (28 palabras
+  en 0x1a468-0x1a4a0 y 0x1a52c-0x1a55c): avance = ancho BCFNT real de la letra. Si se montan, probar `--sin-deriva`.
+  Afecta a todo el texto del motor 2 sin ancho forzado: vigilar otras pantallas.
+
+## ✅/⚠️ Corrección: pestañas «Por nombre» del Registro (IE3) y rótulos de equipo po_s (2026-09-23)
+
+- La entrada «Pestañas "Por nombre" del Registro» de arriba se equivocaba: la lista **no** reparte usearch en tramos
+  del tamaño de los contadores. La letra (1..46) se calcula al abrir la lista con `0x26b568` a partir del nombre
+  mostrado; los contadores guardados (bss+0x1aca0) solo atenúan pestañas vacías. Con nombres ASCII la función
+  japonesa devolvía 0 (v14-v16: la lista solo veía los nombres en kana y 0x26e7cc escribía `vector[-1]`).
+  Capa nueva `work/ie3/amenaza_del_ogro/capas/nombres/lista_registro_latina` (sustituye a lista_registro_abc;
+  pestañas A-C…Z en los índices kana, contadores recalculados al abrir; ver su NOTAS.md). Pendiente de prueba.
+- La barra de equipo de la formación antes del partido es `pic2d/team/po_s` (256×32, escudo + nombre), no mgu_td.
+  El número del sprite no siempre es el id del equipo: el registro de team.pkb lleva en +0x2A el sprite que usa
+  (Inazuma Japón = 15, Raimon = 1). Capa `work/ie3/shared/capas/graficos/rotulo_equipo_barra`.
+
+## ⚠️ Gráficos DS sustituidos por texturas 3DS (a_data_replace) (2026-09-23)
+
+- El port de 3DS no dibuja algunos sprites DS: los **sustituye** por texturas CTPK de
+  `<raíz>/data_iz/a_data_replace/<tipo>/data/…arc`. La barra de la formación (po_s) sale de `formation_emblem`
+  (512×32, el po_s copiado 1:1 en x = 32). Antes de traducir un sprite de pic2d, comprobar si tiene su textura
+  en a_data_replace: traducir solo el sprite no cambia nada en pantalla.
+- formation_emblem: IE1 = las 16 europeas (es/); IE2 = pintadas desde el po_s de la NDS; IE3 Ogro ya en
+  español; IE3 Fuego/Rayo no la tiene (usa po_s). Capa `work/shared/capas/graficos/formation_emblem`.
+
+## ⚠️ Motor de texto 2: paso fijo en blog del IE1, objetivos del IE2 y ficha del IE3; los .itx del romfs no se leen (2026-09-23)
+
+- La segunda copia del motor es la misma en las tres CRO (IE1 0x2ed24, IE2 0x33408, IE3 0x19e4c) y avanza cada
+  letra `FontGetCharWidth` (constante por fuente). Capas v2 con el ancho BCFNT real: `ie1/capas/menus_cro/
+  blog_proporcional`, `ie2/shared/capas/menus_cro/objetivos_proporcional`, `ie3/shared/capas/menus_cro/
+  ficha_registro_proporcional` (38 palabras cada una). El diálogo usa la primera copia y no cambia.
+- Cambia todo el texto del motor 2 sin ancho forzado (IE1: ~86 llamadas: guardado, comandos, estado, tienda…):
+  revisar esas pantallas. Los objetivos del IE1 también pasan a proporcionales.
+- Los `g_Itx*` que usa el juego están compilados en code.bin (ro); los `import/*.itx` del romfs parecen no leerse:
+  por eso poner a 0 los CharSpace del blog no hizo nada.
+
+## ⚠️ Blog y subtítulos del IE3: búferes de 256 y 152 B en la pila (análisis estático, 2026-09-23)
+
+- El blog de la pantalla inferior (título 0x194b00, entrada 0x194d4c, comentario 0x194908) y el dibujante de
+  `movie/txt` (0x14cf84) pintan con 0x17fc4c: copia el texto con 0x23fd0 (la rutina 0x374cc del IE1) a sp+0xa28,
+  **256 B** sin comprobar, y dibuja la copia, que se salta el latín de 1 byte. El título de la pantalla superior va
+  por 0x181370 (sp+0xa38, **152 B**). Antes de pintar, 0x197790 sustituye en su sitio los `%s` de la entrada.
+- Con ancho completo, la entrada japonesa llega a 152 B y 6 líneas de 16 caracteres; las europeas miden 270-410 B y
+  necesitan 6-9 líneas de la caja de 192 px DS. Con el texto íntegro solo caben 5 entradas, 27 títulos y 1
+  comentario (capa `work/ie3/shared/capas/blog/oficial`). Para el resto hace falta ampliar el búfer de 0x17fc4c
+  (como `bufer_pagina`) y más líneas por caja; no condensar.
+
+## ⚠️ Textos de logic/ del IE3: límites de lectura y pintores con furigana (2026-09-23, sin probar en juego)
+
+- Los pintores con furigana de `ina_main3ogre.cro` (0x17fc4c y 0x181370) pasan el texto por 0x23fd0, que copia
+  solo los caracteres de 2 bytes, `\n` y la sintaxis `[kanji/lectura]`: **descarta todo byte 0x20-0x7E** (el latín de
+  1 byte no se ve) y escribe en un búfer de pila de 256 B sin comprobar el tamaño. Donde el japonés lleva furigana
+  (descripciones de técnicas, objetos, tácticas y jugadores, condiciones, cápsulas, tiendas, Contactos…) solo vale el
+  ancho completo.
+- Las descripciones de command/item/tacticscmd/unitbase.STR se leen con tamaño fijo 0x80 (0x113218/0x113244/0x113284,
+  0xd24a4/0xd24d4, 0x126e6c/0x126eb8, 0x251ee0) a búferes de 128 B dentro de objetos seguidos de otros campos: ≤ 127 B
+  (63 letras de ancho completo). No se amplían como en la ficha del Registro.
+- rpgtitle.STR: 0x1fb118 lee 0x13 B (≤ 18 B). sp_binder.STR (Ogro): 0x1b62e4 toma el desplazamiento con `ldrsh`
+  (< 0x8000; el japonés ya ocupa 32.826 B) y lo copia a un búfer de 0x100.
+- Capas `work/ie3/shared/capas/textos_logic/*` (issue #91): lo que no cabe se queda en japonés y consta en su informe.json.
+
+## ⚠️ Rótulos completos en rebanadas y ampliación de FONT8 (2026-09-23)
+
+- Rótulos de lugar (IE1/IE2/IE3): el nombre se dibuja como tira FONT8 y se corta en 10 rebanadas de paso 10;
+  cada rebanada va en un código del registro (work/ie2/shared/capas/menus_cro/menus/registro.json, el vigente).
+  Capas `*/rotulos_objetivos/rotulos_completos`. Faltaban códigos: kanji que solo aparecen en gráficos o tablas
+  numéricas (opción a del usuario) y, con autorización expresa del usuario para tocar fuentes, 367 glifos nuevos
+  en FONT8 en la fila ED/EE (NEC-IBM).
+- ❌ El área de usuario SJIS F040+ NO sirve: get_code_utf16 (code.bin 0x17964c → 0x1a0f4c) solo convierte primeros
+  bytes 0x81-0xEE; lo demás sale «？».
+- ⚠️ Primera ampliación de la fuente (5.ª hoja, 573 → 707 KB): pendiente de ver en juego; si falla, sonda
+  `work/ie3/shared/capas/rotulos_objetivos/rotulos_sonda` (solo «Casa de Mark»).
+- Motor 2 (v3): los textos con bigramas (byte inicial ≥ 0x88) vuelven al paso fijo para que las piezas encajen.
+  Recuadro de objetivos IE2/IE3: una sola línea (y = 220); ancho subido de 480 a 608.
+
+- ❌ (2026-09-23, 2.ª tanda) Las filas SJIS 0x85, 0x86 y 0x87 (NEC fila 13: ①, Ⅰ, ㍉…) tienen puntero en la tabla de
+  code.bin 0x2a1c18, pero TODAS sus casillas dan U+3000: comparten glifo y no sirven como códigos. 8161 da U+2016
+  (cp932: U+2225). De ED/EE solo quedan 6 sin glifo y aparecen en texto real. Lo que queda son kanji que ya no usa
+  ningún texto: `rotulos_completos/escaneo_streaming.py` (escaneo v88 por entradas, válido para archives > 2 GiB) +
+  `pool2.py` → 720 códigos (498 de nivel 2). ❌ No usar `en_cadena` para decidir si un kanji es texto en evet/unitbase
+  ni en los eventos del IE1: el texto no lleva NUL justo delante (byte de longitud, `%1F`) y daba por libres kanji en uso.
+- Rótulos del IE3 con 2 px entre palabras: «RestauranteRaiRai» apenas separa las palabras (pendiente de ver en juego).
+  «Parte superior faro» tenía mal el CWDH de EEFB/EEFC en la candidata (0/10/10 y −2/10/8); la 2.ª tanda lo deja en −1/10/8.
+- Auditoría (2026-09-24, probe_ie3_fuego_v16): de los 0x4037/3 de inazuma3 e inazuma3_ogre, 420 van en rebanadas y
+  coinciden con informe.json (127 nombres); los que siguen en japonés o cortados en latín de 1 byte son exactamente los
+  38 «no_caben» (tira de 101-132 px > 100 px = 10 baldosas; la capa los deja como estaban). «Ｆスタジアム　廊下» es
+  «Estadio FF - Vestíbulo» (112 px). No hay forma en seco: 10 baldosas es el búfer (0x83c2c `add r5, r0, #0x1500`,
+  0x83c30 `mov r2, #0x140`, ancho 0x50 en 0x83d34) y obj+0x1640 lo usa otro código (0x83718, 0x84700), igual que
+  en el IE1 (búfer del objetivo). Ampliar exige reubicar búfer y mapa de baldosas y probarlo en el emulador;
+  apretar el espaciado entre letras es cambio tipográfico (bloqueado). Lo mismo para los 35 del IE2 (0x8a548).
+- ⚠️ SONDA (2026-09-24, opción 1 del usuario, sin probar): búfer del rótulo reubicado. La VRAM de OBJ de la barra
+  (obj+8, vtable+0x28 = base+0x90000, banco F de 16 KB) se reparte así según la tabla de piezas del minimapa:
+  0-0x1500 piezas 4/3/2, 0x1500 rótulo, 0x1640 objetivo, 0x1e40 rótulo 32×8, 0x1ec0-0x2c40 piezas 1/5/7/8; libre
+  0x2c40-0x4000. Parche (`ie123kit.nucleo.ejecutable.rotulo_lugar`, 9 palabras): búfer en +0x3e00 (baldosas
+  0x1f0-0x1ff), limpieza/vaciado 0x200, ancho de dibujo 0x80, ancho HD `str r2 (=0xff)` en lugar de
+  `CSubAdventureScreen_locale_Width` (160, del ITX), 8 sprites 16×8 (cmp r1,#8; comprobación r6+0x40). El texto
+  sigue limitado a 15 caracteres (STD_CopyLString 0x20 en 0x5378c). Aplicada a probe_ie3_fuego_v16 solo con
+  «Estadio FF - Vestíbulo» (evento 35042000). Capas `ie3/shared/capas/rotulos_objetivos/rotulo_ampliado` (--todos,
+  los 38) e `ie2/shared/capas/rotulos_objetivos/rotulo_ampliado` (35): no activar hasta ver la sonda en juego.
+- ✅ Sonda vista en juego (IE3): el búfer nuevo funciona. Aplicadas las capas (IE3 38, IE2 35). ❌ En el IE2 (1.4) el
+  texto largo se salía de la placa: la placa NO es de la CRO sino el nodo 11 del QNA de `a_field/field_t.arc`
+  (piezas de 60×20); la JP del IE2 tiene 2 piezas (120 px) y la EU del IE1/IE3, 5 (239 px). Corrección (2026-09-25,
+  pendiente de ver): `rotulo_lugar.placa_ampliada` inserta las 3 copias espejadas de la EU (x = 10, −29, −69); reproduce
+  byte a byte el QNA europeo del IE1 y del IE3 a partir del japonés. El IE1 no lo necesita (sus rótulos caben en 10).
+
+## ⚠️ Diálogo del IE3 que la v16 dejó en japonés: causas (auditoría, 2026-09-23)
+
+- **Ogro entero en japonés** (39.145 mensajes de `inazuma3_ogre` eve/evet y 793 de mch/mcht): la capa de emisión solo
+  corre el perfil `bomber`; el perfil `ogre` apunta a `archive_oz.fa` (CIA de Team Ogre Attacks), que ya no está. La CIA
+  de Fuego Explosivo **sí** trae `es/inazuma3_ogre` (eve/evet y también mch/mcht, al contrario de lo que decía
+  `pachangas/extraer.py`) y re-extrae los 36.705 textos del corpus del Ogro. Capa `work/ie3/shared/capas/dialogo/restantes`.
+- **«correspondencia_ambigua»** (3.440 en Fuego/Rayo): parejas «probable» del alineamiento que el corpus marcó «revisar»
+  y el resolver descarta. Con fila única, re-extracción en el evet europeo del mismo evento, corpus unánime y sin cruzar
+  anclas de identidad del evento, entran 3.174 (Fuego/Rayo) y 2.012 (Ogro); ninguna cruzó las anclas.
+- Lo que queda: `%s` de personajes (productor **0x4002**; falta demostrar la cota del temporal de 32 B, ~2.200 por guion),
+  registros > 252 B (u8 del registro; ~320-370 por guion) y frases sin pareja europea (sobre todo 3700xxxx, vacías).
+- Guardado: «第一章» es `第` + tabla de numerales 0x34f400 + `章` en `ina_main3ogre.cro` 0x1526a8 (CMainMenuScreenSave,
+  lienzo DS 224×128). Los rótulos «チームレベル/プレイタイム/なかま/時間/分/勝/チーム名/オプション/もどる» son texturas de
+  `menu_slot.arc` (`ie03_slot_b_font01`, 128×128 en JP frente a 256×128 en la UE).
+- La frase del inicio «なーに 寝ぼけてるの！これから南アフリカの…» (32510110) está bloqueada por el u8 del registro (260 B > 252).
+  Con el espacio de 1 byte del IE2 cabrían 301/317 (Fuego/Rayo) y 355/371 (Ogro): pendiente de que el usuario lo pida
+  para el IE3 (bloqueo tipográfico).
+- Narración de los carteles de capítulo: no es un .SAD sino `2D_020_01..10.SED` dentro de `inazuma3_ogre/data_iz/sound/
+  sound.pkb` (673 entradas con los mismos hash que el europeo; 79 SED distintos). Capa `work/ie3/shared/capas/media/voces_bancos`.
+- menu_slot.arc y open_demo_b.arc: recortar la textura europea dentro de la japonesa rompe los rótulos; sus QNA europeos
+  tienen los mismos grupos y escenas, así que va el .arc europeo entero (`graficos/caja_partida_y_avisos`, sin probar).
+
+## ❌ Subtítulos grabados del IE3 leyendo el .dat europeo a 30 Hz (v16, corregido el 2026-09-23)
+
+- Síntoma (usuario, v16): subtítulos de las cinemáticas desfasados respecto al vídeo y la voz (a3m02a, «- Inglaterra -»,
+  la presentación de selecciones al empezar la partida; el vídeo está en `inazuma3_ogre/…/movie/` pero lo usa también Fuego/Rayo).
+- Causa: `es/…/movie/txt/*.dat` de la CIA europea **cuenta fotogramas del vídeo (24 fps)**, no ticks de 30 Hz como el
+  japonés y la NDS. En las 51 pistas con pareja japonesa: europeo ≈ 0,80 × japonés (= 24/30), y el europeo cae en los
+  fotogramas donde el japonés lleva su subtítulo grabado. La capa `media/subtitulos` usaba el modelo del IE2 (30 Hz):
+  cada subtítulo salía al 80 % de su instante (a3m02a: ~30 s antes al final).
+- No era un problema de fps: los 67 MOFLEX europeos van a 24 fps (cabecera y ffprobe), con los mismos fotogramas que el
+  japonés, y cada .SAD español dura lo mismo que su vídeo (±0,1 s). La recodificación ya mantenía 24 fps.
+- Arreglo: `tick(k) = k` para el .dat europeo; la capa lee los fps de la fuente y los conserva al recodificar.
+- ⚠️ La capa `textos_medios/subtitulos` copia esos tiempos europeos (fotogramas) a `.dat` que el motor japonés lee a 30 Hz.
+  Hoy no se ven (la 3DS no enseña `movie/txt`), pero si algún día se mostraran irían un 20 % adelantados: hay que convertirlos
+  (× 30/24) al escribirlos.
+
+## ⚠️ Menú de campo del IE3: textos por GetString en el europeo y anchos de lista (2026-09-23, sin probar en juego)
+
+- El CRO europeo no tiene los rótulos: los pide a `iz::localize::GetString(id)` (tabla española del `.code` del ExeFS,
+  0x2B4A18). El `.code` de Bomber tiene otro hash que el de Spark, pero las mismas anclas y los mismos textos.
+- Las listas del menú (0x175614) usan una textura de **64 px** si el ancho que pasa quien llama menos 20 es ≤ 64 y de
+  128 si no. El japonés pasa 80 al menú de campo y a Estrategias: «Estrategias» (80 px) no cabe. El europeo pasa 100
+  (y 110/116 a Inventario/Jugadores), títulos de 128 px y más baldosas/otras x en el panel superior; además pone un
+  espaciado de −2 px al generar las listas (global de code.bin, necesitaría código nuevo: no portado).
+- `0x10b358` compara la entrada de guardar con una copia de «セーブ» (0x10b410, 8 B): si no coincide, guardar bloqueado
+  sale «？？？？». Escribir ahí el mismo texto que la entrada («Guardar» cabe en 8 B con el NUL).
+- Capas `work/ie3/shared/capas/menus_cro/menu_campo` (textos) y `menu_campo_geometria` (inmediatos del europeo).
+- (ampliación, 2026-09-23) Textos que no caben: el relleno a cero tras `.rodata` (0x2ce9c8..0x2cf000) es legible y se
+  alcanza sin relocaciones nuevas con un trampolín de 16 B en un hueco liberado de `.text`
+  («ldr rd,[pc,#4]; add rd,pc,rd; b vuelta; .word desplazamiento»). Un puntero con relocación se reapunta en la
+  relocación y `.rodata` se amplía en la tabla de segmentos. El relleno de `.text` (0x29bf48..) ya lo usa otra capa.
+- Mensaje de objeto conseguido (0x714c0): el texto va en buf+8 y las lecturas de furigana en ranuras fijas desde
+  buf+0x40; si el texto pasa de 56 B, las copias de lecturas lo cortan. Con el verbo delante (europeo) se anulan esas
+  copias (nop) y el prefijo se concatena desde una cueva en el pool liberado. Sin probar en juego.
+
+## ⚠️ Logo del título de IE2: es una animación por piezas, no una imagen (análisis estático, 2026-09-23)
+
+- El port conserva el código DS del título (ina_main2.cro 0x8bce0..0x8cad0) y sustituye cada «.pac» del
+  STSIni.SPF_ por un fotograma del QNA `ie02_title_t01_v2.anq` de `a_title/title_t.arc` (tabla @0x21ea58):
+  bg01b/f → 4/5 (fondo + balón liso + rótulo), bg02b/f → 6/7 (cometa + ©), st_up02a/b → 9/10 («ファイア/ブリザード»,
+  entra con zoom 2.0-1.5-1.2-1.0-1.1-1.0, tabla @0x217ca8), f01_1..4 → 17-20 (barrido cian, una vez),
+  f02_1..4 → 12-15 (destello blanco, cada 60 fotogramas). data_iz_blizzard no tiene title_t.arc.
+- ❌ Meter el logo europeo entero como imagen fija en los fondos y vaciar las piezas (v12/graficos) mata la
+  animación y el zoom de la etiqueta. Hay que traducir pieza a pieza (capa `work/ie2/shared/capas/graficos/logo_animado`).
+- Los destellos ina_p00/ina_p01 llevan recortada la silueta de las letras japonesas (pasan «por detrás»):
+  al cambiar el rótulo hay que rehacer ese recorte, y el respaldo blanco de las letras vive en la textura del balón.
+
+## ⚠️ Nombres oficiales restaurados con casillas del registro (IE1/IE2, 2026-09-23, sin probar en juego)
+
+- Capas `work/ie1/capas/nombres/restaurar_oficiales` y `work/ie2/shared/capas/nombres/restaurar_oficiales` (común en
+  `work/shared/capas/nombres/restaurar_oficiales/comun.py`). Los motores 1/2 v3 dibujan a paso fijo todo texto con un
+  código ≥ 0x88, así que un nombre en casillas del registro ocupa las mismas casillas que antes: se restaura el oficial
+  solo si cabe en el límite de casillas y bytes ya vigente (equipos 9, objetos 9/18 B, técnicas 15/30 B, títulos 9/18 B).
+- Solo pares centrados (sin «clave») con glifo en todas las fuentes del campo: 209 pares en FONT12+FONT8+FONT12T y 402 en
+  FONT12+FONT8. Es el cuello de botella: la mayoría de lo que se queda corto necesita 10-13 casillas.
+- ⚠️ La huella `pixeles_sha1` de FONT12T (LA4) no se reproduce con el lector de `celdas.FuenteBCFNT` (pensado para A4):
+  comprobar FONT12T por el sha256 del fichero (`fuentes_dibujadas`).
+- Error encontrado: IE1 team.pkb ID 235 decía «OB oB» (la v50 escribió el portador griego Β de la «é» como B latina).
+  Corregido a «Oé, oé».
+- Camino proporcional (latín de 1 byte sin casillas): con la NFTR proporcional y el motor 1 v3 la causa de ❌ v47 podría
+  haber desaparecido, pero **no se ha probado**: cada informe marca `cabria_si_fuera_proporcional`. Hace falta una sonda en
+  Azahar (una lista de objetos y el cuadro de pachanga) antes de usarlo.
+- Fuera de estas capas: IE1 unitbase +16/+0 tiene 345 nombres cortos distintos del europeo, 308 cortados a 7 letras a mitad
+  de palabra («Winters» por «Wintersea», «Poseido»). 340 cabrían en 7 casillas con pares del registro, pero la pestaña
+  (FONT8, paso 10) usa las casillas compactas de columna de la v08: hay que rehacerlos con ese diseño, no con pares centrados.
+
+## ❌ v75 `glifos_eu`: la hoja europea de FONT12 se leyó con paso de 16 px (análisis, 2026-09-23)
+
+- La FONT12 europea (IE1 e IE3, sha `28671c9c…`: celda 14×17, hoja 32×128, 2×7 celdas) tiene paso horizontal de
+  **15 px** (1 px de margen + 14) y origen x = 1 + columna × 15, no 16 como suponía `glifos_eu/apply.py`
+  (`sx = sheet_w // ncols`). Con 16, los glifos de la columna 0 de la hoja parecían tener 1 px de margen izquierdo
+  (lb = 1) que no existe, y la v75 les dio avance = europeo + 2 en lugar de + 1.
+- Afecta a `b d f h j l n p r t v x z`, sus mayúsculas, `¡ . ,`: espaciado irregular («me ter», «cua tro»).
+  En la europea todos los glifos tienen left = 0 y la tinta empieza en la columna 0 de su celda.
+- Regla: calcular el origen de celda como hace libctru (`fontCalcGlyphPos`: celda de `cell_w + 1` px), y
+  comprobar que el mínimo de tinta de cada glifo europeo sea 0 antes de derivar márgenes.
+- Relacionado: el `code.bin` europeo cambió `FontGetCharWidth` (IE3 0x2282ec, IE1 0x224544) para que devuelva el
+  avance real de la BCFNT; el japonés (0x164660) devuelve 12 fijo. El 0x301a europeo pasa ancho 0x100 y la rejilla
+  de página es 0x220 (IE3 `ina_main3ogre.cro` 0x52f58/0x3e09c; IE1 `ina_main1.cro` 0x5d214/0x47608). Con eso el
+  europeo nunca reajusta: sus líneas (máx. 258 px) se dibujan con los `\n`/`\f` del texto tal cual.
+
+## ⚠️ Copia de furigana que deja pasar el 1 byte en IE1/IE2 (2026-09-24, sin probar en juego)
+
+- La rutina de copia de los pintores con furigana es la MISMA en las tres CRO (IE1 0x374cc, IE2 0x3cc44, IE3 0x23fd0;
+  0x104 B idénticos). IE1: solo la llaman 0xe6d0c/0xbda58 (29 llamadas); IE2: 0x122568/0x1208e8 (58). Borraban el latín
+  de 1 byte en la selección de capitán (nombre corto), la recompensa de pachanga del IE2 («Conseguido:\n%s»), Objetos,
+  Equipación… Capa `work/shared/capas/menus_cro/copia_1byte` (port de la del IE3, 13 palabras en su sitio).
+- ❌ v47 revisado en el código: el corte de la fila está en el motor 1 (IE1 0xe6828: x + ancho de letra > ancho de
+  línea). Con el motor v3, en modo DS y sin códigos de bigrama, el ancho de la letra es el real: el corte pasa a ser
+  por píxeles. Falta verlo en juego con nombres de objeto de 1 byte (capa `nombres/restaurar_oficiales/latin1`).
+- FONT8 y FONT12T no tienen glifo para el espacio ASCII: en los nombres cortos de jugador el espacio va en ancho
+  completo (0x8140).
+- ⚠️ (2026-09-24, sin probar en juego) Cambios de bytecode declarados `ie123kit.ie3.comun.transformaciones`, enganchados en
+  `fase3.emitir_perfil` (revertir el heredado → emitir → aplicar): (1) intercambio de operandos 1↔2 del 301D
+  (texto, lectura, nombre 0x4002, lectura) cuando el español lleva %s sin furigana delante: 12 líneas; (2) prototipo de
+  301D insertado (ID+1, renumerando IDs, operandos tipo 4, tabla de textos y contadores) en 32021100/1529 para repartir
+  una frase oficial de 256 B en dos cajas. En `TOKEN` de controles, `%1F` cuenta como control: sin quitar las marcas del
+  japonés, ningún %s con furigana delante pasa la prueba de 0x4002.
+
+## ⚠️ FONT8 a paso fijo en el motor 2 y etiquetas de Récords (IE3, 2026-09-24, sin probar en juego)
+
+- Goles del partido («1P 16分 X a v i e r»), nombre de la ficha de estado: el motor 2 da a FONT8 (tipo 1) el ancho
+  por defecto del ITX123 (0x19ff0; 6/7 o +0x34 en «_2») aunque la métrica ya esté compensada. No se cambia para
+  todo FONT8: vía por llamada con la línea de depuración −3 (`ie123kit.ie3.comun.ancho_real`, cueva 0x7ac78;
+  capa `menus_cro/ancho_real_font8`). Para otra pantalla FONT8 a paso fijo: poner r2 = −3 en su llamada.
+- Récords: no era el motor 2 sino el motor 1 con el bloque ITX `CMainMenuScreenRanking_404` (addW = 8 = ancho
+  forzado). Los `g_Itx*` están compilados en code.bin (los .itx del romfs no se leen; el europeo tiene los mismos
+  valores): se cambia el sumando de la importación en la CRO (`Cro.retarget_import`) al bloque 417 (addW 0).
+- Los botones «Sí/No» del diálogo de aprender técnica no son literales de ninguna CRO (field_select_b.arc es
+  gráfico europeo clase A): sin localizar su pintor.
+
+## ⚠️ IE2/IE1: FONT8 a ancho real global en el motor 2 (2026-09-25, sin probar en juego)
+
+- Goles, recompensas, caja de partida y paneles de equipo del IE2 salían «A r i e t e s» y desbordaban. En vez de
+  marcar llamada a llamada, IE2 (0x335ac) e IE1 (0x2eec8) usan `ancho_real.cueva_font8_global`: FONT8 sin ancho por
+  defecto del ITX salvo las llamadas con línea −1 (campo de nombre) o −2 (rótulos de baldosas); los textos con
+  bigramas siguen a paso fijo. Si una pantalla de cifras o casillas se descoloca, marcar su llamada con −1.
+- La caja de partida del IE2 heredaba además G+0xeef6c (ancho fijo del dibujo anterior): `rutina_reinicio`
+  (0x211740) lo pone a 0 antes del título. Su literal de code.bin (0x2a16d8) lo traduce construir.py de la 1.4.
+- El IE3 sigue con la vía por llamada (−3).
+
+## ❌ Código en el relleno tras .data de una CRO: Azahar no lo ejecuta (2026-09-25, #87)
+
+- Build de diagnóstico `probe_ie3_fuego_v16_rastreo_log`: stubs y rutina en el relleno 0xcc tras el segmento
+  .data de ina_main3ogre (0x351ac0..). Al arrancar el IE3: «Undefined Instruction» con PC = 0x00C8ABA0 (el stub)
+  y LR en el primer sitio parcheado. **Azahar aplica no-ejecución a las páginas RW de la CRO.**
+- **Regla:** el código nuevo va solo en la región de código (de codeoff a codeoff+codesz: .text, el relleno tras .text
+  o el de .rodata). Nunca en .data ni en su relleno.

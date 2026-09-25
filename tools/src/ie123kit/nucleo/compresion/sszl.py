@@ -97,7 +97,7 @@ def reenvolver_como(original: bytes, nuevo_raw: bytes, politica: str = 'keep',
     - 'keep': comprime solo si `original` venía envuelto en SSZL (v64 y v65).
 
     Cuando comprime, exige que ``unwrap(resultado) == nuevo_raw``. No se expone el modo de
-    solo literales: tools/sszl.py documenta que hace que la textura no cargue, porque los
+    solo literales: el antiguo tools/sszl.py documentaba que hace que la textura no cargue, porque los
     búferes del juego se dimensionan según el original comprimido.
     """
     if politica not in POLITICAS:

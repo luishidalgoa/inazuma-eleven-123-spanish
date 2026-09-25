@@ -36,7 +36,7 @@ def test_real_v7_one_word_font8_no_other_consumers_or_resources_changed():
 
 
 def test_real_itx_name_configuration_and_global_defaults_are_distinct():
-    root = find_root() / "work/fa_extract/import"
+    root = find_root() / "work/shared/fa_extract/import"
     if not (root / "sItxInazuma3ogre.itx").is_file():
         pytest.skip("requiere ITX originales locales")
     report = configuracion_nombre(

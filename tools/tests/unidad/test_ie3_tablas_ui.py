@@ -1,18 +1,17 @@
 import struct
+from pathlib import Path as _Path
 
 import pytest
+import pytest as _pytest
 
 from ie123kit.ie3.comun.tablas_ui import TECNICAS, construir_rotulos, construir_tabla_str, leer_ranura
 from ie123kit.ie3.comun.text import TextTable
 from ie123kit.nucleo.texto.sjis_portador import es_encode
 
-import pytest as _pytest
-from pathlib import Path as _Path
-
-# Necesita la fuente extraída del juego (work/fa_extract): sin ella se salta, como los de requiere_rom.
+# Necesita la fuente extraída del juego (work/shared/fa_extract): sin ella se salta, como los de requiere_rom.
 pytestmark = _pytest.mark.skipif(
-    not (_Path(__file__).resolve().parents[3] / "work/fa_extract/font/FONT12.bcfnt").exists(),
-    reason="falta work/fa_extract/font/FONT12.bcfnt (ROM extraída)",
+    not (_Path(__file__).resolve().parents[3] / "work/shared/fa_extract/font/FONT12.bcfnt").exists(),
+    reason="falta work/shared/fa_extract/font/FONT12.bcfnt (ROM extraída)",
 )
 
 

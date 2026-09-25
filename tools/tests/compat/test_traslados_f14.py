@@ -1,8 +1,8 @@
 """Traslados de F1.4 (#45): divisiones, fachadas _legado, cuarentena y archivado.
 
-Sin ROM. Describe el ESTADO FINAL de la subfase: la parte estricta (MAPA completo,
-raíz de tools/, archivados) no se salta. Solo la comprobación por módulo se salta si
-tools/<nombre>.py todavía no es un shim.
+Sin ROM. Desde la F2.7 los shims de esta subfase están retirados: se comprueba la tabla de
+destinos, que el módulo real conserva la superficie del script original y que en la raíz de
+tools/ solo quedan los 5 congelados.
 """
 
 import hashlib
@@ -52,14 +52,10 @@ COMPAT = Path(__file__).resolve().parent
 SUPERFICIE = COMPAT / "superficie_v0.json"
 GOLDEN_CONGELADOS = COMPAT / "golden" / "congelados.sha256"
 
-_SUBPROCESO_SHIM = """\
-import importlib, json, sys
-sys.path.insert(0, 'tools')
+_SUBPROCESO_MODULO = """import importlib, json, sys
+sys.path.insert(0, 'tools/src')
 nombre, destino, superficie = sys.argv[1], sys.argv[2], sys.argv[3]
-m = importlib.import_module(nombre)
-real = importlib.import_module(destino)
-assert m is real, (m, real)
-assert sys.modules[nombre] is real
+m = importlib.import_module(destino)
 faltan = []
 with open(superficie, encoding='utf-8') as fh:
     nombres = json.load(fh)[nombre]
@@ -72,11 +68,6 @@ for n in nombres:
         faltan.append(n)
 assert not faltan, f'{nombre}: faltan nombres de superficie_v0.json: {faltan}'
 """
-
-
-def _trasladado(nombre: str) -> bool:
-    ruta = TOOLS / f"{nombre}.py"
-    return ruta.is_file() and "sys.modules[__name__]" in ruta.read_text(encoding="utf-8", errors="replace")
 
 
 def _python(codigo: str, *args: str) -> subprocess.CompletedProcess:
@@ -95,29 +86,26 @@ def _python(codigo: str, *args: str) -> subprocess.CompletedProcess:
     )
 
 
-def test_mapa():
+def test_destinos():
     assert len(TRASLADOS_F14) == 13
-    distintos = {n: (shims.MAPA.get(n), d) for n, d in TRASLADOS_F14.items() if shims.MAPA.get(n) != d}
-    assert not distintos, f"MAPA difiere de TRASLADOS_F14 (actual, esperado): {distintos}"
-    assert len(shims.MAPA) == 31
+    distintos = {n: (shims.DESTINOS.get(n), d) for n, d in TRASLADOS_F14.items() if shims.DESTINOS.get(n) != d}
+    assert not distintos, f"DESTINOS difiere de TRASLADOS_F14 (actual, esperado): {distintos}"
+    # 29 shims hasta la F2.4, más ie3_pipeline e ie3_verificar_offsets (#89): 31, todos retirados
+    # (5 en la F2.4, 4 en la F2.6 y los 22 restantes en la F2.7).
+    assert len(shims.RETIRADOS) == 29 + 2 == 31
+    assert shims.MAPA == {}
 
 
-@pytest.mark.parametrize("nombre", list(TRASLADOS_F14))
-def test_shim_trasladado_f14(nombre):
-    ruta = TOOLS / f"{nombre}.py"
-    if not _trasladado(nombre):
-        pytest.skip("aún sin trasladar")
-    ok, motivo = shims.es_shim_sin_logica(ruta)
-    assert ok is True, f"{ruta}: {motivo}"
-    assert shims.destino_de_shim(ruta) == TRASLADOS_F14[nombre]
-    r = _python(_SUBPROCESO_SHIM, nombre, TRASLADOS_F14[nombre], str(SUPERFICIE))
+@pytest.mark.parametrize("nombre", sorted(TRASLADOS_F14))
+def test_modulo_real_f14(nombre):
+    assert not (TOOLS / f"{nombre}.py").exists(), f"tools/{nombre}.py debería estar retirado"
+    r = _python(_SUBPROCESO_MODULO, nombre, TRASLADOS_F14[nombre], str(SUPERFICIE))
     assert r.returncode == 0, r.stderr
 
 
 @pytest.mark.parametrize("nombre", ARCHIVADOS_F14)
 def test_archivados_f14(nombre):
-    assert not (TOOLS / f"{nombre}.py").exists(), f"tools/{nombre}.py debería estar archivado"
-    assert (TOOLS / "_archivo" / f"{nombre}.py").is_file(), f"falta tools/_archivo/{nombre}.py"
+    assert not (TOOLS / f"{nombre}.py").exists(), f"tools/{nombre}.py debería estar retirado"
     codigo = (
         "import sys\n"
         "sys.path.insert(0, 'tools')\n"
@@ -133,17 +121,10 @@ def test_archivados_f14(nombre):
 
 def test_raiz_tools_final():
     presentes = {p.stem for p in TOOLS.glob("*.py")}
-    esperados = CONGELADOS | set(shims.MAPA)
-    assert presentes == esperados, {
-        "sobran": sorted(presentes - esperados),
-        "faltan": sorted(esperados - presentes),
+    assert presentes == CONGELADOS, {
+        "sobran": sorted(presentes - CONGELADOS),
+        "faltan": sorted(CONGELADOS - presentes),
     }
-    fallos = {}
-    for nombre in shims.MAPA:
-        ok, motivo = shims.es_shim_sin_logica(TOOLS / f"{nombre}.py")
-        if ok is not True:
-            fallos[nombre] = motivo
-    assert not fallos, fallos
 
 
 def test_tests_trasladados_f15():
@@ -167,8 +148,11 @@ def test_congelados_intactos():
 def test_identidades_texto():
     codigo = (
         "import sys\n"
-        "sys.path.insert(0, 'tools')\n"
-        "import build_ie1_probe, dialogue_typography, pkb_unpack\n"
+        "sys.path.insert(0, 'tools/src')\n"
+        "from ie123kit.nucleo.config.congelados import preparar\n"
+        "preparar()\n"
+        "import build_ie1_probe, dialogue_typography\n"
+        "import ie123kit._legado.pkb_unpack as pkb_unpack\n"
         "import ie123kit.nucleo.texto.tipografia_v20 as tipografia_v20\n"
         "import ie123kit.nucleo.texto.ancho_completo as ancho_completo\n"
         "import ie123kit.nucleo.texto.nds_latin as nds_latin\n"

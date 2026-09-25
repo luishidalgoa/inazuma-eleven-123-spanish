@@ -43,7 +43,7 @@ Build final **v27**: arranca, **crea partida**, e **intro + diálogo de historia
 
 ## 2. Requisitos
 
-**Python 3.7+** y la librería de ensamblado ARM (solo la importa `patch_code.py`, *obsolete_dangerous* y ya archivado en `tools/_archivo` en F1.4; keystone solo hace falta para consultar ese histórico):
+**Python 3.7+** y la librería de ensamblado ARM (solo la importaba `patch_code.py`, *obsolete_dangerous*, retirado en F1.4 y borrado del árbol en F2.6; keystone solo hace falta para consultar ese histórico en git):
 ```
 pip install keystone-engine
 # opcional, solo si vas a DESensamblar para RE: pip install capstone
@@ -98,19 +98,19 @@ extracción de la ROM. Para reconstruirlos desde tus ROMs:
 pwsh -File tools/extract_romfs.ps1
 
 # B) desempaquetar el contenedor Level-5 archive.fa -> work/fa_extract/
-python tools/fa_unpack.py work/shared/base_3ds/romfs/archive.fa -o work/fa_extract
+python -m ie123kit._legado.fa_unpack work/shared/base_3ds/romfs/archive.fa -o work/fa_extract
 
 # C) extraer las NDS ES (referencia oficial) -> work/ie1/fuentes/nds_es/, work/ie2_es/
 pwsh -File tools/extract_nds.ps1 -Rom "roms/Inazuma Eleven.nds" -Name ie1_es
 pwsh -File tools/extract_nds.ps1 -Rom "roms/Inazuma Eleven 2 - Tormenta de Fuego.nds" -Name ie2_es
 
 # D) regenerar el diálogo OFICIAL (alinea 3DS-JP <-> NDS-ES) — GITIGNORED, copyright
-python tools/ds_official.py game1     # -> translation/ie1/dialogo_oficial.csv
-python tools/ds_official.py game2     # -> translation/ie2/dialogo_oficial.csv
+python -m ie123kit._legado.ds_official game1     # -> translation/ie1/dialogo_oficial.csv
+python -m ie123kit._legado.ds_official game2     # -> translation/ie2/dialogo_oficial.csv
 
 # E) (opcional) regenerar glosarios (jugadores/equipos/menús)
-python tools/build_glossary.py game1
-python tools/build_glossary.py game2
+python -m ie123kit._legado.build_glossary game1
+python -m ie123kit._legado.build_glossary game2
 ```
 
 > `dialogo_oficial.csv` (game1 ~7.516 líneas, game2 ~24.338) es el **texto oficial de Nintendo**
@@ -122,22 +122,22 @@ python tools/build_glossary.py game2
 ## 5. El pipeline de build (clon → ROM parcheada → parche)
 
 > **Pipeline HISTÓRICO (build v27).** `build_3ds_var.py` y `verify_build.py` están archivados en
-> `tools/_archivo/` (motivos en [`tools/_archivo/README.md`](../tools/_archivo/README.md)). La ROM IE1 vigente se construye con
+> retirados (motivos y cómo recuperarlos de git, en [`SCRIPTS_RETIRADOS.md`](toolkit/SCRIPTS_RETIRADOS.md)). La ROM IE1 vigente se construye con
 > `work/ie1/capas/v33/_final/build_rom.py`; las candidatas, con `tools/build_ui_revision.py` sobre
-> `work/shared/candidatas/probe_ie1_vNN`, y se verifican con `tools/verify_candidate.py`.
+> `work/shared/candidatas/probe_ie1_vNN`, y se verifican con `ie123 verificar`.
 > Lo que sigue se conserva como registro de la cadena v27.
 
 ```bash
 # 1) fuentes (acentos) + roster + UI  ->  work/archive_es.fa   (una vez por sesión)
-python tools/reinsert.py
+python -m ie123kit._legado.reinsert
 
 # 2) diálogo de longitud variable     ->  work/eve_var/gameN.pkb/.pkh
 python tools/reinsert_var.py game1            # (sin arg = game1 + game2)
 
 # 3) compilar la ROM (VALIDA -> repack -> recalcula CXI/3DS)  ->  work/build/inazuma123_es_var.3ds
 #    Flags de la build v27 (intro+historia ES, crear-partida estable):
-SKIP_CRO=1 NO_CODE_PATCH=1 python tools/_archivo/build_3ds_var.py game1   # (archivado)
-#    (en PowerShell:  $env:SKIP_CRO="1"; $env:NO_CODE_PATCH="1"; python tools\_archivo\build_3ds_var.py game1)
+SKIP_CRO=1 NO_CODE_PATCH=1 python build_3ds_var.py game1   # (retirado: recuperar de git si hace falta)
+#    (en PowerShell:  $env:SKIP_CRO="1"; $env:NO_CODE_PATCH="1"; python build_3ds_var.py game1)
 
 # 4) generar el parche distribuible    ->  patch/inazuma123-es-vNN.xdelta
 pwsh -File tools/build_patch.ps1 -Translated "work\build\inazuma123_es_var.3ds" -Patch "patch\inazuma123-es-v28.xdelta"
@@ -151,7 +151,7 @@ pwsh -File tools/build_patch.ps1 -Translated "work\build\inazuma123_es_var.3ds" 
 pwsh -File tools/jugar.ps1 work\build\inazuma123_es_var.3ds
 ```
 
-`tools/_archivo/build_3ds_var.py` (archivado) hacía por dentro: `fa_repack` (mete `eve_var` en `archive.fa`) → `patch_exefs`/
+`build_3ds_var.py` (retirado) hacía por dentro: `fa_repack` (mete `eve_var` en `archive.fa`) → `patch_exefs`/
 `patch_code` (code.bin plano) → **`validate.py`** (aborta si hay regresión) → `3dstool -ctf`
 romfs → cxi → 3ds. El `archive.fa` y el CRO originales **se restauran siempre** al terminar.
 
@@ -159,7 +159,7 @@ romfs → cxi → 3ds. El `archive.fa` y el CRO originales **se restauran siempr
 
 ## 6. Tabla de flags de entorno
 
-Se leen en `reinsert_var.py` (paso 2) y `tools/_archivo/build_3ds_var.py` (paso 3, archivado). **La build v27 NO define
+Se leen en `reinsert_var.py` (paso 2) y `build_3ds_var.py` (paso 3); los dos están retirados. **La build v27 NO define
 ninguno salvo `SKIP_CRO=1` + `NO_CODE_PATCH=1`** (todo lo demás por defecto).
 
 | Flag | Efecto | Paso |
@@ -181,17 +181,17 @@ ninguno salvo `SKIP_CRO=1` + `NO_CODE_PATCH=1`** (todo lo demás por defecto).
 
 ## 7. Validar y probar (red de seguridad)
 
-- **`python tools/validate.py [game1]`** — chequeo OFFLINE antes de compilar: operandos corruptos,
+- **`python -m ie123kit._legado.validate --legado-lo-se [game1]`** — chequeo OFFLINE antes de compilar: operandos corruptos,
   refs string a media cadena, diálogo vaciado, estructura SSD inválida, **furigana que crece (❌#9)**,
   desbalance marcador↔lectura (bug NPC). Es consciente del modo: en builds que crecen tolera el
   cambio de `textSize` pero verifica que sea coherente; en `SAME_SIZE` es estricto. Debe dar
-  **`RESULTADO: TODO OK ✅`**. (`tools/_archivo/build_3ds_var.py`, archivado, lo corría solo y aborta si falla.)
-- **`python tools/_archivo/verify_build.py game1`** (histórico, archivado; ver [`tools/_archivo/README.md`](../tools/_archivo/README.md)) — verificación estática de los artefactos de una build
+  **`RESULTADO: TODO OK ✅`**. (`build_3ds_var.py`, retirado, lo corría solo y aborta si falla.)
+- **`verify_build.py game1`** (histórico, retirado; ver [`SCRIPTS_RETIRADOS.md`](toolkit/SCRIPTS_RETIRADOS.md)) — verificación estática de los artefactos de una build
   de **mismo tamaño** (CRO byte-idéntico, sistema byte-idéntico, `textSize` intacto, furigana
   intacto, español presente). Útil tras builds `SAME_SIZE`.
 - **`pwsh -File tools/jugar.ps1 [build.3ds]`** — lanza Azahar y, **al cerrarlo, cosecha** los
   errores de runtime a `logs/runtime_errors.json` agrupados por **PC** (firma estable del crash).
-- **`python tools/harvest_log.py [--report]`** — recompone/reimprime el informe de errores.
+- **`ie123 registro [--sesion NOMBRE]`** (antes `harvest_log.py`) — recompone/reimprime el informe de errores.
 
 > **Para diagnosticar un crash nuevo:** mira el PC en `logs/runtime_errors.json`. Si está en
 > `0x14AC5C`/`0x1B3788`/`0x184AAC`/`0xABFCC0` es un desbordamiento de las funciones de texto →

@@ -11,11 +11,14 @@ de ancho completo (U+3000, U+FF01..U+FF5E) ni los caracteres portadores griegos 
 """
 from __future__ import annotations
 
+from functools import lru_cache
+
 __all__ = ["NOMBRES", "decode_fullwidth"]
 
 NOMBRES = ("encode_fullwidth", "ACCENTS", "TOKEN")
 
 
+@lru_cache(maxsize=1)
 def _modulo():
     from ie123kit.nucleo.config.congelados import cargar
     return cargar("dialogue_typography")

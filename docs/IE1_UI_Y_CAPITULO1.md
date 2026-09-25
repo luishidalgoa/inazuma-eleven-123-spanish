@@ -3,9 +3,9 @@
 ## Tanda de interfaz, 2026-09-06
 
 Los menús señalados usan atlas CTPK en contenedores ARCV, algunos envueltos
-en SSZL. `tools/ui_archive.py` decodifica ese envoltorio. `tools/ctpk_ui.py`
+en SSZL. `ie123kit._legado.ui_archive` decodifica ese envoltorio. `ie123kit.nucleo.graficos.ctpk`
 permite leer y reescribir los píxeles conservando dimensiones y metadatos.
-`tools/translate_ui_textures.py` aplica un manifiesto JSON local con rectángulos
+`ie123kit._legado.translate_ui_textures` aplica un manifiesto JSON local con rectángulos
 de texto y produce vistas previas para revisión. Dependencias: Pillow y
 opencv-python-headless (borrado del texto sobre fondos).
 

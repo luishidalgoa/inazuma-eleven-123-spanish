@@ -22,10 +22,10 @@ Ordenes:
 
 Ejemplos:
 
-    python tools/scripts/ie3_pipeline.py run
-    python tools/scripts/ie3_pipeline.py extract roms/IE123_JP.3ds --lang jp --tag jp
-    python tools/scripts/ie3_pipeline.py extract CIAS/rayo.3ds --lang es --tag rayo
-    python tools/scripts/ie3_pipeline.py align
+    python -m ie123kit.ie3.pipeline run
+    python -m ie123kit.ie3.pipeline extract roms/IE123_JP.3ds --lang jp --tag jp
+    python -m ie123kit.ie3.pipeline extract CIAS/rayo.3ds --lang es --tag rayo
+    python -m ie123kit.ie3.pipeline align
 """
 
 import argparse
@@ -434,7 +434,7 @@ def load_extract(tag, game, pack, lang):
     if not path.exists():
         die(
             f"Falta {path.relative_to(ROOT)}. "
-            f"Ejecuta primero:  python tools/scripts/ie3_pipeline.py run"
+            f"Ejecuta primero:  python -m ie123kit.ie3.pipeline run"
         )
     return read_csv(path)
 
@@ -639,7 +639,7 @@ def cmd_sheet(args):
         if not src.exists():
             die(
                 f"Falta {src.relative_to(ROOT)}. Ejecuta primero:  "
-                f"python tools/scripts/ie3_pipeline.py align"
+                f"python -m ie123kit.ie3.pipeline align"
             )
 
         rows = read_csv(src)
@@ -649,7 +649,7 @@ def cmd_sheet(args):
                 f"pipeline y no trae la columna `opcode`, que es lo que "
                 f"distingue el texto real de los nombres de recurso. "
                 f"Vuelve a generarlo con: "
-                f"python tools/scripts/ie3_pipeline.py run --force"
+                f"python -m ie123kit.ie3.pipeline run --force"
             )
 
         sheet_rows, technical, glossary, stats = sheetlib.build(rows, game)
@@ -748,7 +748,7 @@ def cmd_reinsert(args):
     destino = Path(args.salida) if args.salida else WORK / "archive_es.fa"
 
     if not origen.is_file():
-        die(f"No existe {origen}. Ejecuta antes: python tools/reinsert.py")
+        die(f"No existe {origen}. Ejecuta antes: python -m ie123kit._legado.reinsert")
 
     log(f"Base:    {origen.name}")
     if destino.resolve() != origen.resolve():
@@ -766,7 +766,7 @@ def cmd_reinsert(args):
         fuentes_parcheadas = {}
         for rel in ("font/FONT12.bcfnt", "font/FONT12T.bcfnt", "font/FONT8.bcfnt"):
             fuente = arc.read(rel)
-            origen_fuente = WORK / "fa_extract" / Path(rel)
+            origen_fuente = WORK / "shared" / "fa_extract" / Path(rel)
             if not origen_fuente.is_file():
                 die(f"falta la fuente de referencia para parchear: {origen_fuente}")
             if origen_fuente.read_bytes() != fuente:
@@ -787,7 +787,7 @@ def cmd_reinsert(args):
         # individuales de nombres; los bigramas v5 se retiraron porque la
         # prueba visual demostró que fusionaban trazos.
         from ie123kit.ie3.comun.nombres import caracteres_cortos
-        from ie123kit.ie3.comun.tipografia import adaptar_font12, adaptar_font8_nombres
+        from ie123kit.ie3.comun.tipografia import adaptar_font8_nombres, adaptar_font12
 
         oficial_archive = WORK / "ie3" / "rayo_celeste" / "fuentes" / "3ds_eu" / "romfs" / "archive_sz.fa"
         if not oficial_archive.is_file():

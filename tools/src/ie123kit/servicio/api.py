@@ -21,6 +21,7 @@ from ie123kit.nucleo.tipos import API_VERSION, CancelToken, Incidencia, Progreso
 
 __all__ = [
     "API_VERSION",
+    "MOTORES",
     "OBJETIVOS",
     "ServicioToolkit",
     "SolicitudConstruccion",
@@ -37,6 +38,20 @@ OBJETIVOS: dict[str, str] = {
     "ie3.fuego_explosivo": "ie123kit.ie3.fuego_explosivo",
     "ie3.amenaza_del_ogro": "ie123kit.ie3.amenaza_del_ogro",
 }
+
+#: Motores con entrada de fichero: ``(juego, motor) -> "módulo:función"`` (import dinámico, como OBJETIVOS).
+#: Los motores son de un juego (sus límites y direcciones cambian); ``ie123 motor`` los expone.
+MOTORES: dict[tuple[str, str], str] = {
+    ("ie1", "paginar"): "ie123kit.ie1.texto.dialogo:paginar",
+    ("ie2", "paginar"): "ie123kit.ie2.comun.motores:paginar",
+    ("ie2", "teclado"): "ie123kit.ie2.comun.motores:teclado",
+    ("ie2", "cro-ancho-dialogo"): "ie123kit.ie2.comun.motores:cro_ancho_dialogo",
+    ("ie2", "voces"): "ie123kit.ie2.comun.motores:voces",
+    ("ie2", "subtitulos"): "ie123kit.ie2.comun.motores:subtitulos",
+    ("ie2", "ayuda"): "ie123kit.ie2.comun.motores:ayuda",
+    ("juego_principal", "voz-recopilatorio"): "ie123kit.juego_principal.motores:voz_recopilatorio",
+}
+
 
 def _juego_generico(paquete: str) -> JuegoBase:
     """Instancia mínima de JuegoBase para un paquete que aún no declara ``JUEGO`` (llega en F2.3)."""
@@ -119,6 +134,30 @@ def _es_cro_suelta(rel: Any) -> bool:
     return texto.startswith("cro/") and texto.endswith(".cro")
 
 
+def _raiz_de_entradas_fa(entradas: Any) -> Path | None:
+    """Raíz común de un ``entradas_fa`` que sea un árbol de ficheros ya volcado en disco.
+
+    Una carpeta ``extra/`` cuyo árbol ES el de ``romfs`` se pasa entera al constructor. Si cada ``(ruta, path)`` cumple que
+    ``path`` termina en ``ruta`` y todas comparten la misma raíz, esa raíz vale como ``extra``.
+    Si no (bytes en memoria, o rutas que no comparten raíz), se devuelve None y el llamador las
+    pasa como entradas sueltas (``entradas``) al constructor.
+    """
+    if not entradas:
+        return None
+    raices: set[str] = set()
+    for rel, valor in entradas.items():
+        if not isinstance(valor, Path):
+            return None
+        relativo = str(rel).replace("\\", "/").strip("/")
+        absoluto = str(valor).replace("\\", "/")
+        if not relativo or not absoluto.endswith("/" + relativo):
+            return None
+        raices.add(absoluto[: -(len(relativo) + 1)])
+    if len(raices) != 1:
+        return None
+    return Path(next(iter(raices)))
+
+
 def _aportacion_a_dict(ident: str, valor: Any) -> tuple[Any, list[str]]:
     """Traduce la ``Aportacion`` de un objetivo a la forma que entiende el constructor.
 
@@ -135,19 +174,113 @@ def _aportacion_a_dict(ident: str, valor: Any) -> tuple[Any, list[str]]:
         return valor, []
     romfs = dict(getattr(valor, "romfs_sueltos", None) or {})
     pendientes = []
-    if getattr(valor, "entradas_fa", None):
-        pendientes.append("entradas_fa")
+    entradas_fa = dict(getattr(valor, "entradas_fa", None) or {})
+    extra = _raiz_de_entradas_fa(entradas_fa)
+    # Sin raíz común (varias capas fundidas, o bytes en memoria) se pasan como entradas sueltas:
+    # el constructor las aplica tras el extra/ de esta aportación (F2.5).
+    entradas = {} if extra is not None else entradas_fa
     if getattr(valor, "literales_cro", None):
         pendientes.append("literales_cro")
     if any(not _es_cro_suelta(rel) for rel in romfs):
         pendientes.append("romfs_sueltos que no son cro/*.cro")
     aporte = {
         "objetivo": ident,
-        "extra": None,
+        "extra": extra,
         "eventos": dict(getattr(valor, "eventos", None) or {}),
         "cro": [ruta for rel, ruta in sorted(romfs.items()) if _es_cro_suelta(rel)],
     }
+    if entradas:
+        aporte["entradas"] = entradas
     return aporte, pendientes
+
+
+#: Rutas del `activos.toml` de `juego_principal` que delatan una capa del menú.
+_RUTAS_MENU: tuple[str, ...] = ("menu/", "movie/", "message/", "import/", "patchscript/", "cro/ina_menu.cro")
+#: Ficheros del ExeFS que pertenecen al juego principal.
+_EXEFS_MENU: tuple[str, ...] = ("banner.bnr", "icon.icn")
+#: Ficheros que identifican una carpeta de `work/` como capa y que se leen buscando esas rutas.
+_FICHEROS_DE_CAPA: tuple[str, ...] = ("apply.py", "capa.toml", "report.json", "ownership.json")
+#: Capas conocidas del menú que NO dejan rastro de rutas (producen imágenes que coloca otra
+#: capa). Se listan a mano para que el histórico sea reproducible y no dependa de un grep.
+_CAPAS_MENU_CONOCIDAS: tuple[str, ...] = ("graficos/pantalla_inicio", "historial/graficos/v54_pantalla_inicio",
+                                          "v54/pantalla_inicio")
+#: Tope de motivos anotados por capa: el histórico es un índice, no un inventario.
+_MAX_MOTIVOS = 12
+
+
+def _ahora() -> str:
+    from ie123kit.nucleo import util
+
+    return util.ahora_iso()
+
+
+def _relativa(raiz: Path, ruta: Path) -> str:
+    """Ruta relativa a la raíz en formato POSIX; absoluta si cae fuera."""
+    try:
+        return ruta.relative_to(raiz).as_posix()
+    except ValueError:
+        return ruta.as_posix()
+
+
+def _es_ruta_del_menu(rel: str) -> bool:
+    return rel.startswith(_RUTAS_MENU) or rel.rpartition("/")[2] in _EXEFS_MENU
+
+
+def _motivos_de_menu(capa: Path) -> list[str]:
+    """Por qué esta capa toca el juego principal (lista vacía si no lo toca)."""
+    motivos: list[str] = []
+    extra = capa / "extra"
+    if extra.is_dir():
+        for fichero in sorted(extra.rglob("*")):
+            if len(motivos) >= _MAX_MOTIVOS:
+                break
+            if not fichero.is_file():
+                continue
+            rel = fichero.relative_to(extra).as_posix()
+            if _es_ruta_del_menu(rel):
+                motivos.append(f"extra/{rel}")
+    for nombre in _FICHEROS_DE_CAPA:
+        fichero = capa / nombre
+        if not fichero.is_file():
+            continue
+        try:
+            texto = fichero.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        for aguja in (*_RUTAS_MENU, *_EXEFS_MENU):
+            if aguja in texto and len(motivos) < _MAX_MOTIVOS:
+                motivos.append(f"{nombre}: {aguja}")
+    return list(dict.fromkeys(motivos))
+
+
+def _es_capa(carpeta: Path) -> bool:
+    return (carpeta / "extra").is_dir() or any((carpeta / n).is_file() for n in _FICHEROS_DE_CAPA)
+
+
+def _capas_del_menu(dir_capas: Path) -> list[tuple[Path, list[str]]]:
+    """Capas de `work/ie1/capas` que tocan el juego principal, ordenadas.
+
+    Recorre `<tema>/<linea>`, la antigua `<vNN>/<linea>` y `historial/<tema>/vNN_<linea>`
+    (ver ``nucleo.construir.capas.listar_capas``), además de cada carpeta de primer nivel.
+    """
+    from ie123kit.nucleo.construir.capas import HISTORIAL, listar_capas
+
+    if not dir_capas.is_dir():
+        return []
+    grupos = [p for p in dir_capas.iterdir() if p.is_dir() and p.name != HISTORIAL]
+    candidatas = sorted([*grupos, *listar_capas(dir_capas, historial=True)])
+    salida: list[tuple[Path, list[str]]] = []
+    for carpeta in candidatas:
+        rel = carpeta.relative_to(dir_capas).as_posix()
+        conocida = rel in _CAPAS_MENU_CONOCIDAS
+        if not conocida and not _es_capa(carpeta):
+            continue
+        motivos = _motivos_de_menu(carpeta)
+        if conocida:
+            motivos.append("capa conocida del menú (declarada en _CAPAS_MENU_CONOCIDAS)")
+        if motivos:
+            salida.append((carpeta, motivos))
+    return salida
 
 
 def _capa_vacia(aporte: dict[str, Any]) -> bool:
@@ -237,16 +370,42 @@ class ServicioToolkit:
             )
         return juego
 
-    def _refs(self, juego: JuegoBase, *, progreso: Any = None, cancel: CancelToken | None = None) -> list[Any]:
-        """Activos del objetivo: registro cacheado si se puede, si no el propio juego."""
+    def _del_registro(self, juego: JuegoBase, *, progreso: Any = None,
+                      cancel: CancelToken | None = None) -> list[Any]:
+        """Activos escaneados del `archive.fa` base; lista vacía si no se puede escanear.
+
+        Sin ROM (la CI) o con el escaneo cancelado no hay registro, y eso NO es un error:
+        lo que aporte el juego por su cuenta se sigue devolviendo.
+        """
         try:
             from ie123kit.servicio import registro_activos
 
-            registro = registro_activos.obtener(self.ws, juego, progreso=progreso, cancel=cancel)
-            return list(registro.activos)
+            return list(registro_activos.obtener(self.ws, juego, progreso=progreso, cancel=cancel).activos)
         except Exception:
+            return []
+
+    def _refs(self, juego: JuegoBase, *, progreso: Any = None, cancel: CancelToken | None = None) -> list[Any]:
+        """Activos del objetivo: los del `archive.fa` MÁS los que aporta el propio juego.
+
+        Son dos conjuntos complementarios, no dos formas de obtener el mismo: el registro
+        escanea el `archive.fa` y el juego aporta lo que vive FUERA de él (`cro/*.cro`, los
+        `.SAD` sueltos, `banner.bnr`/`icon.icn` del ExeFS). Coger solo uno dejaba la mitad
+        del inventario invisible. Se deduplica por `AssetRef.id` y manda el registro.
+        """
+        refs: list[Any] = self._del_registro(juego, progreso=progreso, cancel=cancel)
+        try:
             salida = juego.activos(self.ws)
-            return list(salida.datos.get("activos", ())) if isinstance(salida, Resultado) else list(salida)
+            propios = list(salida.datos.get("activos", ())) if isinstance(salida, Resultado) else list(salida)
+        except Exception:
+            propios = []
+        vistos = {getattr(r, "id", None) for r in refs}
+        for ref in propios:
+            ident = getattr(ref, "id", None)
+            if ident is not None and ident in vistos:
+                continue
+            vistos.add(ident)
+            refs.append(ref)
+        return refs
 
     def _resolver(self, juego: JuegoBase, ident: Any) -> Any | None:
         """Convierte un id de activo en su AssetRef; devuelve None si no existe."""
@@ -258,6 +417,110 @@ class ServicioToolkit:
         return None
 
     # -- órdenes de proyecto ------------------------------------------------
+
+    def init(self, rom_3ds: str | Path | None = None, roms: dict[str, Any] | None = None, *,
+             simular: bool = False,
+             progreso: Callable[[Progreso], None] | None = None,
+             cancel: CancelToken | None = None) -> Resultado:
+        """Prepara `work/<objetivo>/` y `translation/<objetivo>/` de los SIETE objetivos.
+
+        `juego_principal` es un ámbito de primera clase como `shared`, `ie1`, `ie2` e `ie3`:
+        su `work/juego_principal/` se crea aquí, no a mano. Las rutas de ROM que se pasen se
+        anotan en `ie123.local.toml` (ignorado por git); nunca se copia contenido (Norma 2).
+        Idempotente: repetirlo no cambia nada y `datos["creadas"]` sale vacío.
+        """
+        t0 = time.perf_counter()
+        try:
+            objetivos = sorted(OBJETIVOS)
+            if progreso is not None:
+                progreso(Progreso("init", 0, 2, "carpetas"))
+            if simular:
+                creadas = [
+                    c for objetivo in objetivos
+                    for c in self._carpetas_de(objetivo) if not Path(c).is_dir()
+                ]
+            else:
+                creadas = [Path(c) for c in self.ws.preparar_todo(objetivos)]
+
+            rutas: dict[str, str] = {}
+            if rom_3ds:
+                rutas["3ds_jp"] = str(rom_3ds)
+            for nombre, ruta in (roms or {}).items():
+                if ruta:
+                    rutas[str(nombre)] = str(ruta)
+            if progreso is not None:
+                progreso(Progreso("init", 1, 2, "ie123.local.toml"))
+            local = self.ws.escribir_local({"roms": rutas}) if rutas and not simular else None
+
+            datos = {
+                "objetivos": objetivos,
+                "creadas": [str(c) for c in creadas],
+                "roms": rutas,
+                "ie123_local_toml": str(local) if local is not None else "",
+                "simulado": bool(simular),
+            }
+            artefactos = tuple(str(c) for c in creadas) + ((str(local),) if local is not None else ())
+            if progreso is not None:
+                progreso(Progreso("init", 2, 2, "hecho"))
+            return self._cronometrar(t0, Resultado.correcto(datos=datos, artefactos=artefactos))
+        except Exception as exc:
+            return self._cronometrar(t0, Resultado.fallo([_incidencia("NOT_SUPPORTED", f"init: {exc}")]))
+
+    def _carpetas_de(self, objetivo: str) -> tuple[Path, ...]:
+        """Carpetas que `init` crearía para ese objetivo (sin crearlas)."""
+        d = self.ws.dirs(objetivo)
+        return (Path(d.capas), Path(d.qa), Path(d.exportaciones), Path(self.ws.dir_traduccion(objetivo)))
+
+    def migrar_juego_principal(self, simular: bool = True, *,
+                               progreso: Callable[[Progreso], None] | None = None,
+                               cancel: CancelToken | None = None) -> Resultado:
+        """Índice `work/juego_principal/historico.json` de las capas de `work/ie1/capas` que tocan el menú.
+
+        NO MUEVE NADA: esas capas calculan la raíz del repo subiendo niveles desde su propio fichero
+        y algunas se importan por `importlib` desde su sitio actual (la V37); moverlas las rompe en
+        silencio. El histórico es un índice que APUNTA a donde siguen estando.
+
+        Con ``simular=True`` (por defecto) no se escribe nada: el documento va en ``datos``. Con
+        ``simular=False`` se escribe el índice y se avisa de que las capas no se mueven.
+        """
+        t0 = time.perf_counter()
+        try:
+            if cancel is not None:
+                cancel.comprobar()
+            capas = _capas_del_menu(Path(self.ws.dirs("ie1").capas))
+            if progreso is not None:
+                progreso(Progreso("migrar_juego_principal", len(capas), len(capas) or 1, "detectadas"))
+            destino = Path(self.ws.dirs("juego_principal").historico)
+            documento = {
+                "esquema": 1,
+                "objetivo": "juego_principal",
+                "generado_en": _ahora(),
+                "origen": "work/ie1/capas",
+                "movidas": False,
+                "nota": ("Índice de solo lectura: las capas SIGUEN en work/ie1/capas. No se mueven "
+                         "porque sus rutas relativas y sus importlib dependen de su sitio actual."),
+                "capas": [
+                    {"ruta": _relativa(self.ws.raiz, ruta), "motivos": motivos}
+                    for ruta, motivos in capas
+                ],
+            }
+            datos = {"historico": str(destino), "capas": documento["capas"], "movidas": False,
+                     "simulado": bool(simular), "escrito": not simular}
+            if simular:
+                datos["documento"] = documento
+                return self._cronometrar(t0, Resultado.correcto(datos=datos))
+            destino.parent.mkdir(parents=True, exist_ok=True)
+            destino.write_text(json.dumps(documento, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            aviso = Incidencia("NOT_SUPPORTED", "aviso",
+                               "migrar-juego-principal: las capas no se mueven (sus rutas relativas e "
+                               "importlib dependen de su sitio actual); solo se escribe el índice",
+                               ruta=str(destino))
+            return self._cronometrar(t0, Resultado.correcto(datos=datos, artefactos=(str(destino),),
+                                                            incidencias=(aviso,)))
+        except Exception as exc:
+            return self._cronometrar(
+                t0, Resultado.fallo([_incidencia("NOT_SUPPORTED", f"migrar-juego-principal: {exc}")])
+            )
 
     def objetivos(self, *, progreso: Callable[[Progreso], None] | None = None,
                   cancel: CancelToken | None = None) -> Resultado:
@@ -568,11 +831,19 @@ class ServicioToolkit:
             return self._cronometrar(
                 t0, Resultado.no_soportado(f"instalar: no existe la candidata {candidata!r} ({dir_cand})")
             )
+        # La carpeta de mods sale de la configuración ([azahar] mods_dir o IE123_AZAHAR); antes se
+        # llamaba con `lanzar`/`ws`, que el núcleo no admite, y el TypeError hacía caer siempre en la
+        # carpeta por defecto del sistema aunque el proyecto configurase otra (F2.5).
+        kw: dict[str, Any] = {}
+        mods = self.ws.ajuste("azahar.mods_dir")
+        if mods:
+            kw["raiz_mods"] = Path(str(mods))
+        incidencias: list[Incidencia] = []
+        if lanzar:
+            incidencias.append(Incidencia("NOT_SUPPORTED", "aviso",
+                                          "instalar: lanzar el emulador no está soportado; ábrelo a mano"))
         try:
-            try:
-                salida = instalador.azahar(dir_cand, lanzar=lanzar, ws=self.ws)
-            except TypeError:  # T4 aún no ha aterrizado o su firma es más corta
-                salida = instalador.azahar(dir_cand)
+            salida = instalador.azahar(dir_cand, **kw)
         except Exception as exc:
             return self._cronometrar(t0, Resultado.fallo([_incidencia("NOT_SUPPORTED", f"instalar: {exc}")]))
         if isinstance(salida, Resultado):
@@ -580,7 +851,7 @@ class ServicioToolkit:
         datos = dict(salida) if isinstance(salida, dict) else {"destino": str(salida)}
         datos.setdefault("candidata", dir_cand.name)
         datos.setdefault("emulador", emulador)
-        return self._cronometrar(t0, Resultado.correcto(datos=datos))
+        return self._cronometrar(t0, Resultado.correcto(datos=datos, incidencias=tuple(incidencias)))
 
     def parche(self, rom_base: str | Path, rom_parcheada: str | Path, salida: str | Path, *,
                progreso: Callable[[Progreso], None] | None = None,
@@ -641,13 +912,221 @@ class ServicioToolkit:
         if isinstance(salida, Resultado):
             datos = dict(salida.datos or {})
             datos["api_version"] = API_VERSION
+            entorno, extra = self._entorno()
+            datos.update(entorno)
+            incidencias = [*salida.incidencias, *extra]
+            ok = salida.ok and not any(i.severidad == "error" for i in extra)
             return self._cronometrar(
-                t0, Resultado.correcto(datos=datos, incidencias=list(salida.incidencias))
-                if salida.ok else Resultado.fallo(list(salida.incidencias))
+                t0, Resultado.correcto(datos=datos, incidencias=incidencias)
+                if ok else Resultado.fallo(incidencias, datos=datos)
             )
         datos = dict(salida) if isinstance(salida, dict) else {"doctor": salida}
         datos["api_version"] = API_VERSION
         return self._cronometrar(t0, Resultado.correcto(datos=datos))
+
+    def _entorno(self) -> tuple[dict[str, Any], list[Incidencia]]:
+        """Comprobaciones de `ie123 doctor` que no dependen del Workspace (F2.4)."""
+        import shutil
+        import sys
+
+        datos: dict[str, Any] = {"python": sys.version.split()[0]}
+        incidencias: list[Incidencia] = []
+        dependencias: dict[str, bool] = {}
+        for modulo, obligatoria in (("PIL", True), ("numpy", True), ("capstone", True), ("scipy", False),
+                                    ("cv2", False)):
+            try:
+                importlib.import_module(modulo)
+                dependencias[modulo] = True
+            except Exception:
+                dependencias[modulo] = False
+                incidencias.append(Incidencia("NOT_SUPPORTED", "error" if obligatoria else "aviso",
+                                              f"Falta el módulo de Python {modulo!r}.",
+                                              pista='python -m pip install -e "tools[dev,graficos]"'))
+        datos["dependencias"] = dependencias
+        try:
+            from ie123kit.nucleo.config import herramientas as H
+
+            externas = {}
+            for nombre in H.HERRAMIENTAS:
+                ruta = H.localizar(nombre, ws=self.ws)
+                externas[nombre] = str(ruta) if ruta else None
+                if ruta is None:
+                    incidencias.append(Incidencia("HERRAMIENTA_AUSENTE", "aviso", f"No se encuentra {nombre}.",
+                                                  pista="tools/bin, [herramientas] de ie123.local.toml o el PATH."))
+            datos["herramientas_externas"] = externas
+        except Exception as exc:
+            incidencias.append(Incidencia("NOT_SUPPORTED", "aviso", f"herramientas: {exc}"))
+        if (self.ws.raiz / "tools" / "dialogue_lock.py").is_file():
+            try:
+                import contextlib
+                import io
+
+                from ie123kit.nucleo.compat import guardia
+
+                with contextlib.redirect_stdout(io.StringIO()):
+                    codigo = guardia.comprobar_bloqueados(self.ws.raiz)
+                datos["bloqueados"] = codigo == 0
+                if codigo:
+                    incidencias.append(Incidencia("BLOQUEO_V20", "error",
+                                                  "Los ficheros congelados v20 no coinciden byte a byte.",
+                                                  pista="python -m ie123kit.nucleo.compat.guardia bloqueados"))
+            except Exception as exc:
+                incidencias.append(Incidencia("NOT_SUPPORTED", "aviso", f"bloqueados: {exc}"))
+        roms = {**(self.ws.proyecto.get("roms") or {}), **(self.ws.local.get("roms") or {})}
+        datos["roms"] = {k: (Path(v) if Path(v).is_absolute() else self.ws.raiz / v).is_file()
+                         for k, v in roms.items() if isinstance(v, str)}
+        for clave, existe in datos["roms"].items():
+            if not existe:
+                incidencias.append(Incidencia("NOT_SUPPORTED", "aviso", f"ROM {clave} configurada pero ausente."))
+        try:
+            libre = shutil.disk_usage(self.ws.raiz).free
+            datos["espacio_libre_gb"] = round(libre / 2**30, 1)
+            if libre < 4 * 2**30:
+                incidencias.append(Incidencia("NOT_SUPPORTED", "aviso", "Menos de 4 GB libres para construir."))
+        except OSError:
+            pass
+        return datos, incidencias
+
+    # -- órdenes de F2.4 (#50) ---------------------------------------------
+
+    def extraer(self, tipo: str, rom: str | Path | None = None, salida: str | Path | None = None, *,
+                progreso: Callable[[Progreso], None] | None = None,
+                cancel: CancelToken | None = None) -> Resultado:
+        """Extrae una ROM a ``work/``: ``romfs`` (3DS con 3dstool) o ``nds`` (Python puro).
+
+        Sin ``rom``, ``romfs`` usa ``[roms] 3ds_jp`` de la configuración (``ie123 proyecto init``) o la
+        ruta por defecto de ``extract_romfs.ps1``; sin ``salida``, ``work/shared/base_3ds``. ``nds``
+        exige las dos rutas. Nunca escribe fuera de ``salida``.
+        """
+        t0 = time.perf_counter()
+        try:
+            from ie123kit.nucleo.construir import extraer as extractor
+        except ImportError as exc:
+            return self._cronometrar(t0, Resultado.no_soportado(f"extraer: falta el núcleo ({exc})"))
+        if tipo not in ("romfs", "nds"):
+            return self._cronometrar(t0, Resultado.no_soportado(f"extraer: tipo desconocido {tipo!r} (romfs|nds)"))
+        if rom is None and tipo == "romfs":
+            rom = self._rom_configurada("3ds_jp")
+        if rom is None:
+            return self._cronometrar(t0, Resultado.no_soportado(f"extraer {tipo}: falta --rom"))
+        if salida is None:
+            if tipo == "nds":
+                return self._cronometrar(t0, Resultado.no_soportado("extraer nds: falta --salida"))
+            salida = self.ws.raiz / "work" / "shared" / "base_3ds"
+        rom, salida = Path(rom), Path(salida)
+        if not salida.is_absolute():
+            salida = self.ws.raiz / salida
+        if not rom.is_absolute() and not rom.is_file():
+            rom = self.ws.raiz / rom
+        ocupada = (salida / "romfs").exists() if tipo == "romfs" else (salida.is_dir() and any(salida.iterdir()))
+        if ocupada:
+            return self._cronometrar(t0, Resultado.fallo([_incidencia(
+                "NOT_SUPPORTED", f"extraer {tipo}: la salida ya tiene una extracción ({salida})",
+                pista="No se sobrescribe: bórrala o elige otra --salida.")]))
+        try:
+            datos = extractor.romfs_3ds(rom, salida, ws=self.ws) if tipo == "romfs" else extractor.nds(rom, salida)
+        except Exception as exc:
+            codigo = "HERRAMIENTA_AUSENTE" if getattr(exc, "codigo", "") == "HERRAMIENTA_AUSENTE" else "NOT_SUPPORTED"
+            return self._cronometrar(t0, Resultado.fallo([_incidencia(codigo, f"extraer {tipo}: {exc}")]))
+        return self._cronometrar(t0, Resultado.correcto(datos=datos, artefactos=(str(salida),)))
+
+    def _rom_configurada(self, clave: str) -> Path | None:
+        """``[roms] <clave>`` de ie123.local.toml/ie123.toml; si no, la ruta de siempre si existe."""
+        roms = {**(self.ws.proyecto.get("roms") or {}), **(self.ws.local.get("roms") or {})}
+        valor = roms.get(clave)
+        if isinstance(valor, dict):
+            valor = valor.get("ruta")
+        if isinstance(valor, str) and valor:
+            return Path(valor)
+        for nombre in ("Inazuma Eleven 1-2-3!! - Endou Mamoru Densetsu (2012) (Japan).3ds",
+                       "Inazuma Eleven 1-2-3 - Endou Mamoru Densetsu.3ds"):
+            defecto = self.ws.raiz / "Roms" / "shared" / nombre
+            if defecto.is_file():
+                return defecto
+        return None
+
+    def compat(self, golden: bool = False, *, progreso: Callable[[Progreso], None] | None = None,
+               cancel: CancelToken | None = None) -> Resultado:
+        """Gates de la migración (``nucleo.compat.gates``). Un gate conocido (#80) no cuenta como fallo."""
+        t0 = time.perf_counter()
+        try:
+            from ie123kit.nucleo.compat import gates
+        except ImportError as exc:
+            return self._cronometrar(t0, Resultado.no_soportado(f"compat: falta el núcleo ({exc})"))
+        lista = gates.comprobar(self.ws.raiz, golden=golden)
+        incidencias = []
+        for g in lista:
+            if g["ok"]:
+                continue
+            if g["conocido"]:
+                incidencias.append(Incidencia("BLOQUEO_V20", "aviso",
+                                              f"{g['gate']}: fallo conocido, pendiente de decisión (#80): "
+                                              f"{g['detalle']}"))
+            else:
+                codigo = "BLOQUEO_V20" if g["gate"] == "bloqueados" else "GATE_FALLIDO"
+                incidencias.append(_incidencia(codigo, f"{g['gate']}: {g['detalle']}"))
+        datos = {"golden": golden, "gates": lista}
+        if any(i.severidad == "error" for i in incidencias):
+            return self._cronometrar(t0, Resultado.fallo(incidencias, datos=datos))
+        return self._cronometrar(t0, Resultado.correcto(datos=datos, incidencias=tuple(incidencias)))
+
+    def registro(self, sesion: str | None = None, logdir: str | Path | None = None, forzar: bool = False, *,
+                 progreso: Callable[[Progreso], None] | None = None,
+                 cancel: CancelToken | None = None) -> Resultado:
+        """Cosecha el log de Azahar en ``logs/runtime_errors.json`` (antes ``harvest_log.py``)."""
+        t0 = time.perf_counter()
+        try:
+            from ie123kit.nucleo.construir import registro_azahar
+
+            logs = self.ws.raiz / "logs"
+            datos = registro_azahar.cosechar(sesion=sesion, logdir=str(logdir) if logdir else None, forzar=forzar,
+                                             registro=str(logs / "runtime_errors.json"),
+                                             informe_md=str(logs / "INFORME_ERRORES.md"))
+        except Exception as exc:
+            return self._cronometrar(t0, Resultado.fallo([_incidencia("NOT_SUPPORTED", f"registro: {exc}")]))
+        artefactos = (datos["registro"], datos["informe"]) if datos["procesados"] else ()
+        return self._cronometrar(t0, Resultado.correcto(datos=datos, artefactos=artefactos))
+
+    def equivalencias(self, *, progreso: Callable[[Progreso], None] | None = None,
+                      cancel: CancelToken | None = None) -> Resultado:
+        """Orden ``ie123`` que sustituye a cada script u orden antigua (``servicio.equivalencias``)."""
+        t0 = time.perf_counter()
+        from ie123kit.servicio.equivalencias import EQUIVALENCIAS
+
+        tabla = [{"antigua": k, "nueva": v, "nota": n} for k, (v, n) in EQUIVALENCIAS.items()]
+        return self._cronometrar(t0, Resultado.correcto(datos={"equivalencias": tabla}))
+
+    def motores(self, *, progreso: Callable[[Progreso], None] | None = None,
+                cancel: CancelToken | None = None) -> Resultado:
+        """Motores con entrada de fichero disponibles, por juego."""
+        t0 = time.perf_counter()
+        tabla: dict[str, list[str]] = {}
+        for juego, nombre in MOTORES:
+            tabla.setdefault(juego, []).append(nombre)
+        return self._cronometrar(t0, Resultado.correcto(datos={"motores": tabla}))
+
+    def motor(self, juego: str, nombre: str, parametros: dict[str, Any] | None = None, *,
+              progreso: Callable[[Progreso], None] | None = None,
+              cancel: CancelToken | None = None) -> Resultado:
+        """Ejecuta el motor ``nombre`` de ``juego`` con ``parametros`` (rutas y opciones)."""
+        t0 = time.perf_counter()
+        destino = MOTORES.get((juego, nombre))
+        if destino is None:
+            validos = ", ".join(f"{j}:{n}" for j, n in sorted(MOTORES))
+            return self._cronometrar(
+                t0, Resultado.no_soportado(f"motor desconocido {juego}:{nombre}. Válidos: {validos}"))
+        modulo, _, funcion = destino.partition(":")
+        try:
+            salida = getattr(importlib.import_module(modulo), funcion)(**(parametros or {}))
+        except FileExistsError as exc:
+            return self._cronometrar(t0, Resultado.fallo([_incidencia("NOT_SUPPORTED", f"{nombre}: {exc}",
+                                                                      pista="La salida no se sobrescribe.")]))
+        except Exception as exc:
+            return self._cronometrar(t0, Resultado.fallo([_incidencia("NOT_SUPPORTED", f"{nombre}: {exc}")]))
+        salida = dict(salida)
+        artefactos = tuple(salida.pop("artefactos", ()))
+        datos = json.loads(json.dumps(salida, ensure_ascii=False, default=str))
+        return self._cronometrar(t0, Resultado.correcto(datos=datos, artefactos=artefactos))
 
     # -- trabajos -----------------------------------------------------------
 

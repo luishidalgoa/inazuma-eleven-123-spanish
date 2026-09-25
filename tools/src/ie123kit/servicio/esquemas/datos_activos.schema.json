@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://inazuma123.local/esquemas/datos_activos.schema.json",
+  "title": "Datos de ServicioToolkit.activos",
+  "description": "Activos del objetivo (cada uno con la forma de assetref).",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "activos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "objetivo",
+          "tipo",
+          "ruta_romfs"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "objetivo": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          },
+          "ruta_romfs": {
+            "type": "string"
+          },
+          "editable": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "activos"
+  ],
+  "examples": [
+    {
+      "activos": [
+        {
+          "id": "juego_principal:grafico:menu/logo.arc",
+          "objetivo": "juego_principal",
+          "tipo": "grafico",
+          "ruta_romfs": "menu/logo.arc",
+          "editable": true
+        }
+      ]
+    }
+  ]
+}

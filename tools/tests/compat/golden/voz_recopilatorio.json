@@ -1,0 +1,10 @@
+{
+ "nota": "Solo hashes (Norma 2): entradas y salidas vigentes de la capa work/shared/capas/media/voz_titulo_recopilatorio y del banco japonés del recopilatorio.",
+ "ficheros": {
+  "shared/base_3ds/romfs/sound/CM_000.SWD": "8611fd220d51a1dc077f6e0ee1dead818b093953d83a1c4a3f806aa55d14a00a",
+  "shared/base_3ds/romfs/sound/CM_000.SED": "941b35ebadff53ac47489f60578d912070fbd5eff01b8d2f28ac6765c9a6e40c",
+  "shared/capas/media/voz_titulo_recopilatorio/fuentes/Banner title complto.mp3": "d2caf01527b6a84005fbc12cfefb8bc74256c2cf5ce0ab42b1d98c913540b8a6",
+  "shared/capas/media/voz_titulo_recopilatorio/romfs_mod/sound/CM_000.SWD": "0f3ff88fe0220261041dc30ff67db3cc09e3006cf5f18288257808327008ef98",
+  "shared/capas/media/voz_titulo_recopilatorio/romfs_mod/sound/CM_000.SED": "de07db1d04b8e00681123448518d7a623a366c91b2adb02e530f062373f31c57"
+ }
+}

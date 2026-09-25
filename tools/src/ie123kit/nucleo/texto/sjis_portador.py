@@ -1,4 +1,4 @@
-"""Codificación SJIS con portadores griegos del diálogo (copia literal desde tools/reinsert.py).
+"""Codificación SJIS con portadores griegos del diálogo (copia literal del antiguo tools/reinsert.py).
 
 Portadores griegos: cada acento o signo del español (á, é, ñ, ¿, ¡…) se sustituye por
 un carácter griego «portador» (``chr(cp)`` de ``font_patch.PLAN``) cuyo glifo está
@@ -6,7 +6,7 @@ parcheado en la fuente con el acento. ``es_encode`` emite el portador en Shift-J
 motor lo reconvierte a Unicode y pinta el glifo parcheado. ``es_encode`` TRUNCA al
 presupuesto sin partir multibyte (no es ``encode_fullwidth``: no se unifican).
 
-``_advance`` lee los anchos de ``work/fa_extract/font/FONT12.bcfnt`` la primera vez que
+``_advance`` lee los anchos de ``work/shared/fa_extract/font/FONT12.bcfnt`` la primera vez que
 se llama (``_ADV`` es perezoso y mutable). Importar este módulo carga ``font_patch``
 (bloqueado v20) pero no escribe nada.
 """
@@ -56,7 +56,7 @@ def _advance(ch):
     global _ADV
     if _ADV is None:
         from ie123kit.nucleo.fuentes.glifos import Font
-        f = Font(str(find_root() / "work" / "fa_extract" / "font" / "FONT12.bcfnt"))
+        f = Font(str(find_root() / "work" / "shared" / "fa_extract" / "font" / "FONT12.bcfnt"))
         _ADV = {}
         for cp, gi in f.cmap.items():
             o = f.cwdh_entry_off(gi)

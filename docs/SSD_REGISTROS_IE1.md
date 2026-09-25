@@ -17,7 +17,7 @@ La cabecera SSD contiene `instSize` (longitud del código, sin cabecera de 32 by
   `SSD\0`; otros 53 conservan exactamente la misma cabecera y tabla, pero la
   extracción omitió esos cuatro bytes iniciales. Ambos formatos se recorren con
   `textCount` y las longitudes inline; no se descartan como texto no estructurado.
-- `tools/ssd_records.py` lee y reescribe ambos formatos SIN cambios byte por byte.
+- `ie123kit.nucleo.eventos.ssd` lee y reescribe ambos formatos SIN cambios byte por byte.
   En la variante sin firma conserva los cuatro bytes iniciales originales. También
   comprueba todos los índices String de las instrucciones.
 - Algunas instrucciones reutilizan índices: el dueño almacenado en un registro

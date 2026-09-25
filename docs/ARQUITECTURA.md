@@ -20,6 +20,7 @@ Roms/                         (git lo ignora; nunca se sube)
 
 translation/                  (en git: solo glosarios y CSV de términos)
   shared/glossary/            equipos, jugadores, técnicas, objetos, menús comunes
+  juego_principal/            glosario de los menús de la recopilación
   ie1/  ie2/  ie3/            diálogo alineado y términos propios de cada juego
 
 tools/                        herramientas (CLI; ver tools/README.md)
@@ -32,10 +33,8 @@ tools/                        herramientas (CLI; ver tools/README.md)
     ie3/{comun,rayo_celeste,fuego_explosivo,amenaza_del_ogro}/
     _legado/                  fachadas CLI de los scripts antiguos y cuarentena (--legado-lo-se)
   tests/{unidad,arquitectura,compat,requiere_rom}/
-  _archivo/                   scripts retirados: se archivan, no se borran; no importables
-  <nombre>.py (29)            shims: alias puros de sys.modules hacia ie123kit
   dialogue_typography.py, font_patch.py, dialogue_lock.py,
-  build_ie1_probe.py, build_ui_revision.py   congelados del bloqueo v20 (intactos)
+  build_ie1_probe.py, build_ui_revision.py   congelados del bloqueo tipográfico (intactos)
   *.ps1, pyproject.toml       scripts PowerShell y configuración del paquete
   bin/                        (git lo ignora) ejecutables locales
 
@@ -46,6 +45,11 @@ work/                         (git lo ignora)
     releases/                 paquetes de releases publicadas
     herramientas/media_tools  mobipeg x86, vgmstream
     trailer/                  proyecto del tráiler
+  juego_principal/            menú de la recopilación: quinto ámbito, igual que ie1/ie2/ie3
+    capas/vNN/<linea>/        capas nuevas del menú (las antiguas siguen en ie1/capas, ver abajo)
+    qa/  exportaciones/       pruebas en juego y volcados de trabajo
+    registro.json             inventario de activos (caché del escaneo del archive.fa)
+    historico.json            índice de las capas VIEJAS de ie1/capas que tocan el menú
   ie1/
     fuentes/nds_es            ROM NDS española extraída. No se borra.
     fuentes/3ds_eu            IE1 3DS europeo extraído (es/, voces, cinemáticas, code_dec.bin). No se borra.
@@ -93,17 +97,28 @@ work/<juego>/capas/
 
 ## Reglas
 
-1. **Nada nuevo en la raíz de `work/`**. Lo nuevo va en `work/<juego>/capas/<tema>/<linea>/` o, si es de la
-   recopilación entera, en `work/shared/`. Pruebas e imágenes sueltas: scratchpad de la sesión.
+1. **Nada nuevo en la raíz de `work/`**. Los cinco ámbitos son `shared/`, `juego_principal/`, `ie1/`,
+   `ie2/` e `ie3/`: lo nuevo va en `work/<ámbito>/capas/<tema>/<linea>/` o, si es de la recopilación
+   entera, en `work/shared/`. Pruebas e imágenes sueltas: scratchpad de la sesión.
+   `ie123 proyecto init` crea los cinco (y sus `translation/<objetivo>/`); es idempotente.
 2. Las candidatas se llaman `probe_ie1_vNN` y viven en `work/shared/candidatas/`, porque un `archive.fa`
    contiene los tres juegos.
 3. Una capa lee su base de `work/shared/candidatas/probe_ie1_v(NN-1)` y escribe solo dentro de su carpeta.
-4. Las capas existentes de `work/` calculan la raíz del repo con `Path(__file__).resolve().parents[N]`; al
-   mover una capa hay que ajustar `N` (lo hizo `tools/_archivo/reorganizar_proyecto.py` en la migración del
+4. **`work/juego_principal/historico.json` solo APUNTA**: lista las capas antiguas de `work/ie1/capas`
+   que tocan el menú (v33/smdh, v54/pantalla_inicio, v58/carga, v58/logos…) con el motivo por el que
+   se han detectado. Esas capas **no se mueven**, y `ie123 proyecto migrar-juego-principal --no-simular`
+   responde `NOT_SUPPORTED` a propósito: sus rutas relativas al fichero y sus `importlib` (la V37)
+   dependen de dónde están. El histórico se escribe igualmente, para poder mirar de un vistazo qué
+   capas del menú viven todavía bajo `ie1/`. Las capas NUEVAS del menú van ya en
+   `work/juego_principal/capas/`.
+5. Las capas existentes de `work/` calculan la raíz del repo con `Path(__file__).resolve().parents[N]`; al
+   mover una capa hay que ajustar `N` (lo hizo el `reorganizar_proyecto.py` ya retirado, en la migración del
    2026-09-16). El código nuevo no usa `parents[N]`: usa `find_root` (`ie123kit.nucleo.config.raiz`) o la
    variable `IE123_ROOT`.
-5. **Antes de construir**: ≥ 4 GB libres. **Al instalar**: comprobar el hash del `archive.fa` copiado.
-   **Después**: `python tools/limpiar_work.py --borrar`.
+6. **Antes de construir**: ≥ 4 GB libres. **Al instalar**: comprobar el hash del `archive.fa` copiado.
+   **Después**: `ie123 work limpiar --borrar`. La limpieza
+   nunca lista `shared/base_3ds`, ninguna carpeta `fuentes`, los congelados del bloqueo tipográfico ni una
+   candidata con `.conservar`.
 
 ## Reglas de importación de ie123kit
 
@@ -113,19 +128,21 @@ work/<juego>/capas/
 4. `_legado` solo es una fachada: el código del paquete no depende de él.
 5. En `src/` no hay `parents[N]` ni rutas de máquina: la raíz sale de `find_root` o de `IE123_ROOT`.
 6. Importar un módulo no tiene efectos (ni E/S, ni `print`, ni `sys.exit`).
-7. Los shims de `tools/` son alias puros de `sys.modules`; los 5 congelados nunca se copian al paquete, se
-   cargan con re-exports perezosos.
+7. En `tools/` no hay shims (retirados en la F2.7, #102): todo se importa como `ie123kit.<...>`. Los 5
+   congelados nunca se copian al paquete; se cargan con re-exports perezosos, y los nombres planos que
+   importan los resuelve `nucleo.config.congelados.preparar()`.
 
 Los tests de `tools/tests/arquitectura` comprueban estas reglas y la CI (`.github/workflows/toolkit.yml`)
 los ejecuta en Windows y Ubuntu.
 
-`tools/_archivo/` guarda los scripts retirados: se archivan con `git mv` en lugar de borrarse, para
-conservar su historia y sus motivos ([`tools/_archivo/README.md`](../tools/_archivo/README.md)). No es
-importable ni tiene shims.
+Los scripts retirados de `tools/` no están en el árbol: hasta la F2.6 (#55) vivían en `tools/_archivo/`
+y ahora solo están en el historial de git. El motivo de cada retirada, su sustituto y cuáles son
+**PELIGROSO: no reutilizar** están en [`docs/toolkit/SCRIPTS_RETIRADOS.md`](toolkit/SCRIPTS_RETIRADOS.md),
+que `ie123kit.nucleo.compat.superficie.RETIRADOS` mantiene sincronizado. Ninguno tiene shim.
 
 ## Limpieza
 
-`python tools/limpiar_work.py` lista lo que sobra y con `--borrar` lo elimina: candidatas salvo las dos
+`ie123 work limpiar` lista lo que sobra y con `--borrar` lo elimina: candidatas salvo las dos
 últimas, `.3ds` reconstruidas de releases publicadas, `fuentes/` intermedias de cinemáticas, `__pycache__`,
 `*.partial`, `*.yuv`, `*_x2.png` y logs de comprobación. No toca `Roms/`, `shared/base_3ds`, `ieN/fuentes`,
 capas con scripts, `docs/` ni `tools/`.

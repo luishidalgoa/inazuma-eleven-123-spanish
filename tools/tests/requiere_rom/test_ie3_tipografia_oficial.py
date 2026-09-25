@@ -6,8 +6,12 @@ import pytest
 from ie123kit.ie3.comun.nombres import caracteres_cortos
 from ie123kit.ie3.comun.text import TextTable
 from ie123kit.ie3.comun.tipografia import (
-    FuenteBCFNT, _PORTADORES, _codepoint_destino, _codepoint_origen,
-    adaptar_font12, adaptar_font8_nombres,
+    _PORTADORES,
+    FuenteBCFNT,
+    _codepoint_destino,
+    _codepoint_origen,
+    adaptar_font8_nombres,
+    adaptar_font12,
 )
 from ie123kit.nucleo.config.raiz import find_root
 from ie123kit.nucleo.contenedores.fa import FaArchive
@@ -30,7 +34,7 @@ def _address(t, gi, x, y):
 def test_official_raster_bearings_and_untargeted_bytes(tmp_path, name):
     root = find_root()
     official_path = root / "work/ie3/rayo_celeste/fuentes/3ds_eu/romfs/archive_sz.fa"
-    base_path = root / f"work/fa_extract/font/{name}.bcfnt"
+    base_path = root / f"work/shared/fa_extract/font/{name}.bcfnt"
     if not official_path.is_file() or not base_path.is_file():
         pytest.skip("requiere originales locales JP/ES")
     official = FaArchive(str(official_path))

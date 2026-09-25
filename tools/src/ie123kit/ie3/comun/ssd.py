@@ -73,8 +73,15 @@ class SSDError(RuntimeError):
 
 
 class ScriptString:
-    __slots__ = ("instruction", "argument", "offset", "raw", "text", "opcode",
-                 "size")
+    __slots__ = (
+        "argument",
+        "instruction",
+        "offset",
+        "opcode",
+        "raw",
+        "size",
+        "text",
+    )
 
     def __init__(self, instruction, argument, offset, raw, text, opcode=-1,
                  size=0):

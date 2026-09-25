@@ -137,15 +137,15 @@ FONT12 y FONT8, rótulos de capítulos 1 a 10 y el ajuste aislado del logo Venti
 1. Trabajar siempre sobre una copia o un directorio de candidata, conservando el
    original y anotando sus hashes. No editar directamente la ROM original.
 2. Localizar el recurso mediante el índice de `archive.fa` y extraer solo el
-   fragmento necesario. Para SSD usar `tools/ssd_records.py`; no tratar el texto
+   fragmento necesario. Para SSD usar `ie123kit.nucleo.eventos.ssd`; no tratar el texto
    como cadenas separadas por NUL: cada registro lleva un tamaño inline.
 3. Preparar traducciones revisadas con hash del texto original. Una sustitución
    debe comprobar que sigue editando exactamente la cadena esperada, conservar
    instrucciones, índices, controles y argumentos, y rechazar el texto si no cabe.
-4. Para gráficos CTPK/ARCV/SSZL usar `tools/ui_archive.py`, `tools/ctpk_ui.py` y
-   `tools/translate_ui_textures.py`. Mantener dimensiones, formato, metadatos y
+4. Para gráficos CTPK/ARCV/SSZL usar `ie123kit._legado.ui_archive`, `ie123kit.nucleo.graficos.ctpk` y
+   `ie123kit._legado.translate_ui_textures`. Mantener dimensiones, formato, metadatos y
    tamaño de entradas. Crear una preview y revisarla antes de empaquetar.
-5. Para tablas binarias usar `ie123kit.ie1.texto.tablas` (el original `tools/ie1_tables.py` está en `tools/_archivo`): modificar solo
+5. Para tablas binarias usar `ie123kit.ie1.texto.tablas` (el original `ie1_tables.py` está retirado; en git, ver `docs/toolkit/SCRIPTS_RETIRADOS.md`): modificar solo
    campos conocidos y comprobar que estadísticas, punteros y bytes no relacionados
    permanecen iguales. Los nombres largos que no caben se dejan pendientes.
 6. Ejecutar los fixtures y validaciones, construir una candidata nueva y guardar
@@ -162,7 +162,7 @@ FONT12 y FONT8, rótulos de capítulos 1 a 10 y el ajuste aislado del logo Venti
 La orden reproducible usada fue:
 
 ```text
-python tools/build_ie1_probe.py --events 92010100 92010200 92010250 92010300 92010340 92010400 92010500 81000040 91010000 92010510 92104100 92104200 83000040 --fullwidth --reviewed-json work/probe_ie1_v7_inputs/reviewed.json --extra-files work/probe_ie1_v7_inputs/extra --output work/shared/candidatas/probe_ie1_v7/archive.fa
+python -m ie123kit.nucleo.compat.congelados build_ie1_probe --events 92010100 92010200 92010250 92010300 92010340 92010400 92010500 81000040 91010000 92010510 92104100 92104200 83000040 --fullwidth --reviewed-json work/probe_ie1_v7_inputs/reviewed.json --extra-files work/probe_ie1_v7_inputs/extra --output work/shared/candidatas/probe_ie1_v7/archive.fa
 ```
 
 La v7 instalada tiene SHA-256
@@ -187,7 +187,7 @@ la ruta exacta puede variar según la instalación del usuario.
 
 La orden reproducible usada fue:
 
-    python tools/build_ie1_probe.py --events 92010100 92010200 92010250 92010300 92010340 92010400 92010500 92010520 92010550 92010600 92010620 92010640 81000040 91010000 92010510 92104100 92104200 83000040 --fullwidth --reviewed-json work/probe_ie1_v8_inputs/reviewed.json --extra-files work/probe_ie1_v8_inputs/extra --output work/shared/candidatas/probe_ie1_v8/archive.fa
+    python -m ie123kit.nucleo.compat.congelados build_ie1_probe --events 92010100 92010200 92010250 92010300 92010340 92010400 92010500 92010520 92010550 92010600 92010620 92010640 81000040 91010000 92010510 92104100 92104200 83000040 --fullwidth --reviewed-json work/probe_ie1_v8_inputs/reviewed.json --extra-files work/probe_ie1_v8_inputs/extra --output work/shared/candidatas/probe_ie1_v8/archive.fa
 
 La candidata tiene SHA-256
 246341bad13ca68f36c7dffe221647b81fe7936e427138c8fe00fd59db9650f8. El
@@ -204,7 +204,7 @@ modales, recuperación ni disparadores de escena. Cada texto nuevo conserva el
 mismo número de páginas que su equivalente japonés y está asociado al SHA-256 de
 su registro original.
 
-    python tools/build_ie1_probe.py --events 92010100 92010200 92010250 92010300 92010340 92010400 92010500 92010520 92010550 92010600 92010620 92010640 81000040 91010000 92010510 92104100 92104200 83000040 --fullwidth --reviewed-json work/probe_ie1_v9_inputs/reviewed.json --extra-files work/probe_ie1_v9_inputs/extra --output work/shared/candidatas/probe_ie1_v9/archive.fa
+    python -m ie123kit.nucleo.compat.congelados build_ie1_probe --events 92010100 92010200 92010250 92010300 92010340 92010400 92010500 92010520 92010550 92010600 92010620 92010640 81000040 91010000 92010510 92104100 92104200 83000040 --fullwidth --reviewed-json work/probe_ie1_v9_inputs/reviewed.json --extra-files work/probe_ie1_v9_inputs/extra --output work/shared/candidatas/probe_ie1_v9/archive.fa
 
 La candidata tiene SHA-256
 6c8f154fce7e37a5d137043ae6783a545eb1f54ce758c43a68a940f1a6b16fff.

@@ -1,8 +1,9 @@
-"""Generador de shims de compatibilidad para los módulos trasladados de tools/.
+"""Generador y comprobador de shims de compatibilidad de tools/.
 
-Cada módulo movido al paquete ie123kit deja en tools/<nombre>.py un alias que
-sustituye su entrada en sys.modules por el módulo real, de modo que la identidad
-y la mutación de globales se conservan. Importar este módulo no produce I/O.
+Durante la migración cada módulo movido al paquete ie123kit dejó en tools/<nombre>.py un alias que
+sustituía su entrada en sys.modules por el módulo real. Desde la F2.7 no queda ninguno: todo el
+código importa ``ie123kit.<...>`` y :data:`DESTINOS` guarda la equivalencia de cada nombre antiguo.
+``comprobar`` vigila que no reaparezcan. Importar este módulo no produce I/O.
 """
 from __future__ import annotations
 
@@ -14,7 +15,9 @@ from pathlib import Path
 
 __all__ = [
     "CONGELADOS",
+    "DESTINOS",
     "MAPA",
+    "RETIRADOS",
     "destino_de_shim",
     "detectar_cli",
     "es_shim_sin_logica",
@@ -28,12 +31,13 @@ CONGELADOS = frozenset(
     {"dialogue_typography", "font_patch", "dialogue_lock", "build_ie1_probe", "build_ui_revision"}
 )
 
-MAPA: dict[str, str] = {
+#: Módulo real de cada shim plano que hubo en ``tools/`` (retirados todos en la F2.7). Se conserva como
+#: tabla de equivalencias: ``import lz10`` pasa a ser ``import ie123kit.nucleo.compresion.lz10 as lz10``
+#: y ``python tools/X.py`` pasa a ``python -m <destino>``. ``listar`` la imprime.
+DESTINOS: dict[str, str] = {
     "lz10": "ie123kit.nucleo.compresion.lz10",
-    "blz": "ie123kit._legado.blz",
     "sszl": "ie123kit.nucleo.compresion.sszl",
     "ui_archive": "ie123kit._legado.ui_archive",
-    "nds_unpack": "ie123kit._legado.nds_unpack",
     "qna_regions": "ie123kit.nucleo.graficos.qna",
     "legacy_sprite": "ie123kit.nucleo.graficos.pac_sprite",
     "nftr_metrics": "ie123kit._legado.nftr_metrics",
@@ -43,13 +47,11 @@ MAPA: dict[str, str] = {
     "fa_unpack": "ie123kit._legado.fa_unpack",
     "fa_repack": "ie123kit._legado.fa_repack",
     "patch_smdh_title": "ie123kit._legado.patch_smdh_title",
-    "harvest_log": "ie123kit._legado.harvest_log",
-    "limpiar_work": "ie123kit._legado.limpiar_work",
     "ie1_keyboard": "ie123kit.ie1.graficos.teclado",
     "ie3_pipeline": "ie123kit.ie3.pipeline",
     "ie3_verificar_offsets": "ie123kit.ie3.comun.verificar_offsets",
 }
-MAPA.update(
+DESTINOS.update(
     {
         _n: f"ie123kit._legado.{_n}"
         for _n in (
@@ -60,14 +62,37 @@ MAPA.update(
             "translate_ui_textures",
             "mods_to_moflex",
             "audit_dialogo_ids",
+            # retirados en la F2.4 y la F2.6
+            "blz",
+            "nds_unpack",
+            "harvest_log",
+            "limpiar_work",
+            "verify_candidate",
             "ds_roster",
             "reinsert_var",
             "ssd_reinsert",
             "validate",
-            "verify_candidate",
         )
     }
 )
+
+#: Shims planos retirados de ``tools/``. Sus módulos siguen en ``ie123kit`` (ver :data:`DESTINOS`).
+#:
+#: - F2.4 (#50): los 5 de CLI (``blz``, ``nds_unpack``, ``harvest_log``, ``limpiar_work``,
+#:   ``verify_candidate``), sin importadores (evidencia AST de ``nucleo.compat.importadores``).
+#: - F2.6 (#55): ``ds_roster``, ``reinsert_var``, ``ssd_reinsert`` y ``validate``, también sin
+#:   importadores. Las fachadas de ``_legado`` se importan entre sí por ``ie123kit._legado.<mod>``;
+#:   ``validate`` además colisionaba en ``sys.path`` con los ``validate.py`` de las capas.
+#: - F2.7: los 22 restantes. Aquí sí había importadores (capas de ``work/``, tests, un módulo del
+#:   paquete): se migraron todos a ``ie123kit.<...>`` antes de borrar los shims. Los 5 congelados, que
+#:   no se pueden editar, siguen importando 7 de esos nombres planos; los resuelve
+#:   ``ie123kit.nucleo.config.congelados.preparar`` con un resolutor en ``sys.meta_path``.
+RETIRADOS: frozenset[str] = frozenset(DESTINOS)
+
+#: Shims vigentes en ``tools/``: ninguno desde la F2.7. El generador se conserva (``generar`` con
+#: ``--destino``) por si una migración futura necesitara un alias temporal, pero ``comprobar`` falla
+#: si reaparece en ``tools/`` cualquier nombre de :data:`RETIRADOS`.
+MAPA: dict[str, str] = {}
 
 _RE_DESTINO = re.compile(r"^ie123kit(\.[A-Za-z_][A-Za-z0-9_]*)+$")
 _CLIS = (None, "llamar", "salir")
@@ -251,6 +276,10 @@ def _preparar(nombre, destino, salida, src, cli, forzar, simular) -> tuple[Path,
         raise ValueError(f"nombre de módulo no válido: {nombre!r}")
     if nombre in CONGELADOS:
         raise ValueError(f"{nombre} está congelado (bloqueo v20): nunca se genera su shim")
+    if nombre in RETIRADOS:
+        raise ValueError(
+            f"{nombre} es un shim retirado: importa {DESTINOS[nombre]} en lugar de regenerarlo"
+        )
     destino = destino or MAPA.get(nombre)
     if destino is None:
         raise ValueError(f"{nombre} no está en MAPA: indica el destino")
@@ -300,15 +329,16 @@ def _parser() -> argparse.ArgumentParser:
     g.add_argument("--simular", action="store_true", help="muestra el texto sin escribir")
     c = sub.add_parser("comprobar", help="verifica que los shims no tienen lógica")
     c.add_argument("rutas", nargs="*", type=Path, metavar="RUTA")
-    sub.add_parser("listar", help="muestra el mapa de traslados")
+    sub.add_parser("listar", help="muestra el módulo real de cada shim retirado")
     return p
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     if args.orden == "listar":
-        for nombre in sorted(MAPA):
-            print(f"{nombre}\t{MAPA[nombre]}")
+        for nombre in sorted(set(DESTINOS) | set(MAPA)):
+            estado = "shim" if nombre in MAPA else "retirado"
+            print(f"{nombre}\t{MAPA.get(nombre) or DESTINOS[nombre]}\t{estado}")
         return 0
 
     from ie123kit.nucleo.config.raiz import find_root
@@ -335,14 +365,18 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     rutas = list(args.rutas)
+    malos = 0
     if not rutas:
         tools = find_root() / "tools"
+        for nombre in sorted(RETIRADOS - set(MAPA)):
+            if (tools / f"{nombre}.py").exists():
+                malos += 1
+                print(f"SHIM RETIRADO REAPARECIDO tools/{nombre}.py: importa {DESTINOS[nombre]}")
         rutas = sorted(
             r
             for r in tools.glob("*.py")
             if "sys.modules[__name__]" in r.read_text(encoding="utf-8", errors="replace")
         )
-    malos = 0
     for ruta in rutas:
         ok, motivo = es_shim_sin_logica(ruta)
         if not ok:
