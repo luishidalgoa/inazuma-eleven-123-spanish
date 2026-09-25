@@ -240,3 +240,50 @@ def leer_video(plan_entry: dict, spark, ogre) -> bytes:
     if descriptor_moflex(data) != plan_entry["after"]:
         raise ValueError("vídeo cambió después de planificar")
     return data
+
+
+def elegir_fuente_video(ruta_jp: str, ediciones) -> dict | None:
+    """Fuente europea de un MOFLEX japonés entre varias CIA europeas (Fuego, Rayo, Ogro).
+
+    ``ediciones``: secuencia ``(etiqueta, rutas)`` en orden de preferencia, con ``rutas`` el conjunto
+    de rutas del archive europeo. Por niveles, y en cada nivel la primera edición que lo tenga:
+
+    1. ``es/<ruta>`` exacta (vídeo con rótulos en español: openings, eyecatches ``a3y``);
+    2. ``<ruta>`` de la raíz (vídeo sin texto, común a los idiomas);
+    3. el mismo nombre bajo otra carpeta ``es/…/movie/`` (último recurso).
+
+    Así el opening del Ogro (``inazuma3_ogre/…/op00f``) sale de la CIA del Ogro y los ``a3y0Nf`` de
+    ``inazuma3`` salen de la de Rayo en vez de caer en los del Ogro por nombre. El subtítulo es
+    ``es/<carpeta>/movie/txt/<nombre>.dat``, preferentemente de la misma edición que el vídeo.
+    Devuelve ``{edicion, video, edicion_dat, dat}`` (``dat`` None si no hay) o None sin fuente.
+    """
+    ediciones = [(tag, set(rutas)) for tag, rutas in ediciones]
+    nombre = ruta_jp.rsplit("/", 1)[-1]
+    niveles = (
+        lambda rutas: ["es/" + ruta_jp] if "es/" + ruta_jp in rutas else [],
+        lambda rutas: [ruta_jp] if ruta_jp in rutas else [],
+        lambda rutas: sorted(p for p in rutas if p.startswith("es/") and "/movie/" in p
+                             and p.rsplit("/", 1)[-1] == nombre),
+    )
+    for nivel in niveles:
+        for tag, rutas in ediciones:
+            encontradas = nivel(rutas)
+            if encontradas:
+                return {"edicion": tag, "video": encontradas[0],
+                        **_elegir_dat(ruta_jp, tag, ediciones)}
+    return None
+
+
+def _elegir_dat(ruta_jp: str, edicion: str, ediciones) -> dict:
+    carpeta, _, fichero = ruta_jp.partition("/movie/")
+    tallo = fichero.rsplit(".", 1)[0]
+    mismo = f"es/{carpeta}/movie/txt/{tallo}.dat"
+    orden = sorted(ediciones, key=lambda e: e[0] != edicion)
+    for tag, rutas in orden:
+        if mismo in rutas:
+            return {"edicion_dat": tag, "dat": mismo}
+    for tag, rutas in orden:
+        otros = sorted(p for p in rutas if p.startswith("es/") and p.endswith(f"/movie/txt/{tallo}.dat"))
+        if otros:
+            return {"edicion_dat": tag, "dat": otros[0]}
+    return {"edicion_dat": None, "dat": None}
