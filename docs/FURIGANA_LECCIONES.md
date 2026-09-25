@@ -770,6 +770,11 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
   sigue limitado a 15 caracteres (STD_CopyLString 0x20 en 0x5378c). Aplicada a probe_ie3_fuego_v16 solo con
   «Estadio FF - Vestíbulo» (evento 35042000). Capas `ie3/shared/capas/rotulos_objetivos/rotulo_ampliado` (--todos,
   los 38) e `ie2/shared/capas/rotulos_objetivos/rotulo_ampliado` (35): no activar hasta ver la sonda en juego.
+- ✅ Sonda vista en juego (IE3): el búfer nuevo funciona. Aplicadas las capas (IE3 38, IE2 35). ❌ En el IE2 (1.4) el
+  texto largo se salía de la placa: la placa NO es de la CRO sino el nodo 11 del QNA de `a_field/field_t.arc`
+  (piezas de 60×20); la JP del IE2 tiene 2 piezas (120 px) y la EU del IE1/IE3, 5 (239 px). Corrección (2026-09-25,
+  pendiente de ver): `rotulo_lugar.placa_ampliada` inserta las 3 copias espejadas de la EU (x = 10, −29, −69); reproduce
+  byte a byte el QNA europeo del IE1 y del IE3 a partir del japonés. El IE1 no lo necesita (sus rótulos caben en 10).
 
 ## ⚠️ Diálogo del IE3 que la v16 dejó en japonés: causas (auditoría, 2026-09-23)
 
@@ -902,3 +907,21 @@ entrar.»). **Emparejar siempre por ID de cadena alineando el patrón de saltos*
   valores): se cambia el sumando de la importación en la CRO (`Cro.retarget_import`) al bloque 417 (addW 0).
 - Los botones «Sí/No» del diálogo de aprender técnica no son literales de ninguna CRO (field_select_b.arc es
   gráfico europeo clase A): sin localizar su pintor.
+
+## ⚠️ IE2/IE1: FONT8 a ancho real global en el motor 2 (2026-09-25, sin probar en juego)
+
+- Goles, recompensas, caja de partida y paneles de equipo del IE2 salían «A r i e t e s» y desbordaban. En vez de
+  marcar llamada a llamada, IE2 (0x335ac) e IE1 (0x2eec8) usan `ancho_real.cueva_font8_global`: FONT8 sin ancho por
+  defecto del ITX salvo las llamadas con línea −1 (campo de nombre) o −2 (rótulos de baldosas); los textos con
+  bigramas siguen a paso fijo. Si una pantalla de cifras o casillas se descoloca, marcar su llamada con −1.
+- La caja de partida del IE2 heredaba además G+0xeef6c (ancho fijo del dibujo anterior): `rutina_reinicio`
+  (0x211740) lo pone a 0 antes del título. Su literal de code.bin (0x2a16d8) lo traduce construir.py de la 1.4.
+- El IE3 sigue con la vía por llamada (−3).
+
+## ❌ Código en el relleno tras .data de una CRO: Azahar no lo ejecuta (2026-09-25, #87)
+
+- Build de diagnóstico `probe_ie3_fuego_v16_rastreo_log`: stubs y rutina en el relleno 0xcc tras el segmento
+  .data de ina_main3ogre (0x351ac0..). Al arrancar el IE3: «Undefined Instruction» con PC = 0x00C8ABA0 (el stub)
+  y LR en el primer sitio parcheado. **Azahar aplica no-ejecución a las páginas RW de la CRO.**
+- **Regla:** el código nuevo va solo en la región de código (de codeoff a codeoff+codesz: .text, el relleno tras .text
+  o el de .rodata). Nunca en .data ni en su relleno.
