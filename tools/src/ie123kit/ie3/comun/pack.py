@@ -39,7 +39,7 @@ class PackError(RuntimeError):
 
 
 class PackEntry:
-    __slots__ = ("index", "event_id", "offset", "size")
+    __slots__ = ("event_id", "index", "offset", "size")
 
     def __init__(self, index, event_id, offset, size):
         self.index = index

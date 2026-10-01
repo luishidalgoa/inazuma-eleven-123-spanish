@@ -16,7 +16,7 @@ import pytest
 
 from ie123kit.nucleo import util
 from ie123kit.nucleo.errores import CanceladoError
-from ie123kit.nucleo.juego import CAPACIDAD_POR_TIPO, CAPACIDADES, InfoObjetivo, JuegoBase
+from ie123kit.nucleo.juego import CAPACIDAD_POR_TIPO, CAPACIDADES, InfoObjetivo, JuegoBase, es_editable
 from ie123kit.nucleo.tipos import CancelToken
 from ie123kit.servicio import registro_activos as R
 
@@ -131,7 +131,9 @@ def test_campos_del_assetref(ws, juego, base):
     assert ref.sha256 == util.sha256_bytes(FICHEROS["inazuma1/data_iz/text/uno.str"])
     assert ref.estado == "original"
     assert ref.origen == "3ds_jp"
-    assert ref.editable is False  # ie1 aún no declara capacidades (F2.3)
+    # `editable` sigue a las capacidades que ie1 declare en su activos.toml, sean las que sean:
+    # el test no se ata a la lista de hoy (en F2.3 ie1 pasa a declararlas todas).
+    assert ref.editable is es_editable("texto", juego.info().capacidades)
 
 
 def test_editable_sigue_las_capacidades_declaradas(ws, base):
@@ -248,3 +250,47 @@ def test_estado_de(ws, juego, base):
     assert R.estado_de(ref) == "original"
     assert R.estado_de(ref, sha_candidata=ref.sha256) == "original"
     assert R.estado_de(ref, sha_candidata="0" * 64) == "construido"
+
+
+class JuegoMenu(JuegoBase):
+    """Objetivo del menú: su `activos.toml` declara `[romfs].solo_lectura` (fuentes v20)."""
+
+    PAQUETE = "ie123kit.juego_principal"
+
+
+class JuegoMenuConCapacidades(JuegoMenu):
+    """Igual, pero declarando capacidades: el bloqueo de solo_lectura tiene que ganarles."""
+
+    def info(self) -> InfoObjetivo:
+        return dataclasses.replace(super().info(), capacidades=frozenset({"textos", "graficos"}))
+
+
+def _prefijos_del_menu() -> tuple[str, str]:
+    """(prefijo editable, prefijo de solo lectura) leídos del activos.toml real."""
+    romfs = R._activos_toml(JuegoMenu()).get("romfs", {})
+    return str(romfs["prefijos_fa"][0]), str(romfs["solo_lectura"][0])
+
+
+def test_escanea_tambien_los_prefijos_de_solo_lectura(ws, tmp_path):
+    """Las fuentes bloqueadas por el perfil v20 salen en el inventario, marcadas no editables.
+
+    Antes solo se escaneaba `prefijos_fa`, así que `font/*.bcfnt` no aparecía: era
+    indistinguible de «no existe» en vez de «existe y no se toca».
+    """
+    editable, bloqueado = _prefijos_del_menu()
+    ficheros = {
+        f"{editable}data/uno.str": b"texto del menu",
+        f"{bloqueado}ui.bcfnt": b"fuente bloqueada v20",
+        f"{bloqueado}dialogo.str": b"texto dentro de la carpeta bloqueada",
+        "otro_juego/x.str": b"fuera de los dos prefijos",
+    }
+    base = _fa_sintetico(tmp_path / "menu.fa", ficheros)
+
+    rutas = _por_ruta(R.construir(ws, JuegoMenuConCapacidades(), base=base))
+
+    assert f"{bloqueado}ui.bcfnt" in rutas
+    assert "otro_juego/x.str" not in rutas
+    assert rutas[f"{editable}data/uno.str"].editable is True  # texto -> textos declarada
+    # solo_lectura manda sobre la capacidad declarada: ni el .str de dentro es editable.
+    assert rutas[f"{bloqueado}ui.bcfnt"].editable is False
+    assert rutas[f"{bloqueado}dialogo.str"].editable is False

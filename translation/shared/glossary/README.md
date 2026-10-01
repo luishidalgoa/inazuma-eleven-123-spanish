@@ -1,6 +1,6 @@
 # Glosario JP (3DS) ↔ ES (NDS oficial) — Juego 1
 
-Generado automáticamente con [`tools/build_glossary.py`](../../tools/build_glossary.py)
+Generado automáticamente con [`ie123kit._legado.build_glossary`](../../tools/src/ie123kit/_legado/build_glossary.py)
 emparejando **por índice de registro** los datos del 3DS (japonés) con los del
 NDS europeo oficial en castellano, que comparten el mismo orden de entidades.
 
@@ -25,7 +25,7 @@ Ejemplos verificados: 円堂守→**Mark Evans**, 豪炎寺修也→**Axel Blaze
 
 - 3DS: **Shift-JIS** (con furigana `[kanji/lectura]` en los textos largos).
 - NDS (ES): **codificación Latin propia**, decodificada con la tabla `NDS_DEC` de
-  `build_glossary.py`: `0xB2→á, 0xBA→é, 0xBE→í, 0xC4→ó, 0xCA→ú, 0xC2→ñ, 0xCC→ü,
+  `ie123kit._legado.build_glossary`: `0xB2→á, 0xBA→é, 0xBE→í, 0xC4→ó, 0xCA→ú, 0xC2→ñ, 0xCC→ü,
   0xA5→¿, 0xDF→¡, 0xD9→Í` (ampliable).
 
 ## Pendiente

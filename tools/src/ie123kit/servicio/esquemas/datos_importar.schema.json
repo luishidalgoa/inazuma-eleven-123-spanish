@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://inazuma123.local/esquemas/datos_importar.schema.json",
+  "title": "Datos de ServicioToolkit.importar",
+  "description": "Con simular=True no se escribe nada; sin simular, «capa» es la capa gui_* nueva.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "simulado": {
+      "type": "boolean"
+    },
+    "capa": {
+      "type": "string"
+    },
+    "diff": {
+      "type": [
+        "object",
+        "array"
+      ],
+      "description": "Qué cambia; la forma depende del tipo de activo."
+    }
+  },
+  "required": [
+    "simulado"
+  ],
+  "examples": [
+    {
+      "simulado": false,
+      "capa": "work/juego_principal/capas/graficos/gui_20260919_1200"
+    }
+  ]
+}

@@ -4,7 +4,7 @@
 
 - El CRO original contiene referencias a `data_iz/font/FONT12.NFTR`, FONT8,
   FONT12T y RUBI8. Estos archivos existen dentro del archivo original.
-- `tools/nftr_metrics.py` permite leer sus mapas y avances sin modificar datos.
+- `ie123kit._legado.nftr_metrics` permite leer sus mapas y avances sin modificar datos.
   Los códigos de su mapa son Shift-JIS. En FONT12 las letras ASCII a/i/m/n/t/W
   no están mapeadas; sus equivalentes latinos de ancho completo sí, con avance 11.
 - FONT12.bcfnt contiene ambos repertorios. Los avances ASCII son variables

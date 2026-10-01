@@ -8,13 +8,23 @@ juego = "ie1"
 version = ""
 comun = ""
 perfil_texto = "tipografia_v20"  # el bloqueo v20 es de TODA la recopilación
-capacidades = []  # se declaran en F2.3
+capacidades = ["graficos", "textos", "eventos", "literales_cro", "cinematicas", "voces"]
 pendiente_auditoria = false
 
 [romfs]
 prefijos_fa = ["inazuma1/"]
 cros = ["cro/ina_main1.cro"]
 solo_lectura = ["inazuma1/data_iz/font/"]
+sueltos = ["cro/ina_main1.cro", "inazuma1/data_iz/sound/"]
+
+[textos]
+ambitos = ["eventos", "tablas", "cro"]
+
+[graficos]
+contenedores = ["arcv", "ctpk", "qna"]
+
+[voces]
+prefijos = ["inazuma1/data_iz/sound/"]
 
 [eventos]
 protegidos = [81000040]  # DONT_TOUCH (tutorial)

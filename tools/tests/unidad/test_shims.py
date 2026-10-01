@@ -110,8 +110,14 @@ def test_destino_invalido():
 
 
 def test_simular_no_escribe(arbol):
-    ruta = shims.generar("lz10", salida=arbol, src=arbol / "src", cli="ninguno", simular=True)
+    ruta = shims.generar("falso", destino=DESTINO, salida=arbol, src=arbol / "src", cli="ninguno", simular=True)
     assert not ruta.exists()
+
+
+def test_retirado_no_se_regenera(arbol):
+    """F2.7: un shim retirado no vuelve a tools/; el error dice qué importar."""
+    with pytest.raises(ValueError, match="ie123kit.nucleo.compresion.lz10"):
+        shims.generar("lz10", salida=arbol, src=arbol / "src", cli="ninguno", simular=True)
 
 
 def test_bloque_main_sin_main(tmp_path):

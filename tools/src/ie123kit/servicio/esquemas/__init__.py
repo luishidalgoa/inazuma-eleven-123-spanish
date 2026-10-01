@@ -10,7 +10,7 @@ import json
 from importlib.resources import files
 from typing import Any
 
-__all__ = ["NOMBRES", "cargar", "validar"]
+__all__ = ["DATOS", "NOMBRES", "TODOS", "cargar", "ejemplos", "validar"]
 
 NOMBRES: tuple[str, ...] = (
     "incidencia",
@@ -23,13 +23,32 @@ NOMBRES: tuple[str, ...] = (
     "evento_trabajo",
 )
 
+#: Esquemas de ``Resultado.datos`` de cada método del ciclo de la GUI (F2.5, API 1.0). Admiten
+#: propiedades adicionales: una versión menor de la API puede añadir campos, nunca quitarlos.
+DATOS: tuple[str, ...] = (
+    "datos_objetivos",
+    "datos_activos",
+    "datos_exportar",
+    "datos_importar",
+    "datos_construir",
+    "datos_verificar",
+    "datos_instalar",
+)
+
+TODOS: tuple[str, ...] = NOMBRES + DATOS
+
 
 def cargar(nombre: str) -> dict[str, Any]:
     """Devuelve el esquema `<nombre>.schema.json` de este paquete."""
-    if nombre not in NOMBRES:
-        raise ValueError(f"esquema desconocido: {nombre!r}; disponibles: {list(NOMBRES)}")
+    if nombre not in TODOS:
+        raise ValueError(f"esquema desconocido: {nombre!r}; disponibles: {list(TODOS)}")
     recurso = files(__name__).joinpath(f"{nombre}.schema.json")
     return json.loads(recurso.read_text(encoding="utf-8"))
+
+
+def ejemplos(nombre: str) -> list[Any]:
+    """Ejemplos publicados en el esquema (palabra clave ``examples``)."""
+    return list(cargar(nombre).get("examples", []))
 
 
 def validar(instancia: Any, nombre: str) -> list[str]:

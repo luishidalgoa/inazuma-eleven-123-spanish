@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://inazuma123.local/esquemas/datos_exportar.schema.json",
+  "title": "Datos de ServicioToolkit.exportar",
+  "description": "Ids exportados; los ficheros escritos van en Resultado.artefactos.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "exportados": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "exportados"
+  ],
+  "examples": [
+    {
+      "exportados": [
+        "juego_principal:grafico:menu/logo.arc"
+      ]
+    }
+  ]
+}

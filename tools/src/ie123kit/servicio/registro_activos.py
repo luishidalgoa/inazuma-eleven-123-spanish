@@ -185,6 +185,20 @@ def _prefijos(juego: Any) -> tuple[str, ...]:
     return tuple(getattr(_info(juego), "prefijos_romfs", ()) or ())
 
 
+def _prefijos_solo_lectura(juego: Any) -> tuple[str, ...]:
+    """Prefijos de `[romfs].solo_lectura` del `activos.toml` del objetivo.
+
+    `InfoObjetivo.prefijos_romfs` solo trae `prefijos_fa`, así que sin esto las fuentes
+    bloqueadas por el perfil v20 (`font/`, `inazuma1/data_iz/font/`) NO aparecían en el
+    inventario: ni siquiera como solo lectura. Aparecer marcadas es la diferencia entre
+    «no se puede tocar» y «no existe».
+    """
+    romfs = _activos_toml(juego).get("romfs", {})
+    if not isinstance(romfs, dict):
+        return ()
+    return tuple(str(p) for p in (romfs.get("solo_lectura") or ()))
+
+
 def _capacidades(juego: Any) -> frozenset[str]:
     return frozenset(getattr(_info(juego), "capacidades", ()) or ())
 
@@ -225,6 +239,8 @@ def construir(
         return Registro(objetivo=objetivo, base_sha256=sha_base, generado_en=util.ahora_iso(), activos=())
 
     prefijos = _prefijos(juego)
+    solo_lectura = _prefijos_solo_lectura(juego)
+    todos = (*prefijos, *solo_lectura)
     capacidades = _capacidades(juego)
     arc = FaArchive(str(ruta))
     entradas: list[tuple[str, int, int]] = list(arc.entries)
@@ -235,9 +251,12 @@ def construir(
             cancel.comprobar()
         if i % PASO_PROGRESO == 0:
             _emitir(progreso, i, total, "escaneando archive.fa")
-        if not any(ruta_romfs.startswith(p) for p in prefijos):
+        if not any(ruta_romfs.startswith(p) for p in todos):
             continue
         tipo = tipo_de_ruta(ruta_romfs)
+        # `solo_lectura` manda sobre las capacidades declaradas: un activo bajo uno de esos
+        # prefijos NUNCA es editable, aunque el objetivo declare la capacidad de su tipo.
+        bloqueado = any(ruta_romfs.startswith(p) for p in solo_lectura)
         activos.append(
             AssetRef(
                 id=componer_id(objetivo, tipo, ruta_romfs),
@@ -246,7 +265,7 @@ def construir(
                 ruta_romfs=ruta_romfs,
                 cadena_contenedores=("fa",),
                 tamano=tamano,
-                editable=es_editable(tipo, capacidades),
+                editable=False if bloqueado else es_editable(tipo, capacidades),
                 estado="original",
                 origen="3ds_jp",
                 sha256=util.sha256_bytes(arc.file_bytes(offset, tamano)),

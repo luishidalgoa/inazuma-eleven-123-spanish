@@ -1,0 +1,7 @@
+{
+ "nota": "Solo hashes de las salidas vigentes de las capas de work/ie1/capas (Norma 2: ningún dato del juego). Se comprueban en tests/requiere_rom/test_equivalencia_motores_ie1.py.",
+ "capas": {
+  "work/ie1/capas/menus_cro/cofres/romfs/cro/ina_main1.cro": "b0c1a4d025bbacf5178240dadd0240d069d2f1f3c888c1821c9cd4ac54b07855",
+  "work/ie1/capas/dialogo/motor_unificado/romfs/cro/ina_main1.cro": "4dc267ab02367436935e389a422db884fbbd5d3ef687959ca1600a8cc2309d18"
+ }
+}

@@ -13,7 +13,7 @@ Sin E/S: solo tablas y funciones puras.
 """
 
 # Codificacion Latin propia del NDS ES (inferida por contexto; ampliable)
-# Same table as tools/ds_official.py (verified on official sentences):
+# Same table as the old tools/ds_official.py (now ie123kit._legado.ds_official) (verified on official sentences):
 # 0xD9 is É ("Épsilon"), not Í.
 NDS_DEC = {0xB2: "á", 0xBA: "é", 0xBE: "í", 0xC4: "ó", 0xCA: "ú",
            0xC2: "ñ", 0xCC: "ü", 0xB5: "ä", 0xA5: "¿", 0xDF: "¡",

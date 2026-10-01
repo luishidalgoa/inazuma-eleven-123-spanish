@@ -29,5 +29,18 @@
     "ts",
     "tipo",
     "datos"
+  ],
+  "examples": [
+    {
+      "trabajo": "t-1",
+      "ts": "2026-09-16T10:00:00Z",
+      "tipo": "progreso",
+      "datos": {
+        "fase": "extraer",
+        "actual": 1,
+        "total": 3,
+        "mensaje": ""
+      }
+    }
   ]
 }

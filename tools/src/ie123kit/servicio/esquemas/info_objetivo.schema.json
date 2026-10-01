@@ -44,5 +44,20 @@
     "prefijos_romfs",
     "cros",
     "capacidades"
+  ],
+  "examples": [
+    {
+      "id": "ie1",
+      "nombre": "Inazuma Eleven",
+      "prefijos_romfs": [
+        "inazuma1/"
+      ],
+      "cros": [
+        "cro/ina_main1.cro"
+      ],
+      "capacidades": [
+        "graficos"
+      ]
+    }
   ]
 }

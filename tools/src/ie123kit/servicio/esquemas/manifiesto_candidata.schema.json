@@ -71,5 +71,27 @@
         "sha256"
       ]
     }
-  }
+  },
+  "examples": [
+    {
+      "esquema": 1,
+      "nombre": "probe_ie1_v68",
+      "base": "base.3ds",
+      "base_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "capas": [
+        {
+          "ruta": "capas/ui",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "salidas": {
+        "romfs/inazuma1/archive.fa": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "objetivos": [
+        "ie1"
+      ],
+      "runtime_verified": false,
+      "generado_en": "2026-09-16T10:00:00Z"
+    }
+  ]
 }

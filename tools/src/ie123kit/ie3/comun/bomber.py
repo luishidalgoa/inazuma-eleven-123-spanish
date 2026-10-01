@@ -13,8 +13,8 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
-from ie123kit.nucleo.config.raiz import find_root
 from ie123kit.ie3.comun import sheet as sheetlib
+from ie123kit.nucleo.config.raiz import find_root
 
 ROOT = find_root()
 SALIDA = ROOT / "work" / "ie3" / "shared" / "salida"

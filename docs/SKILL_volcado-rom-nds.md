@@ -37,8 +37,8 @@ Original japonés 3DS: `work/ie1/capas/v33/base/orig/…`. Nada extraído se sub
 
 ## 2. Diálogos: método que funciona
 
-- **Nunca emparejar por orden de líneas** (`tools/ds_official.py` lo hacía: 621 eventos desplazados).
-  Usar `tools/audit_dialogo_ids.py`: IDs de instrucción, alineando la secuencia de *saltos* entre IDs con
+- **Nunca emparejar por orden de líneas** (`ie123kit._legado.ds_official` lo hacía: 621 eventos desplazados).
+  Usar `ie123kit._legado.audit_dialogo_ids`: IDs de instrucción, alineando la secuencia de *saltos* entre IDs con
   difflib y validando con anclas ASCII (12.617 iguales / 72 distintas).
 - Clasificar: igual / editado (parecido ≥ 0,55, se respeta) / desplazado / distinto / protegido.
   Protegidos: crear partida `92010100..92010509` y `81000040`.
@@ -55,7 +55,7 @@ Original japonés 3DS: `work/ie1/capas/v33/base/orig/…`. Nada extraído se sub
 
 ## 4. Medir en píxeles, no en caracteres
 
-- Avances de `font/FONT12.NFTR` con `tools/nftr_metrics.read_metrics` (claves Shift-JIS).
+- Avances de `font/FONT12.NFTR` con `ie123kit._legado.nftr_metrics.read_metrics` (claves Shift-JIS).
 - Hueco disponible = ancho del japonés original más ancho del mismo tipo de texto
   (rótulo del minimapa: 117 px). Todo lo que lo supere se desborda en juego.
 - Script de referencia: `work/ie1/capas/v39/estado/medir_rotulos.py`. Validar la candidata con él.
@@ -81,7 +81,7 @@ Original japonés 3DS: `work/ie1/capas/v33/base/orig/…`. Nada extraído se sub
 
 ## 5. Texturas de UI: checklist por pantalla
 
-0. Colocar cada pieza en su **rectángulo QNA** (`tools/qna_regions.py`), no en la celda de 16/32/64 px,
+0. Colocar cada pieza en su **rectángulo QNA** (`ie123kit.nucleo.graficos.qna`), no en la celda de 16/32/64 px,
    con la alineación y el ancho del japonés; auditar con `work/ie1/capas/v42/auditoria/celdas.py`.
 1. Volcar **todas** las texturas del `.arc` (no solo las ya pintadas) de la candidata actual y del
    original japonés; hoja ampliada con rejilla de 16 px (`work/ie1/capas/v38/estado/`).
@@ -94,7 +94,7 @@ Original japonés 3DS: `work/ie1/capas/v33/base/orig/…`. Nada extraído se sub
    - rótulos cian Tiro…Valor/EXP.: `pic2d/menu/sp/msup_bg02.pac_` (mapa de 32 teselas)
    - capitán Pasión/Calma/Seguir y «Táctica»: `captainselect/CSDN_B01`, `CSDN_W02`
    - `.SPF_` son layouts, no imágenes; pac de equipos/jugadores no son UI.
-4. Si no hay pieza NDS: pintar en español con el estilo de la textura (`translate_ui_textures.paint`,
+4. Si no hay pieza NDS: pintar en español con el estilo de la textura (`ie123kit._legado.translate_ui_textures.paint`,
    `arialbd`, `crisp` para alfa de 1 bit) y comprobar que no se sale de la celda.
 5. Comparar con el **original japonés** cuando algo parezca raro: así se vio que `ts001lp/rp` eran
    1P/2P (no «Raimon») y que las barras estaban cortadas.
@@ -121,7 +121,7 @@ Original japonés 3DS: `work/ie1/capas/v33/base/orig/…`. Nada extraído se sub
 ## 7. Doblaje, cinemáticas y subtítulos
 
 Docs: `docs/IE1_AUDIO_CINEMATICAS_V34.md`, `docs/IE1_AUDIO_CINEMATICAS_V35.md`.
-Herramientas: `tools/ie1_media.py`, `tools/mods_to_moflex.py`, `tools/build_ie1_movies.py`,
+Herramientas: `tools/ie1_media.py`, `ie123kit._legado.mods_to_moflex`, `tools/build_ie1_movies.py`,
 `tools/validate_ie1_media.py`, `tools/audit_ie1_voiced_text.py`.
 
 ### Inventario
@@ -140,7 +140,7 @@ Herramientas: `tools/ie1_media.py`, `tools/mods_to_moflex.py`, `tools/build_ie1_
 
 ### Vídeo
 
-- `mods_to_moflex.py`: YCgCo DS → YCbCr y giro 256×192 → 240×320.
+- `ie123kit._legado.mods_to_moflex`: YCgCo DS → YCbCr y giro 256×192 → 240×320.
 - Descriptor de sincronía **layout 0x16** (Simple2D, ImageRotation 1). Con 0x06 el vídeo sale girado.
 - Usar **mobipeg x86**; la x64 falla con vídeo complejo en Windows.
 - Descodificar cada MOFLEX completo después de generarlo.
@@ -148,7 +148,7 @@ Herramientas: `tools/ie1_media.py`, `tools/mods_to_moflex.py`, `tools/build_ie1_
 ### Subtítulos sin retraso (checklist)
 
 1. **Unidad de los `.dat`: ticks de 30 Hz (comprobado)**. `op00` tiene 1.763 fotogramas a 20 fps y su último
-   subtítulo acaba en 2.675 = 1.763 × 30/20. `mods_to_moflex.py` usa `tick = fotograma × 30 / fps`
+   subtítulo acaba en 2.675 = 1.763 × 30/20. `ie123kit._legado.mods_to_moflex` usa `tick = fotograma × 30 / fps`
    (`SUBTITLE_TICK_RATE`). Tratar los ticks como fotogramas retrasa los subtítulos ×1,5 y corta los finales.
 2. **fps**: el MOFLEX debe declarar el mismo `r_frame_rate` que el `.mods` de origen. Nunca forzar
    24 fps sobre un origen distinto: el vídeo, y con él el subtítulo, deriva respecto a la voz.
@@ -167,7 +167,7 @@ Herramientas: `tools/ie1_media.py`, `tools/mods_to_moflex.py`, `tools/build_ie1_
 ```
 python work/vN/<linea>/apply.py
 python work/vN/<linea>/validate.py          # solo cambian las texturas/registros declarados
-python tools/build_ui_revision.py --base work/probe_ie1_v(N-1)/archive.fa --ui work/vN/<linea> \
+python -m ie123kit.nucleo.compat.congelados build_ui_revision --base work/probe_ie1_v(N-1)/archive.fa --ui work/vN/<linea> \
     --extra work/vN/<linea>/extra --cro work/probe_ie1_v(N-1)/romfs/cro/ina_main1.cro \
     --output work/probe_ie1_vN/archive.fa
 python tools/verify_candidate.py --base work/probe_ie1_v(N-1) --candidate work/probe_ie1_vN \
@@ -249,7 +249,7 @@ candidatas; en el siguiente juego se revisa **antes** de la primera prueba.
 - `es/…/unitbase.dat` tiene 96 B por registro alineados con el japonés (nombre en +0 y corto en +32, ASCII de 1 byte). Sirvió para detectar NPC desplazados en 1167–1265. Los registros ≥1266 son «ダミー» en japonés.
 - Su texto es de 1 byte con fuentes europeas: sirve como fuente de traducción, no como fichero para copiar.
 
-- **Texturas `.lzs`/`.arc` SSZL: comprimir de verdad** (`tools/sszl.py`). Envolver solo con literales dejó `ie99_title_movie_bg_b01.lzs` en 147 KB frente a 24 KB: el juego no la cargó y en el opening se quedó la ventana de «Cargando» en lugar de los créditos de T-Pistonz.
+- **Texturas `.lzs`/`.arc` SSZL: comprimir de verdad** (`ie123kit.nucleo.compresion.sszl`). Envolver solo con literales dejó `ie99_title_movie_bg_b01.lzs` en 147 KB frente a 24 KB: el juego no la cargó y en el opening se quedó la ventana de «Cargando» en lugar de los créditos de T-Pistonz.
 
 ## 11. Lecciones del IE2 (Tormenta de Fuego, v01–v22) — aplicar también al IE3
 

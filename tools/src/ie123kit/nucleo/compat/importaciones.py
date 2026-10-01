@@ -29,13 +29,49 @@ def usa_tools(texto):
     return any(m in texto for m in ("'tools'", '"tools"', '/tools', 'tools/'))
 
 
-def importados(arbol):
+def importados(arbol, completo=False):
+    """(línea, módulo, nombres) de cada import absoluto; con completo=True, el módulo con puntos."""
     for nodo in ast.walk(arbol):
         if isinstance(nodo, ast.Import):
             for a in nodo.names:
-                yield nodo.lineno, a.name.split('.')[0], None
+                yield nodo.lineno, a.name if completo else a.name.split('.')[0], None
         elif isinstance(nodo, ast.ImportFrom) and nodo.level == 0 and nodo.module:
-            yield nodo.lineno, nodo.module.split('.')[0], [a.name for a in nodo.names]
+            yield nodo.lineno, nodo.module if completo else nodo.module.split('.')[0], [a.name for a in nodo.names]
+
+
+def paquetes_src(tools):
+    """Paquetes instalables de tools/src (p. ej. ie123kit), que las capas importan directamente."""
+    src = tools / 'src'
+    return {p.name for p in src.iterdir() if (p / '__init__.py').is_file()} if src.is_dir() else set()
+
+
+def _fallos_paquete(tools, modulo, nombres):
+    """Fallos de `import ie123kit.a.b` o `from ie123kit.a.b import n` contra el código de tools/src."""
+    base = tools / 'src' / Path(*modulo.split('.'))
+    if base.with_suffix('.py').is_file():
+        fuente, paquete = base.with_suffix('.py'), None
+    elif (base / '__init__.py').is_file():
+        fuente, paquete = base / '__init__.py', base
+    else:
+        return [f'módulo {modulo}']
+    if not nombres:
+        return []
+    arbol = ast.parse(fuente.read_text(encoding='utf-8', errors='replace'))
+    if any(isinstance(n, ast.ImportFrom) and any(a.name == '*' for a in n.names) for n in ast.walk(arbol)):
+        return []
+    # Un __getattr__ de módulo sirve nombres por atributo (fachadas perezosas): valen los literales.
+    dinamicos = set()
+    if any(isinstance(n, ast.FunctionDef) and n.name == '__getattr__' for n in arbol.body):
+        dinamicos = {n.value for n in ast.walk(arbol) if isinstance(n, ast.Constant) and isinstance(n.value, str)}
+    fallos = []
+    for n in nombres:
+        if n == '*' or n in definidos(fuente) or n in dinamicos:
+            continue
+        # `from paquete import submodulo`
+        if paquete is not None and ((paquete / f'{n}.py').is_file() or (paquete / n / '__init__.py').is_file()):
+            continue
+        fallos.append(f'{modulo}.{n}')
+    return fallos
 
 
 _CACHE_DEFINIDOS = {}
@@ -96,6 +132,7 @@ def analizar(work):
     raiz = _raiz()
     tools = raiz / 'tools'
     disponibles = modulos_tools(tools)
+    paquetes = paquetes_src(tools)
     scripts = sorted(Path(work).rglob('*.py'))
     # Módulos hermanos de otras capas (p. ej. v33/eve_labels/common.py) no son de tools/.
     conocidos = set(sys.stdlib_module_names) | EXTERNOS | ({p.stem for p in scripts} - disponibles)
@@ -114,7 +151,11 @@ def analizar(work):
             fallos.append(f'{rel}: sintaxis línea {e.lineno}')
             continue
         locales = {p.stem for p in script.parent.glob('*.py')}
-        for linea, mod, nombres in importados(arbol):
+        for linea, completo, nombres in importados(arbol, completo=True):
+            mod = completo.split('.')[0]
+            if mod in paquetes and mod not in disponibles:
+                fallos += [f'{rel}:{linea}: {f}' for f in _fallos_paquete(tools, completo, nombres)]
+                continue
             if mod in conocidos or mod in locales:
                 continue
             if mod not in disponibles:

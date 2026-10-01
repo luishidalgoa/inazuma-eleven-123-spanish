@@ -144,3 +144,48 @@ def qna_in_arc(data):
         if blob[:8] == _MAGIA:
             salida.append((offset, QnaLayout(blob)))
     return salida
+
+
+def insertar_copias_nodo(blob, nodo, xs, plantilla=-1, tras=0):
+    """QNA con copias de una parte de ``nodo`` insertadas en el propio nodo (crece 128 B por copia).
+
+    Cada copia es la parte ``plantilla`` del nodo (índice relativo; por defecto la última) con la X del
+    primer campo de posición (+32) cambiada a cada valor de ``xs``; se insertan detrás de la parte ``tras``
+    del nodo, en ese orden. Es lo que hace la EU con la placa del rótulo de lugar (nodo 11 de
+    ``a_field/field_t.arc``: 2 partes en la JP, 5 en la EU). Se ajustan el número de partes (+16), los
+    cuatro offsets de cola (+48, los que quedan detrás de la tabla de partes) y los índices de los nodos
+    posteriores. La segunda pareja de posición (+52) no se toca, como en la EU.
+    """
+    q = bytes(blob)
+    if q[:8] != _MAGIA:
+        raise ValueError('unsupported QNA version')
+    _, n_nodos, n_partes = struct.unpack_from('<III', q, 8)
+    _, nodos_off, partes_off = struct.unpack_from('<III', q, 36)
+    fin_partes = partes_off + n_partes * _PARTE
+    if nodos_off >= partes_off or not 0 <= nodo < n_nodos:
+        raise ValueError('QNA: nodo o tabla de nodos inesperados')
+    nodos = [list(struct.unpack_from('<4I', q, nodos_off + 16 * i)) for i in range(n_nodos)]
+    cnt, ini, fin, _ = nodos[nodo]
+    if cnt != fin - ini or cnt == 0:
+        raise ValueError('QNA: nodo sin partes')
+    base = q[partes_off + (ini + (plantilla % cnt)) * _PARTE:][:_PARTE]
+    nuevas = b''
+    for x in xs:
+        p = bytearray(base)
+        struct.pack_into('<f', p, _POS[0][0], float(x))
+        nuevas += bytes(p)
+    k = len(xs)
+    corte = partes_off + (ini + tras + 1) * _PARTE
+    out = bytearray(q[:corte] + nuevas + q[corte:])
+    struct.pack_into('<I', out, 16, n_partes + k)
+    colas = struct.unpack_from('<4I', q, 48)
+    if any(o < fin_partes for o in colas):
+        raise ValueError('QNA: offset de cola dentro de la tabla de partes')
+    struct.pack_into('<4I', out, 48, *[o + k * _PARTE for o in colas])
+    for i, (c, a, f, e) in enumerate(nodos):
+        if i == nodo:
+            c, f = c + k, f + k
+        elif a >= fin:
+            a, f = a + k, f + k
+        struct.pack_into('<4I', out, nodos_off + 16 * i, c, a, f, e)
+    return bytes(out)

@@ -1,7 +1,7 @@
 # Guía para Claude (y colaboradores) — Proyecto de traducción Inazuma Eleven 1·2·3
 
-> TIPOGRAFÍA BLOQUEADA por petición explícita del usuario: v20 es la referencia
-> visual aprobada. Cumplir el bloqueo de AGENTS.md y tools/dialogue_lock.py.
+> TIPOGRAFÍA BLOQUEADA por petición explícita del usuario: la referencia visual aprobada es la
+> candidata v16 (2026-09-23: espaciado europeo, saltos EU 1:1; antes v34 y v20). Cumplir el bloqueo de AGENTS.md y tools/dialogue_lock.py.
 > No cambiar caja, fuentes, codificación, espaciado o saltos ni desactivar sus
 > comprobaciones al continuar la traducción. Requiere una nueva petición explícita
 > del usuario sobre la tipografía; no una orden general de continuar.
@@ -44,14 +44,18 @@ solo "en la cabeza" o en el chat. En concreto:
 - Commits incrementales y descriptivos. Documenta los formatos en `docs/FORMATOS.md`
   y el avance en `docs/PROGRESO.md`.
 - Herramientas en `tools/` (Python/PowerShell, sin GUI: el proyecto se maneja por CLI).
-- El código Python vive en el paquete `tools/src/ie123kit`; en `tools/` quedan shims con los
-  nombres antiguos y los 5 ficheros congelados del bloqueo v20.
+- El código Python vive en el paquete `tools/src/ie123kit` y se importa como `ie123kit.<...>`
+  (o `python -m ie123kit...`); en `tools/` solo quedan los 5 ficheros congelados del bloqueo
+  tipográfico y los `.ps1` (los shims se retiraron en la F2.7, #102; equivalencias en `tools/README.md`).
+  **Norma del usuario (2026-09-24): `ie123kit` es el núcleo de la futura app gráfica de traducción
+  para usuarios.** Toda lógica nueva va al paquete con API reutilizable (sin prints, `sys.argv` ni rutas
+  fijas) y pruebas; las capas de `work/` solo la llaman. Detalle en `AGENTS.md` → Herramientas.
 
-- **Los diálogos no se reescriben para que quepan.** Se usa el texto oficial íntegro (el port europeo de 3DS para el IE1, la NDS española para el IE2). Si una frase no cabe en la ventana, se reparte en más cajas o páginas, o se amplía la ventana, pero nunca se condensa ni se le quitan palabras.
+- **Los diálogos no se reescriben para que quepan.** Se usa el texto oficial íntegro (el port europeo de 3DS para el IE1, la NDS española para el IE2, la CIA europea de Fuego Explosivo para el IE3). Si una frase no cabe en la ventana, se reparte en más cajas o páginas, o se amplía la ventana, pero nunca se condensa ni se le quitan palabras.
 
 ## Norma 4 — NO repetir errores ya detectados
 
-Antes de tocar la **reinserción de diálogo / furigana** (`tools/reinsert.py`, código real en `ie123kit._legado.reinsert`), lee
+Antes de tocar la **reinserción de diálogo / furigana** (`ie123kit._legado.reinsert`), lee
 **[`docs/FURIGANA_LECCIONES.md`](docs/FURIGANA_LECCIONES.md)**: lista cada enfoque que
 YA se probó en emulador y FALLÓ (con el motivo). Cada entrada costó una build de
 ~15 min + una prueba del usuario. **No reintentar lo que está marcado como ❌.**
@@ -62,7 +66,7 @@ Si descubres un fallo/limitación nuevo, **añádelo a ese documento** en el mom
 Todo recurso se guarda en la carpeta de su juego (`ie1/`, `ie2/<versión>/`, `ie3/<versión>/`) o en
 `shared/` si es común a la recopilación, tanto en `work/` como en `Roms/` y `translation/`. Nada nuevo en
 la raíz de `work/`. Ver **[`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md)**; tras instalar una candidata,
-`python tools/limpiar_work.py --borrar`.
+`ie123 work limpiar --borrar`.
 
 ## Estado y documentación
 
@@ -72,12 +76,17 @@ la raíz de `work/`. Ver **[`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md)**; tra
   repetir su reproducción antes de continuar. No aceptar cajas de diálogo con bugs
   gráficos ni declarar estabilidad solo con validación offline.
 
+- **IE3 (desde 2026-09-22):** issue #90 y derivados #91-#96. Base del trabajo: el código de @AlbertooCh
+  (PR #88/#89, crédito en la pantalla de créditos). Cajas de diálogo 3 × 37 con el búfer de página
+  ampliado (válido también para IE1/IE2, #95). Gráficos europeos trasplantados según
+  `work/ie3/shared/capas/graficos/inventario_eu/clasificacion.json` (A/B tal cual, C recodificados).
+
 - **⚠️ Lecciones (qué NO funciona): [`docs/FURIGANA_LECCIONES.md`](docs/FURIGANA_LECCIONES.md)**
 - Avance: [`docs/PROGRESO.md`](docs/PROGRESO.md)
 - Formatos técnicos (B123, ARCV, .STR, .dat, codificación): [`docs/FORMATOS.md`](docs/FORMATOS.md)
 - Herramientas: [`tools/README.md`](tools/README.md)
 - Especificación del toolkit ie123kit: [`docs/toolkit/ESPECIFICACION.md`](docs/toolkit/ESPECIFICACION.md)
 - CI del toolkit (Windows y Ubuntu; no se desactiva): [`.github/workflows/toolkit.yml`](.github/workflows/toolkit.yml)
-- Guardia global anti-ROM (Norma 2) y bloqueo v20, en todos los commits y sin filtro de rutas:
+- Guardia global anti-ROM (Norma 2) y bloqueo tipográfico, en todos los commits y sin filtro de rutas:
   [`.github/workflows/guardia.yml`](.github/workflows/guardia.yml)
 - Glosario: [`translation/shared/glossary/`](translation/shared/glossary/)

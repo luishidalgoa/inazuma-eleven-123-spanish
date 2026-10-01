@@ -43,7 +43,7 @@ Roms/shared/IE123_JP_CTR-P-AETJ.3ds          ROM japonesa (sha256 35f74970…)
 Roms/ie3/rayo_celeste/…trim.3ds              Rayo Celeste (CTR-P-AXSZ)
 Roms/ie3/amenaza_del_ogro/…cia               Amenaza del Ogro (CTR-P-AXGZ)
 
-tools/ie3_pipeline.py                        punto de entrada único
+ie123kit.ie3.pipeline                        punto de entrada único
 tools/src/ie123kit/ie3/comun/
     b123.py pack.py lz.py rom.py ssd.py text.py    formatos
     sheet.py align.py                              alineamiento y clasificación
@@ -60,9 +60,9 @@ work/shared/candidatas/probe_ie1_v106/       su candidata
 Órdenes:
 
 ```bash
-python tools/ie3_pipeline.py run          # extraer + alinear + CSV
-python tools/ie3_pipeline.py reinsert     # meter el español en archive.fa
-python tools/ie3_pipeline.py diagnostico  # reglas graduadas para medir la caja
+python -m ie123kit.ie3.pipeline run          # extraer + alinear + CSV
+python -m ie123kit.ie3.pipeline reinsert     # meter el español en archive.fa
+python -m ie123kit.ie3.pipeline diagnostico  # reglas graduadas para medir la caja
 ```
 
 Detalle de formatos en [`IE3_EXTRACCION.md`](IE3_EXTRACCION.md). Lecciones de

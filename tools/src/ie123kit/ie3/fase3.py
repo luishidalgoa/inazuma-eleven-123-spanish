@@ -13,6 +13,7 @@ from collections import Counter, defaultdict
 from functools import partial
 from pathlib import Path
 
+from ie123kit.ie3.comun import transformaciones as T
 from ie123kit.ie3.comun.b123 import B123Archive
 from ie123kit.ie3.comun.cobertura import huella, sha
 from ie123kit.ie3.comun.controles import compilar_contexto, cota_pool
@@ -69,9 +70,14 @@ def emitir_perfil(profile, original_arc, reference_arc, rows, visible_resources)
         grouped[row["event"]].append(row)
     replacements = {"eve": {}, "evet": {}}
     stats, transitions, event_checks = Counter(), [], []
+    perfil = getattr(profile, "nombre", None)
     for event, ssd in original["eve"][2].items():
         legacy_ssd = inherited["eve"][2][event]
         evet = original["evet"][2].get(event)
+        if (perfil, event) in T.declaraciones():
+            # cambios de bytecode declarados (ie3.comun.transformaciones): el heredado vuelve a la forma japonesa
+            legacy_ssd, legacy_evet_rev = T.revertir(perfil, event, legacy_ssd, inherited["evet"][2].get(event))
+            inherited["evet"][2][event] = legacy_evet_rev
         if evet is None:
             # Ausencia original conocida: no fabricar el recurso ni interpretar @.
             replacements["eve"][event] = fusionar_textos_ssd(ssd, legacy_ssd, ssd, visible.get(event))
@@ -135,6 +141,9 @@ def emitir_perfil(profile, original_arc, reference_arc, rows, visible_resources)
         event_checks.append({"event": event, "records": len(records), "references": len(refs),
                              "references_updated": trace["references_changed"], "secondary_literal": True,
                              "bytecode_unchanged": True, "reextracted": True})
+        if (perfil, event) in T.declaraciones():
+            ns, ne = T.aplicar(perfil, event, ns, ne)
+            stats["transformaciones_declaradas"] += 1
         replacements["eve"][event], replacements["evet"][event] = ns, ne
     resources, pack_reports = {}, {}
     for kind, blocks in replacements.items():

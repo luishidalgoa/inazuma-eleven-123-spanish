@@ -8,6 +8,8 @@ importa juegos ni la capa de servicio.
 from __future__ import annotations
 
 import abc
+import shutil
+import threading
 import tomllib
 from collections.abc import Callable, Container, Iterable, Mapping
 from dataclasses import dataclass, field
@@ -235,7 +237,31 @@ class JuegoBase(abc.ABC):
         gancho = getattr(self, f"_importar_{capacidad}", None)
         if gancho is None:
             return Resultado.no_soportado(f"falta el gancho _importar_{capacidad}", activo_id=ref.id)
-        return gancho(ws, ref, origen, simular=simular, progreso=progreso, cancel=cancel)
+        # Las capas que el gancho crea (``_capa_creada``) se borran si la importación falla:
+        # una importación fallida no deja carpetas de capa vacías o a medias en work/ (F2.5).
+        previas = getattr(self._capas_en_curso, "lista", None)
+        creadas: list[Path] = []
+        self._capas_en_curso.lista = creadas
+        try:
+            res = gancho(ws, ref, origen, simular=simular, progreso=progreso, cancel=cancel)
+        except BaseException:
+            _borrar_capas(creadas)
+            raise
+        finally:
+            self._capas_en_curso.lista = previas
+        if not res.ok:
+            _borrar_capas(creadas)
+        return res
+
+    #: Capas creadas por la importación en curso (una lista por hilo).
+    _capas_en_curso = threading.local()
+
+    def _capa_creada(self, carpeta: Path) -> Path:
+        """Anota una carpeta de capa recién creada por la importación en curso y la devuelve."""
+        lista = getattr(self._capas_en_curso, "lista", None)
+        if lista is not None:
+            lista.append(Path(carpeta))
+        return carpeta
 
     # ------------------------------------------------------------------ ganchos por capacidad
 
@@ -324,3 +350,9 @@ class JuegoBase(abc.ABC):
     def reglas_validacion(self) -> list[Regla]:
         """Reglas de validación propias del objetivo. Vacío por defecto."""
         return []
+
+
+def _borrar_capas(carpetas: Iterable[Path]) -> None:
+    """Borra las carpetas de capa que dejó una importación fallida."""
+    for carpeta in carpetas:
+        shutil.rmtree(carpeta, ignore_errors=True)

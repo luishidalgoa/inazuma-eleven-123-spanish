@@ -1,6 +1,6 @@
 """Reconstrucción local de la ROM .3ds con 3dstool (romfs -> cxi -> 3ds).
 
-Traslado de ``work/ie1/capas/v33/_final/build_rom.py`` y de
+Traslado de ``work/ie1/capas/v33/_final/build_rom.py`` (hoy ``capas/historial/candidata/v33_final``) y de
 ``work/shared/releases/release_v35/build_base.py``. Diferencia importante: el RomFS de la base
 NO se modifica ni se renombra nunca. Se hace una copia de trabajo en un directorio temporal, se
 superponen ahí los ficheros de la candidata y se reconstruye desde esa copia, así que no hace

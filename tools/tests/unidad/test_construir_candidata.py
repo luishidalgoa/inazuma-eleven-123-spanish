@@ -62,7 +62,8 @@ def test_equivalencia_con_congelado(tmp_path):
     o2 = tmp_path / "o2" / "archive.fa"
     env = dict(os.environ)
     env.pop("IE123_ROOT", None)
-    r = subprocess.run([sys.executable, "-X", "utf8", "tools/build_ui_revision.py", "--base", str(base),
+    r = subprocess.run([sys.executable, "-X", "utf8", "-m", "ie123kit.nucleo.compat.congelados",
+                        "build_ui_revision", "--base", str(base),
                         "--ui", str(ui), "--output", str(o1), "--extra", str(extra)],
                        cwd=RAIZ, env=env, capture_output=True, text=True, encoding="utf-8", check=False)
     assert r.returncode == 0, r.stderr
@@ -166,7 +167,7 @@ def test_aportaciones_como_dict_y_rehusar_sobrescribir(tmp_path):
     C.construir(base, salida, ui=ui)
     informe = C.construir(base, salida, ui=ui, rehusar_sobrescribir=False,
                           aportaciones={"ie3.comun": {"extra": None}})
-    assert informe["aportaciones"] == [{"objetivo": "ie3.comun", "extra": None, "eventos": {}, "cro": []}]
+    assert informe["aportaciones"] == [{"objetivo": "ie3.comun", "extra": None, "eventos": {}, "cro": [], "entradas": []}]
 
 
 # -- F2.2: reempaquetado de mch contra el packnum.rebuild REAL -------------------------

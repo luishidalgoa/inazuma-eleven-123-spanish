@@ -1,0 +1,23 @@
+{
+ "nota": "Solo hashes de las salidas vigentes de las capas de work/ie2/shared/capas (Norma 2: ningún dato del juego). Se comprueban en tests/requiere_rom/test_equivalencia_motores_ie2.py.",
+ "capas": {
+  "dialogo/saltos37/ie2/eve": {
+   "ficheros": 3031,
+   "sha256_conjunto": "f86495b7276b4030258df62703c6aa208e3960eb462b70bed770db948060cfe0"
+  },
+  "dialogo/saltos37/ie2/mch": {
+   "ficheros": 136,
+   "sha256_conjunto": "91df788ade052e50be7626b8ac7e7f96f9df2ef02f8b92f2dc6ce9eb0896bd62"
+  },
+  "teclado/teclado/extra/inazuma2/data_iz/pic2d/menu/MMName.SPF_": "566c2bf8be318ea5988ec706a665ccd262cd64f380f9ac2f93074a05c28256d5",
+  "teclado/teclado/extra/inazuma2/data_iz/pic2d/menu/MMProfd.SPF_": "7dfc5326c702332ea11e676feab6aecc9b62d7cf577ff54db39c28ba40517cee",
+  "media/voces/romfs_mod/inazuma2/data_iz/sound/sound.pb": "f2b88d003507db6354ec898d6bd947f3a7be17e8b50e04b2e8d155609a937fb4",
+  "media/voces/romfs_mod/inazuma2/data_iz/sound/sound.ph": "9ba1499ffd4ef6f88407a7b15f90193172244a21fa1e2897b46adbe0e217792b",
+  "historial/media/v20_voces/romfs_mod/inazuma2/data_iz/sound/sound.pb": "953dd6f971cae1b7899cbe1bb84a30c4c0ce4fee3202f09b6c9a01556722bd47",
+  "historial/media/v20_voces/romfs_mod/inazuma2/data_iz/sound/sound.ph": "63b3b0577a5fa583c6dd743c00e44dafd13671b9825e828d8f5afb6085752b90",
+  "media/voz_titulo/par/3D_901.SWD": "e27228441a7160d71f73d61b696336f845104dd2c5e904fcc4b79dd158df90d7",
+  "menus_cro/cofres/romfs/cro/ina_main2.cro": "e62fe4c1858347e610150a40f8fb57ffec4bae3cb13c76cbb7ef6dfe991fe9f4",
+  "menus_cro/ancho_dialogo/romfs/cro/ina_main2.cro": "9f8e1d7c61999b735e0e5306a13ae0f2c43e9948994a901241d86487522171d1",
+  "media/subtitulos/informe.json": "4c691594dec60e229e2669c2b0842720f3b54ac533de6d0ccf8a5d9bdb76bf28"
+ }
+}

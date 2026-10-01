@@ -12,7 +12,7 @@ from ie123kit.nucleo.fuentes.bcfnt import *  # noqa: F401,F403
 
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    f = sys.argv[1] if len(sys.argv) > 1 else r"work\fa_extract\font\FONT12T.bcfnt"
+    f = sys.argv[1] if len(sys.argv) > 1 else r"work\shared\fa_extract\font\FONT12T.bcfnt"
     b = BCFNT(open(f, "rb").read())
     print(f"{f}: version=0x{b.version:08X} file_size={b.file_size} blocks={b.nblocks}")
     print(f"FINF: type={b.font_type} line_feed={b.line_feed} alter={b.alter_char} "

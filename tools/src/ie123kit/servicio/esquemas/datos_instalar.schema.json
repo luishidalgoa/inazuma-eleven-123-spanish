@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://inazuma123.local/esquemas/datos_instalar.schema.json",
+  "title": "Datos de ServicioToolkit.instalar",
+  "description": "Instalación LayeredFS en Azahar; runtime_verified siempre es False (la QA la hace el usuario).",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "candidata": {
+      "type": "string"
+    },
+    "emulador": {
+      "type": "string"
+    },
+    "destino": {
+      "type": "string"
+    },
+    "ficheros": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "rel",
+          "destino",
+          "sha256"
+        ]
+      }
+    },
+    "runtime_verified": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "candidata",
+    "emulador",
+    "destino"
+  ],
+  "examples": [
+    {
+      "candidata": "probe_ie2_v35",
+      "emulador": "azahar",
+      "destino": "C:/Users/x/AppData/Roaming/Azahar/load/mods/00040000000BB800/romfs",
+      "ficheros": [
+        {
+          "rel": "archive.fa",
+          "destino": "…/romfs/archive.fa",
+          "sha256": "abababababababababababababababababababababababababababababababab",
+          "bytes": 1
+        }
+      ],
+      "runtime_verified": false
+    }
+  ]
+}

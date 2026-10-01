@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://inazuma123.local/esquemas/datos_objetivos.schema.json",
+  "title": "Datos de ServicioToolkit.objetivos",
+  "description": "Objetivos habilitados (cada uno con la forma de info_objetivo).",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "objetivos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "nombre",
+          "capacidades"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "prefijos_romfs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cros": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "capacidades": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "objetivos"
+  ],
+  "examples": [
+    {
+      "objetivos": [
+        {
+          "id": "ie1",
+          "nombre": "Inazuma Eleven",
+          "prefijos_romfs": [
+            "inazuma1/"
+          ],
+          "cros": [
+            "cro/ina_main1.cro"
+          ],
+          "capacidades": [
+            "graficos",
+            "textos"
+          ]
+        }
+      ]
+    }
+  ]
+}

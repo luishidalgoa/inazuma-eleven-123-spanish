@@ -70,6 +70,26 @@ def test_importaciones_externos_no_son_fallos(raiz):
     assert (total, fallos) == (1, [])
 
 
+def test_importaciones_paquete_src(raiz):
+    """Las capas que importan ie123kit directamente se comprueban contra tools/src (tras la reorganización)."""
+    _escribir(raiz / 'tools' / 'src' / 'ie123kit' / '__init__.py', '')
+    _escribir(raiz / 'tools' / 'src' / 'ie123kit' / 'nucleo' / '__init__.py', '')
+    _escribir(raiz / 'tools' / 'src' / 'ie123kit' / 'nucleo' / 'real.py', 'def f(): pass\n')
+    _escribir(raiz / 'tools' / 'src' / 'ie123kit' / 'nucleo' / 'perezoso.py',
+              "NOMBRES = ('servido',)\n\ndef __getattr__(n):\n    return n\n")
+    _escribir(raiz / 'work' / 'capa' / 'apply.py',
+              "import sys; sys.path.insert(0, 'tools/src')\n"
+              "from ie123kit.nucleo.real import f\nfrom ie123kit.nucleo.real import falta\n"
+              "from ie123kit.nucleo import real\nfrom ie123kit.nucleo.perezoso import servido\n"
+              "import ie123kit.nucleo.inexistente\n")
+    total, fallos = importaciones.analizar(str(raiz / 'work'))
+    assert total == 1
+    assert fallos == sorted([
+        'work/capa/apply.py:3: ie123kit.nucleo.real.falta',
+        'work/capa/apply.py:6: módulo ie123kit.nucleo.inexistente',
+    ])
+
+
 def test_superficie(raiz, monkeypatch):
     mod = raiz / 'tools' / 'modulo.py'
     _escribir(mod, 'def funcion(a, b=1): pass\n')
@@ -118,8 +138,8 @@ def test_golden_real(monkeypatch):
     monkeypatch.delenv('IE123_ROOT', raising=False)
     from ie123kit.nucleo.config.raiz import find_root
     raiz = find_root()
-    if not (raiz / 'work' / 'shared' / 'candidatas' / 'probe_ie1_v67').is_dir():
-        pytest.skip('sin candidata probe_ie1_v67')
+    if not (raiz / golden.BASE_REFERENCIA / 'archive.fa').is_file():
+        pytest.skip(f'sin {golden.BASE_REFERENCIA}/archive.fa')
     import ie123kit
     entorno = {k: v for k, v in os.environ.items() if k != 'IE123_ROOT'}
     src = str(Path(ie123kit.__file__).resolve().parent.parent)

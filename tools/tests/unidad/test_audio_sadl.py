@@ -5,7 +5,10 @@ import struct
 
 import pytest
 
-from ie123kit.nucleo.media.audio import SadInfo, inspect_sad, sha256
+from ie123kit.nucleo.config import herramientas
+from ie123kit.nucleo.errores import FormatoError
+from ie123kit.nucleo.media import audio
+from ie123kit.nucleo.media.audio import SadInfo, inspect_sad, sad_a_wav, sha256, validar_sad
 
 
 def _sad(tmp_path, flags, largo=0x60):
@@ -50,3 +53,53 @@ def test_inmutable(tmp_path):
     info = inspect_sad(_sad(tmp_path, 0x04))
     with pytest.raises(dataclasses.FrozenInstanceError):
         info.size = 1
+
+
+def _proceso(codigo):
+    return type("P", (), {"returncode": codigo, "stdout": b"", "stderr": b""})()
+
+
+def test_validar_sad(tmp_path):
+    p = _sad(tmp_path, 0x04)
+    assert validar_sad(p) == inspect_sad(p)
+    malo = tmp_path / "malo.SAD"
+    malo.write_bytes(b"xxxx" + bytes(0x60))
+    with pytest.raises(FormatoError):
+        validar_sad(malo)
+    with pytest.raises(FormatoError):
+        validar_sad(tmp_path / "no_existe.SAD")
+
+
+def test_sad_a_wav_sin_vgmstream(tmp_path, monkeypatch):
+    monkeypatch.setattr(herramientas, "localizar", lambda nombre, **k: None)
+    with pytest.raises(herramientas.HerramientaAusente) as exc:
+        sad_a_wav(_sad(tmp_path, 0x04), tmp_path / "x.wav")
+    assert exc.value.codigo == "HERRAMIENTA_AUSENTE"
+
+
+def test_sad_a_wav_con_doble(tmp_path, monkeypatch):
+    falso = tmp_path / "vgmstream-cli.exe"
+    falso.write_bytes(b"")
+    monkeypatch.setattr(herramientas, "localizar", lambda nombre, **k: falso)
+    entrada = _sad(tmp_path, 0x04)
+    salida = tmp_path / "fuera" / "x.wav"
+
+    def _run(orden, **kwargs):
+        assert orden[0] == str(falso) and str(entrada) in orden
+        salida.write_bytes(bytes(44) + bytes(400))
+        return _proceso(0)
+
+    monkeypatch.setattr(audio.subprocess, "run", _run)
+    informe = sad_a_wav(entrada, salida)
+    assert informe["salida"] == str(salida)
+    assert informe["sha256_origen"] == sha256(entrada)
+    assert informe["muestras"] == 100 and informe["canales"] == 2
+
+
+def test_sad_a_wav_falla(tmp_path, monkeypatch):
+    falso = tmp_path / "vgmstream-cli.exe"
+    falso.write_bytes(b"")
+    monkeypatch.setattr(herramientas, "localizar", lambda nombre, **k: falso)
+    monkeypatch.setattr(audio.subprocess, "run", lambda *a, **k: _proceso(2))
+    with pytest.raises(RuntimeError, match="vgmstream"):
+        sad_a_wav(_sad(tmp_path, 0x04), tmp_path / "x.wav")

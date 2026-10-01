@@ -20,6 +20,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
+from ie123kit.nucleo.config.herramientas import exigir
 from ie123kit.nucleo.media.subtitulos_dat import SUBTITLE_TICK_RATE, Subtitle, add_caption, read_subtitles
 
 __all__ = [
@@ -27,6 +28,7 @@ __all__ = [
     "Subtitle",
     "convert",
     "disposicion_rotacion",
+    "exportar_mp4",
     "probe",
     "rgb_to_yuv420",
     "set_moflex_rotation",
@@ -203,3 +205,30 @@ def disposicion_rotacion(path: Path) -> list[int]:
         if pos + 29 <= len(data) and data[pos + 14:pos + 16] == b"\x03\x0d":
             values.append(data[pos + 28])
         pos += 2
+
+
+def exportar_mp4(entrada: Path, salida: Path, *, ws=None) -> dict:
+    """Descodifica un MOFLEX a MP4 con ffmpeg (H.264 + yuv420p).
+
+    ffmpeg se localiza con ``nucleo.config.herramientas.exigir``; si falta, la
+    excepción ``HerramientaAusente`` sube con el código ``HERRAMIENTA_AUSENTE``.
+    """
+    entrada = Path(entrada)
+    salida = Path(salida)
+    if not entrada.is_file():
+        raise FileNotFoundError(str(entrada))
+    ffmpeg = exigir("ffmpeg", ws=ws)
+    salida.parent.mkdir(parents=True, exist_ok=True)
+    orden = [
+        str(ffmpeg), "-y", "-hide_banner", "-loglevel", "error", "-i", str(entrada),
+        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", str(salida),
+    ]
+    proceso = subprocess.run(orden, check=False, capture_output=True)
+    if proceso.returncode or not salida.is_file() or salida.stat().st_size == 0:
+        raise RuntimeError(f"ffmpeg falló al exportar {entrada.name} (código={proceso.returncode})")
+    return {
+        "entrada": str(entrada),
+        "salida": str(salida),
+        "herramienta": str(ffmpeg),
+        "bytes": salida.stat().st_size,
+    }

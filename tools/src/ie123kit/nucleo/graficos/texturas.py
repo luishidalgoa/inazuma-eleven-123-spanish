@@ -5,7 +5,7 @@ Consolidan tres patrones del catálogo de auditoría:
 - ``arcv_ctpk_iteration`` (33 ficheros): el bucle ``unwrap -> entries(raw) -> blob[:4] == b'CTPK'
   -> metadata(blob)[0] == nombre`` pasa a :func:`iter_ctpk`, :func:`texture_map`,
   :func:`find_texture` y :func:`load_texture`.
-- ``texture_plan_replace`` (18 capas): la tubería de ``work/ie1/capas/v37/graficos_nds/apply.py``
+- ``texture_plan_replace`` (18 capas): la tubería de ``work/ie1/capas/graficos/graficos_nds/apply.py`` (antes v37)
   pasa a :func:`apply_plan`, sin globales de módulo y con la reenvoltura explícita
   (``rewrap='raw'`` por defecto, que es lo que hace V37).
 - ``texture_layer_validate_clone`` (8 copias de validate.py): pasa a :func:`validate_plan`.
@@ -144,7 +144,7 @@ def apply_plan(
 ) -> list[dict]:
     """Aplica `plan` sobre `base` y escribe los .arc resultantes en `salida/<ruta_arc>`.
 
-    Reproduce la tubería de ``work/ie1/capas/v37/graficos_nds/apply.py``: desenvuelve el .arc,
+    Reproduce la tubería de ``work/ie1/capas/graficos/graficos_nds/apply.py`` (antes v37): desenvuelve el .arc,
     comprueba que el códec hace ida y vuelta ANTES de editar, llama a la función del plan,
     reencodea, exige el mismo tamaño y los mismos metadatos, vuelve a comprobar la ida y vuelta
     sobre el reemplazo, exige que la tabla ARCV no cambie y falla si alguna textura declarada no

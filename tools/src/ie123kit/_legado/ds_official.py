@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """⚠️ NO USAR PARA REGENERAR (issue #36, docs/FURIGANA_LECCIONES.md): el alineado por
 orden de lineas empareja por POSICION y deja frases desplazadas en los 621 eventos donde la
-NDS tiene instrucciones de mas. Usar tools/audit_dialogo_ids.py (emparejado por id). Las
+NDS tiene instrucciones de mas. Usar ie123kit._legado.audit_dialogo_ids (emparejado por id). Las
 funciones load_ds_events / decode_ds / DS_TABLE siguen siendo validas.
 
 Mapea el DIALOGO OFICIAL en espanol del DS (Inazuma Eleven NDS, lanzamiento ES) a los
@@ -19,8 +19,8 @@ TEXTO (script/sp/evet.pkb = espanol oficial). Aqui:
 NO sube nada con copyright: los volcados van a work/ (gitignored). El dialogo_oficial.csv
 contiene texto oficial -> tratarlo como el dialogo.csv (glosario/refs, no ROM).
 
-Uso:  python tools/ds_official.py game1   (DS = work/ie1/fuentes/nds_es)
-      python tools/ds_official.py game2   (DS = work/ie2/tormenta_de_fuego/fuentes/nds_es)
+Uso:  python -m ie123kit._legado.ds_official game1   (DS = work/ie1/fuentes/nds_es)
+      python -m ie123kit._legado.ds_official game2   (DS = work/ie2/tormenta_de_fuego/fuentes/nds_es)
 """
 import csv, difflib, os, re, struct, sys  # noqa: E401,F401
 
@@ -40,7 +40,7 @@ _CONF = re.compile(rb"^[A-Za-z][A-Za-z0-9]*=%[ds]")     # HikinukiX=%d (config v
 
 _BANDERA = "--legado-lo-se"
 _MENSAJE = ("ERROR: ds_official está retirado para regenerar (issue #36): alinea por orden y "
-            "desplaza frases. Usa tools/audit_dialogo_ids.py (emparejado por ID). Para "
+            "desplaza frases. Usa ie123kit._legado.audit_dialogo_ids (emparejado por ID). Para "
             "ejecutarlo igualmente añade --legado-lo-se.")
 
 

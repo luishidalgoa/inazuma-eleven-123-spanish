@@ -6,6 +6,7 @@ import pytest
 
 from ie123kit.ie3.comun.medios_es import (
     descriptor_moflex,
+    elegir_fuente_video,
     inventariar_videos,
     leer_video,
     planificar_audio,
@@ -153,3 +154,46 @@ def test_video_plan_requires_exact_timeline_and_hashes(monkeypatch):
         planificar_videos(a, a, a, b"", qa, {"results": qa["results"] * 2})
     with pytest.raises(ValueError, match="cambió"):
         leer_video(plan[path], Archive({path: movie()[:-1] + b"x"}), a)
+
+
+# --- elegir_fuente_video: fuente europea por niveles entre Fuego, Rayo y Ogro
+
+M3, MO = "inazuma3/data_iz/movie/", "inazuma3_ogre/data_iz/movie/"
+FUEGO = {"es/" + M3 + "op00b.moflex", "es/" + MO + "a3y01f.moflex", MO + "a3m02a.moflex",
+         "es/" + M3 + "txt/op00b.dat", "es/" + M3 + "txt/op00f.dat", "es/" + MO + "txt/a3m02a.dat",
+         "es/" + MO + "txt/op00f.dat"}
+RAYO = {"es/" + M3 + "op00f.moflex", "es/" + M3 + "a3y01f.moflex", "es/" + MO + "a3y01f.moflex",
+        MO + "a3m02a.moflex", "es/" + M3 + "txt/op00f.dat"}
+OGRO = {"es/" + MO + "op00f.moflex", "es/" + MO + "a3y01f.moflex", "es/" + MO + "a3m01f.moflex",
+        MO + "a3m02a.moflex", "es/" + MO + "txt/op00f.dat"}
+TRES = [("fuego", FUEGO), ("rayo", RAYO), ("ogro", OGRO)]
+
+
+def test_opening_del_ogro_sale_de_la_cia_del_ogro_con_su_dat():
+    r = elegir_fuente_video(MO + "op00f.moflex", TRES)
+    assert r == {"edicion": "ogro", "video": "es/" + MO + "op00f.moflex",
+                 "edicion_dat": "ogro", "dat": "es/" + MO + "txt/op00f.dat"}
+
+
+def test_opening_de_rayo_sale_de_rayo():
+    r = elegir_fuente_video(M3 + "op00f.moflex", TRES)
+    assert (r["edicion"], r["video"], r["dat"]) == ("rayo", "es/" + M3 + "op00f.moflex", "es/" + M3 + "txt/op00f.dat")
+    assert r["edicion_dat"] == "rayo"
+
+
+def test_eyecatch_de_rayo_no_cae_en_el_del_ogro_por_nombre():
+    assert elegir_fuente_video(M3 + "a3y01f.moflex", TRES)["video"] == "es/" + M3 + "a3y01f.moflex"
+    # solo con Fuego no hay ruta exacta: último recurso, el mismo nombre en otra carpeta es/
+    solo = elegir_fuente_video(M3 + "a3y01f.moflex", [("fuego", FUEGO)])
+    assert solo == {"edicion": "fuego", "video": "es/" + MO + "a3y01f.moflex", "edicion_dat": None, "dat": None}
+
+
+def test_raiz_comun_respeta_el_orden_de_preferencia_y_busca_el_dat_en_otra_edicion():
+    r = elegir_fuente_video(MO + "a3m02a.moflex", TRES)
+    assert (r["edicion"], r["video"], r["dat"]) == ("fuego", MO + "a3m02a.moflex", "es/" + MO + "txt/a3m02a.dat")
+    r = elegir_fuente_video(MO + "a3m02a.moflex", [("ogro", OGRO), ("fuego", FUEGO)])
+    assert (r["edicion"], r["edicion_dat"]) == ("ogro", "fuego")
+
+
+def test_sin_fuente_europea():
+    assert elegir_fuente_video(MO + "pv_o1.moflex", TRES) is None

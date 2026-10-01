@@ -134,3 +134,19 @@ def test_reemplazar_entrada_ruta_desconocida(archivo: Path, tmp_path: Path) -> N
     arc = FaArchive(str(copia))
     with copia.open("r+b") as fh, pytest.raises(ValueError, match="missing archive entry"):
         reemplazar_entrada(fh, arc, "no/existe.arc", b"x")
+
+
+def test_revertir_entradas_devuelve_el_original(archivo: Path, tmp_path: Path) -> None:
+    from ie123kit.nucleo.contenedores.fa import entradas_distintas, revertir_entradas
+
+    ruta = "inazuma1/data_iz/a_menu/status_t.arc"
+    copia = tmp_path / "copia.fa"
+    copia.write_bytes(archivo.read_bytes())
+    with open(copia, "r+b") as fh:
+        reemplazar_entrada(fh, FaArchive(str(copia)), ruta, b"TRADUCIDO")
+    base = FaArchive(str(archivo))
+    assert entradas_distintas(base, FaArchive(str(copia))) == [ruta]
+    with open(copia, "r+b") as fh:
+        hechas = revertir_entradas(fh, FaArchive(str(copia)), base, [ruta, "no/existe.arc"])
+    assert hechas == [ruta]
+    assert entradas_distintas(base, FaArchive(str(copia))) == []

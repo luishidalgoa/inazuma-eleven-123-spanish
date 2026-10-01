@@ -4,7 +4,10 @@ import pytest
 
 from ie123kit.ie3.comun.maqueta import lineas_de, tinta
 from ie123kit.ie3.comun.tipografia import (
-    FuenteBCFNT, _ajustar_grid, avance_font12, margen_compensado,
+    FuenteBCFNT,
+    _ajustar_grid,
+    avance_font12,
+    margen_compensado,
 )
 
 

@@ -1,14 +1,16 @@
-"""User-approved v20 dialogue appearance. No opt-out build switch."""
+"""User-approved dialogue appearance. Fonts of probe_ie3_fuego_v16, approved in game on 2026-09-23 (European
+advances in FONT12, FONT8 real width and ED/EE slices, dialogue with EU breaks 1:1); before: probe_ie2_v34 (#80).
+No opt-out build switch."""
 import hashlib
 import inspect
 from pathlib import Path
 
 FONT_HASHES = {
-    'font/FONT12.bcfnt': 'db74945637301e74d8d36248626b4cc3e88c794a33e3d439dbb7ab813e9ff2e3',
-    'font/FONT12T.bcfnt': '71c37509f0eec6c092ea75f373667b0bf1f19389c45b1741a89a8f53270164ab',
-    'font/FONT8.bcfnt': 'b05e64c84cb564a98bea87cbdc94454f14f3df17e78252edf5a32be43ce454dd',
-    'inazuma1/data_iz/font/FONT12.NFTR': 'b43cfc73407c928272a001f04b85380976348e30da528b5938a3e45b87ea85c7',
-    'inazuma1/data_iz/font/FONT8.NFTR': '6f683a8cef209d6e9eb9b31be5cadaad5eb90bf5ccd5e5c01c40afdf89984865',
+    'font/FONT12.bcfnt': '222ae0f22ebf0d6dd55a2b76fa13b8d17857da350bb2532305af48681f88e3ff',
+    'font/FONT12T.bcfnt': 'eb2a12cc633cb134cb1e668efef75eb57960cc52a6620e348ff4559bf8d35d8d',
+    'font/FONT8.bcfnt': '9f4680559f8890746d348e1e504c239fec80141f3854e59514dc4c508c36ed09',
+    'inazuma1/data_iz/font/FONT12.NFTR': 'ef2841a5af60b21fa230a3cc35bedbf30aa8ddc18045abff852de3af38c88848',
+    'inazuma1/data_iz/font/FONT8.NFTR': '548efc8649876fb98af8b26757702d723efe5aa58974a96dda73de4c060f6512',
 }
 SOURCE_HASHES = {
     'tools/dialogue_typography.py': '8e983419465a36460da722df4fccdb18b18b56836dc47fbc618974c18c4f42fa',

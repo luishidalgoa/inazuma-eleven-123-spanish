@@ -17,6 +17,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+from ie123kit.nucleo.config.congelados import preparar
 from ie123kit.nucleo.config.raiz import find_root
 from ie123kit.nucleo.errores import BloqueoTipograficoError
 
@@ -36,14 +37,12 @@ def comprobar(candidata: str | os.PathLike, raiz: Path | None = None) -> None:
         raise BloqueoTipograficoError("candidata_ausente", archive)
 
     raiz = Path(raiz) if raiz is not None else find_root()
-    tools = raiz / "tools"
-    if str(tools) not in sys.path:
-        sys.path.insert(0, str(tools))
+    preparar(raiz)
 
     # Por nombre de tools/: dialogue_lock y el layout bloqueado son los ficheros intactos.
     import dialogue_lock
     from build_ie1_probe import layout
-    from fa_unpack import FaArchive
+    from ie123kit.nucleo.contenedores.fa import FaArchive
 
     arc = FaArchive(archive)
     entradas: dict[str, tuple[int, int]] = {}

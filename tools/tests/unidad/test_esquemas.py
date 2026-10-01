@@ -115,7 +115,7 @@ ROTAS = {
     "progreso": {"fase": "x", "actual": "uno", "total": 3, "mensaje": ""},
     "assetref": {"id": "ie1:grafico:x"},
     "resultado": {"ok": "sí", "datos": {}, "incidencias": [], "artefactos": [],
-                  "duracion_s": 0.0, "api_version": "0.1"},
+                  "duracion_s": 0.0, "api_version": "1.0"},
     "info_objetivo": {"id": "ie1", "nombre": "x", "prefijos_romfs": [], "cros": [],
                       "capacidades": ["magia"]},
     "manifiesto_candidata": {"esquema": 1, "nombre": "x"},

@@ -1,0 +1,23 @@
+{
+  "orden": [
+    "--base",
+    "<temporal>/base (enlaces a work/shared/base_3ds/romfs)",
+    "--candidate",
+    "<temporal>/referencia",
+    "--layer",
+    "work/ie1/capas/graficos/titulo_logo/extra"
+  ],
+  "returncode": 0,
+  "stderr": "",
+  "verify_json": {
+    "archive_sha256": "6f23e4d5debb8e9a6c634b7e280c6918ef60b92811c03d7b2755122e42b0d7f1",
+    "cro_sha256": "b68bfa2d21f659eff1f9392f8ef19cfda5205a2a73673590d6e676bea032f7be",
+    "base_sha256": "be78bb7290d87edd2ac8cd012edc6a8473868dbf1f8a41e2d3c081e4db3864d4",
+    "replaced_entries": 1,
+    "fonts_identical_to_base": 22,
+    "events_changed": [],
+    "cro_literals_changed": 0,
+    "dialogue_lock": "PASS",
+    "runtime_verified": false
+  }
+}

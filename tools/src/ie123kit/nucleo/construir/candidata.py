@@ -143,6 +143,9 @@ def _normalizar_aportaciones(aportaciones) -> list[dict]:
             "extra": Path(extra).resolve() if extra is not None else None,
             "eventos": {k: Path(v).resolve() for k, v in eventos.items() if v is not None},
             "cro": [Path(c).resolve() for c in cro],
+            "entradas": {str(k).replace("\\", "/").strip("/"): (v if isinstance(v, (bytes, bytearray))
+                                                                 else Path(v).resolve())
+                         for k, v in (cruda.get("entradas") or {}).items()},
         })
     return normalizadas
 
@@ -346,7 +349,9 @@ def construir(base, salida, *, ui=None, capas=None, cro=None, aportaciones=None,
 
     ``capas`` son carpetas de ficheros relativos al archive (la última gana). ``aportaciones`` es
     la forma generalizada: una lista (o un dict por objetivo) de
-    ``{objetivo, extra, eventos: {'eve': dir, 'mch': dir}, cro: [...]}``; se aplican después de
+    ``{objetivo, extra, eventos: {'eve': dir, 'mch': dir}, cro: [...], entradas: {ruta: path|bytes}}``
+    (``entradas`` son entradas sueltas del archive que se aplican tras el ``extra`` de la misma
+    aportación, p. ej. las de varias capas fundidas por un objetivo); se aplican después de
     ``capas``, también con la regla «la última gana», y quedan anotadas en el build.json.
 
     ``ui`` aporta ``extra/`` (si no hay ``capas``), ``events/``, ``events_mch/`` y todas las
@@ -391,18 +396,27 @@ def construir(base, salida, *, ui=None, capas=None, cro=None, aportaciones=None,
         overlays = [(ui / "extra", "")]
     else:
         overlays = []
-    overlays += [(a["extra"], a["objetivo"]) for a in aportes if a["extra"] is not None]
+    # Cada aportación aplica su extra/ y después sus entradas sueltas, en orden: la última gana.
+    pasos = [(extra, objetivo, None) for extra, objetivo in overlays]
+    for a in aportes:
+        if a["extra"] is not None:
+            pasos.append((a["extra"], a["objetivo"], None))
+        if a["entradas"]:
+            pasos.append((None, a["objetivo"], a["entradas"]))
     extra_files = {}
-    for extra, objetivo in overlays:
-        for src in sorted(extra.rglob("*")):
-            if not src.is_file():
-                continue
-            rel = src.relative_to(extra).as_posix()
+    for extra, objetivo, entradas in pasos:
+        if entradas is None:
+            fuentes = [(src.relative_to(extra).as_posix(), src, extra)
+                       for src in sorted(extra.rglob("*")) if src.is_file()]
+        else:
+            fuentes = [(rel, valor, valor.parent if isinstance(valor, Path) else "<memoria>")
+                       for rel, valor in sorted(entradas.items())]
+        for rel, src, origen in fuentes:
             if rel not in known:
                 raise ValueError(f"extra file is not an archive entry: {rel}")
             if rel in extra_files:
-                overridden.append(_anotacion(rel, extra, objetivo))
-            extra_files[rel] = src.read_bytes()
+                overridden.append(_anotacion(rel, origen, objetivo))
+            extra_files[rel] = bytes(src) if isinstance(src, (bytes, bytearray)) else src.read_bytes()
 
     output.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(base, output)
@@ -458,6 +472,7 @@ def construir(base, salida, *, ui=None, capas=None, cro=None, aportaciones=None,
                 "extra": str(a["extra"]) if a["extra"] is not None else None,
                 "eventos": {k: str(v) for k, v in a["eventos"].items()},
                 "cro": [str(c) for c in a["cro"]],
+                "entradas": sorted(a["entradas"]),
             }
             for a in aportes
         ],

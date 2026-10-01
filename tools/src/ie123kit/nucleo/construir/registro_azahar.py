@@ -184,3 +184,50 @@ def informe(reg, nuevas=()):
         L += [f"- `{e['tipo']}` · PC `{e['pc'] or '-'}` · [{e['estado']}] — {e['nota']}"
               for e in cerr]
     return "\n".join(L)
+
+
+def cosechar(sesion=None, logdir=None, forzar=False, avisos=False, registro=None, informe_md=None):
+    """Funde el log de Azahar en el registro persistente y escribe el informe.
+
+    Misma lógica que ``harvest_log.py`` (retirado en la F2.4; la orden es ``ie123 registro``):
+    con ``sesion`` solo se lee el log actual (no el ``.old``) y se marca la build. Devuelve
+    ``{procesados, firmas, nuevas, registro, informe, texto}``.
+    """
+    import json
+
+    registro = registro or REG
+    informe_md = informe_md or INFORME
+    logdir = logdir or LOGDIR
+    os.makedirs(os.path.dirname(registro), exist_ok=True)
+    reg = {}
+    if os.path.exists(registro):
+        with open(registro, encoding="utf-8") as f:
+            reg = json.load(f)
+    levels = LEVELS + ("Warning",) if avisos else LEVELS
+    logs = [os.path.join(logdir, "azahar_log.txt")]
+    if not sesion:
+        logs.append(os.path.join(logdir, "azahar_log.old.txt"))
+    procesado = reg.setdefault("_procesado", {})
+    found, procesados = {}, []
+    for lp in logs:
+        st = _stamp(lp)
+        if st is None or (not forzar and procesado.get(lp) == st):
+            continue
+        procesados.append(lp)
+        procesado[lp] = st
+        for sig, e in parse(lp, levels).items():
+            if sig in found:
+                found[sig]["veces"] += e["veces"]
+            else:
+                found[sig] = dict(e)
+    if not procesados:
+        return {"procesados": [], "firmas": 0, "nuevas": [], "registro": registro, "informe": None,
+                "texto": informe(reg)}
+    nuevas = merge(reg, found, sesion)
+    with open(registro, "w", encoding="utf-8") as f:
+        json.dump(reg, f, ensure_ascii=False, indent=1)
+    texto = informe(reg, nuevas)
+    with open(informe_md, "w", encoding="utf-8") as f:
+        f.write(texto)
+    return {"procesados": procesados, "firmas": len(found), "nuevas": list(nuevas), "registro": registro,
+            "informe": informe_md, "texto": texto}
