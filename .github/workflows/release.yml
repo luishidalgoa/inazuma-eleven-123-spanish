@@ -33,6 +33,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Las releases v3 en adelante enseñan su versión en la pantalla de créditos del juego,
+      # que sale de ie123.toml: el tag debe coincidir o el paquete mostraría otra versión.
+      - name: Comprobar la versión de la release
+        run: |
+          set -euo pipefail
+          if [[ "$TAG" =~ ^v([3-9]|[1-9][0-9])\. ]]; then
+            PYTHONPATH=tools/src python3 -X utf8 -m ie123kit.nucleo.compat.guardia version --tag "$TAG"
+          fi
+
       - name: Obtener el parche
         run: |
           set -euo pipefail

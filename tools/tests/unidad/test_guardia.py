@@ -91,3 +91,40 @@ def test_bloqueados_falta_entrada(tmp_path, monkeypatch):
 def test_bloqueados_repo_real(monkeypatch):
     monkeypatch.delenv("IE123_ROOT", raising=False)
     assert main(["bloqueados"]) == 0
+
+
+def _proyecto_version(tmp_path, version="3.1", render=None):
+    (tmp_path / "ie123.toml").write_text(f'[release]\nversion = "{version}"\n', encoding="utf-8")
+    if render is not None:
+        ruta = tmp_path / guardia.RUTA_CREDITOS
+        ruta.parent.mkdir(parents=True)
+        ruta.write_text(render, encoding="utf-8")
+    return tmp_path
+
+
+def test_version_coherente_con_tag(tmp_path, capsys):
+    raiz = _proyecto_version(tmp_path, render="VERSION = 'v' + toml['release']  # ie123.toml\n")
+    assert guardia.comprobar_version(raiz) == 0
+    assert guardia.comprobar_version(raiz, "v3.1") == 0
+
+
+def test_version_tag_distinto(tmp_path, capsys):
+    raiz = _proyecto_version(tmp_path)
+    assert guardia.comprobar_version(raiz, "v3.0") == 1
+    assert "no coincide" in capsys.readouterr().out
+
+
+def test_version_escrita_a_mano_en_creditos(tmp_path, capsys):
+    raiz = _proyecto_version(tmp_path, render="VERSION = 'v3.0'\n")
+    assert guardia.comprobar_version(raiz) == 1
+    assert "escrita a mano" in capsys.readouterr().out
+
+
+def test_version_toml_invalido(tmp_path):
+    assert guardia.comprobar_version(_proyecto_version(tmp_path, version="tres")) == 1
+
+
+def test_version_repo_real():
+    from ie123kit.nucleo.config.raiz import find_root
+
+    assert guardia.comprobar_version(find_root()) == 0

@@ -11,6 +11,13 @@
 idioma = "es-ES"
 nombres_europeos = true
 
+[release]
+# Versión de la traducción en desarrollo (la publicada es la 3.1): UNA sola fuente. La pantalla de créditos del
+# juego (work/ie1/capas/graficos/creditos_javiju/render.py) la lee de aquí y
+# `python -m ie123kit.nucleo.compat.guardia version [--tag vX.Y]` comprueba que
+# coincide. Súbela ANTES de reconstruir y publicar una release.
+version = "3.2"
+
 [candidatas]
 # Nombre de las candidatas en work/shared/candidatas/.
 patron = "probe_ie1_v{n}"

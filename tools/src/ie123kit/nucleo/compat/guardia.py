@@ -7,7 +7,10 @@
   ``SOURCE_HASHES`` de ``tools/dialogue_lock.py`` (leído por AST, sin importar).
 - ``git``: falla si algún fichero rastreado por git parece una ROM o contenido
   extraído (Norma 2 de CLAUDE.md, ver LEGAL.md).
-- ``todo``: ejecuta ambas.
+- ``version``: comprueba que ``[release] version`` de ``ie123.toml`` es la única fuente
+  de la versión que enseña la pantalla de créditos (``render.py`` no puede llevarla
+  escrita a mano) y, con ``--tag vX.Y``, que el tag que se va a publicar coincide.
+- ``todo``: ejecuta las tres.
 
 Importar este módulo no produce E/S.
 """
@@ -30,6 +33,7 @@ __all__ = [
     "RUTA_LOCK",
     "comprobar_bloqueados",
     "comprobar_git",
+    "comprobar_version",
     "leer_congelados",
     "leer_source_hashes",
     "main",
@@ -50,6 +54,7 @@ CARPETAS_PNG_AUTORIZADAS: frozenset[str] = frozenset({"logos"})
 
 RUTA_CONGELADOS = "tools/tests/compat/golden/congelados.sha256"
 RUTA_LOCK = "tools/dialogue_lock.py"
+RUTA_CREDITOS = "work/ie1/capas/graficos/creditos_javiju/render.py"
 NUM_CONGELADOS = 5
 
 
@@ -179,11 +184,48 @@ def comprobar_git(raiz: Path, salida=None) -> int:
     return 1 if malas else 0
 
 
+def comprobar_version(raiz: Path, tag: str | None = None, salida=None) -> int:
+    """Versión de release coherente entre ``ie123.toml``, la pantalla de créditos y el tag.
+
+    ``work/`` no está en git: si ``render.py`` no existe (CI) solo se valida el toml y el tag.
+    """
+    import re
+    import tomllib
+
+    salida = salida or sys.stdout
+    try:
+        version = tomllib.loads((raiz / "ie123.toml").read_text(encoding="utf-8"))["release"]["version"]
+    except (OSError, KeyError, tomllib.TOMLDecodeError) as e:
+        print(f"ERROR ie123.toml [release] version: {e!r}", file=salida)
+        return 1
+    if not re.fullmatch(r"\d+\.\d+(\.\d+)?", str(version)):
+        print(f"ERROR version {version!r} no es X.Y ni X.Y.Z", file=salida)
+        return 1
+    codigo = 0
+    render = raiz / RUTA_CREDITOS
+    if render.is_file():
+        fuente = render.read_text(encoding="utf-8")
+        if re.search(r"VERSION\s*=\s*['\"]v?\d", fuente):
+            print(f"ERROR {RUTA_CREDITOS}: la versión está escrita a mano; debe leerse de ie123.toml", file=salida)
+            codigo = 1
+        elif "ie123.toml" not in fuente:
+            print(f"ERROR {RUTA_CREDITOS}: no lee ie123.toml", file=salida)
+            codigo = 1
+    if tag is not None and tag.lstrip("v") != str(version):
+        print(f"ERROR el tag {tag} no coincide con ie123.toml [release] version = {version}: "
+              "sube la versión, reconstruye los créditos y vuelve a intentarlo", file=salida)
+        codigo = 1
+    if codigo == 0:
+        print(f"versión {version} coherente" + (f" con el tag {tag}" if tag else ""), file=salida)
+    return codigo
+
+
 def main(argv: list[str] | None = None) -> int:
     from ie123kit.nucleo.config.raiz import find_root
 
     ap = argparse.ArgumentParser(prog="python -m ie123kit.nucleo.compat.guardia", description=__doc__.splitlines()[0])
-    ap.add_argument("orden", choices=["bloqueados", "git", "todo"])
+    ap.add_argument("orden", choices=["bloqueados", "git", "version", "todo"])
+    ap.add_argument("--tag", help="con 'version': tag de release que debe coincidir con ie123.toml")
     a = ap.parse_args(argv)
     raiz = find_root()
     codigo = 0
@@ -191,6 +233,8 @@ def main(argv: list[str] | None = None) -> int:
         codigo |= comprobar_bloqueados(raiz)
     if a.orden in ("git", "todo"):
         codigo |= comprobar_git(raiz)
+    if a.orden in ("version", "todo"):
+        codigo |= comprobar_version(raiz, a.tag)
     return codigo
 
 

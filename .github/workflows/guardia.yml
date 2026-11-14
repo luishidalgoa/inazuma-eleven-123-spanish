@@ -38,7 +38,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Guardia de integridad (bloqueados + git)
+      - name: Guardia de integridad (bloqueados + git + versión)
         env:
           PYTHONPATH: tools/src
         run: python -X utf8 -m ie123kit.nucleo.compat.guardia todo
