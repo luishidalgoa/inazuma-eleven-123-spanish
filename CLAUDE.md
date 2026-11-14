@@ -6,6 +6,10 @@
 > comprobaciones al continuar la traducción. Requiere una nueva petición explícita
 > del usuario sobre la tipografía; no una orden general de continuar.
 
+> **Actualización 2026-11-10 (orden del usuario):** el diálogo de IE1/IE3 sigue hoy los avances,
+> los saltos y la ventana del original europeo (autorización del 2026-09-23, confirmada), no el
+> «avance 11 / límite 220» de v20. No reconstruir con el constructor antiguo. Detalle en AGENTS.md.
+
 Este archivo lo lee Claude Code al inicio de cada sesión. Resume las **normas de
 trabajo** del proyecto. Léelo antes de actuar.
 

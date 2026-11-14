@@ -20,6 +20,28 @@
 - Esta aprobación se refiere al aspecto observado; no significa que toda la ROM
   o todos los capítulos hayan superado el recorrido QA.
 
+### Actualización del 2026-11-10 (orden explícita del usuario): qué rige hoy en el diálogo
+
+- El 2026-09-23 el usuario comparó con su 3DS el original europeo y autorizó, para el diálogo de
+  IE1 e IE3: (a) los avances europeos en `FONT12.bcfnt`, (b) los saltos de línea y de caja del port
+  europeo 1:1 y (c) la ventana ancha en la CRO (0x280, rejilla 0x2A0). Lo implementan las capas
+  `work/shared/capas/fuentes/avances_eu`, `work/ie1/capas/dialogo/saltos_eu` y
+  `work/shared/capas/menus_cro/dialogo_ancho_eu`. La release v3.0 salió con ellas.
+- El 2026-11-10 el usuario confirmó que esa autorización sigue vigente y autorizó reflejarlo aquí.
+  Por tanto, **la referencia del diálogo es el texto y los saltos del original (EU 3DS en IE1/IE3,
+  NDS española en IE2), no «avance 11 / límite 220»**. Esos valores y los hashes de
+  `tools/dialogue_lock.py` describen solo el constructor antiguo (`tools/build_ie1_probe.py`) y
+  siguen congelados (los vigila la guardia): **no reconstruir el archive con ese constructor ni
+  aplicar el v20 sobre el texto europeo**, porque sube las cajas un 29,9 % (26.003 → 33.773).
+- Sigue vigente todo lo demás: Norma 3 (no condensar), Norma 4 (`docs/FURIGANA_LECCIONES.md`),
+  `docs/PROTOCOLO_QA_IE1.md` y la prohibición de tocar fuentes, caja o codificación sin una nueva
+  petición explícita del usuario.
+- **Petición explícita del 2026-11-11 (codificación de las descripciones de menú de IE1):** el usuario autorizó
+  cambiar a «una letra por byte» SOLO las descripciones de menú de IE1 (técnicas `command.STR`, objetos `item.STR`,
+  jugadores `unitbase.STR`) para poner el texto oficial europeo. No alcanza al diálogo (ya hecho con ancho completo), ni a
+  las fuentes ni a la caja. Se hace por lotes: primero un lote piloto pequeño que el usuario prueba en el juego (2 minutos);
+  solo si pasa, se extiende. Con copia de seguridad y revisión independiente.
+
 - Objetivo actual: traducir y depurar Inazuma Eleven 1 de la recopilación 3DS.
 - Leer `CLAUDE.md` y `docs/PROTOCOLO_QA_IE1.md`. El protocolo es una instrucción
   explícita del usuario: cajas de diálogo sin bugs gráficos; recorrido hasta la
