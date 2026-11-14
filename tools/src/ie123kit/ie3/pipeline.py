@@ -86,7 +86,7 @@ PACK_NAMES = ("eve", "evet")
 WORKDIRS = {
     "jp": WORK / "shared" / "base_3ds",
     "rayo": WORK / "ie3" / "rayo_celeste" / "fuentes" / "3ds_eu",
-    "fuego": WORK / "ie3" / "shared" / "fuego",
+    "fuego": WORK / "ie3" / "fuego_explosivo" / "fuentes" / "3ds_eu",
     "ogro": WORK / "ie3" / "amenaza_del_ogro" / "fuentes" / "3ds_eu",
 }
 

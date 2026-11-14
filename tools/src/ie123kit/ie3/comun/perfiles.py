@@ -33,7 +33,7 @@ PERFILES = {
     "bomber": Perfil(
         "bomber",
         "inazuma3/data_iz/script",
-        "work/ie3/shared/fuego/romfs/archive_bz.fa",
+        "work/ie3/fuego_explosivo/fuentes/3ds_eu/romfs/archive_bz.fa",
         "translation/ie3/fuego_explosivo/dialogo_oficial.csv",
         "work/ie3/shared/salida/aligned/spark_fuego.csv",
         "spark_bomber",
