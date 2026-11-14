@@ -45,6 +45,8 @@ CODIGOS: frozenset[str] = frozenset(
         "HERRAMIENTA_AUSENTE",
         "NOT_SUPPORTED",
         "CONTENIDO_EN_GIT",
+        "USEARCH_DESINCRONIZADO",
+        "USEARCH_SIN_DECODIFICADOR",
     }
 )
 

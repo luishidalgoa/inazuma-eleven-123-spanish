@@ -74,8 +74,10 @@ def test_cli_construir_reproduce_la_candidata_v67(raiz):
     tmp = Path(tempfile.mkdtemp(prefix="ie123_gate_cli_"))
     try:
         salida = tmp / "probe_ie1_v67"
+        # El hook de usearch es obligatorio por defecto y cambia la salida; el hash de v67 es ANTERIOR al hook, así que
+        # se reproduce con el opt-out nombrado (sin él, el archive.fa difiere en los usearch.dat y está sincronizado).
         proceso = _cli(raiz, "--json", "construir", "--base", "probe_ie1_v66",
-                       "--capas", CAPA, "--salida", str(salida))
+                       "--capas", CAPA, "--salida", str(salida), "--sin-sincronia-usearch")
         assert proceso.returncode == 0, proceso.stdout + proceso.stderr
         archive = salida / "archive.fa"
         assert archive.is_file(), proceso.stdout

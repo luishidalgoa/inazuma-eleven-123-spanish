@@ -161,7 +161,7 @@ Paquete ie123kit.servicio (fase 2). La CLI y la futura GUI solo dependen de esta
   - Formato del id: `ie1:grafico:inazuma1/data_iz/a_title/title_t.arc#ie01_title_t_tlogo.tga`
   - Ejemplo de juego_principal: `juego_principal:cinematica:movie/OP.moflex`
 - `Resultado{ok, datos, incidencias:[Incidencia], artefactos:[ruta], duracion_s, api_version}`
-- `Incidencia{codigo, severidad:'error'|'aviso'|'info', mensaje, activo_id?, ruta?, ubicacion?, pista?}`. Códigos estables: TAMANO_PNG, RECT_QNA, GLIFO_NO_SOPORTADO, EXCEDE_PX, EXCEDE_BYTES, BLOQUEO_V20, NF_HUERFANO, PAGINAS_DISTINTAS, CRO_FUERA_DE_RANGO, LAYOUT_MOFLEX, HERRAMIENTA_AUSENTE, NOT_SUPPORTED, CONTENIDO_EN_GIT.
+- `Incidencia{codigo, severidad:'error'|'aviso'|'info', mensaje, activo_id?, ruta?, ubicacion?, pista?}`. Códigos estables: TAMANO_PNG, RECT_QNA, GLIFO_NO_SOPORTADO, EXCEDE_PX, EXCEDE_BYTES, BLOQUEO_V20, NF_HUERFANO, PAGINAS_DISTINTAS, CRO_FUERA_DE_RANGO, LAYOUT_MOFLEX, HERRAMIENTA_AUSENTE, NOT_SUPPORTED, CONTENIDO_EN_GIT, USEARCH_DESINCRONIZADO (hook de nombres: usearch.dat no corresponde a unitbase.dat; el mensaje lleva el subcódigo), USEARCH_SIN_DECODIFICADOR (falta work/ con el registro de bigramas, p. ej. en CI: no se puede comprobar).
 - `Progreso{fase, actual, total, mensaje}`
 - `CancelToken{cancelar(), cancelado}`
 
@@ -184,6 +184,8 @@ La implementación por defecto de JuegoBase delega en nucleo según el tipo de a
 - `construir(SolicitudConstruccion{base, objetivos, capas, salida})`: la candidata es de TODA la recopilación, porque un único archive.fa contiene menú, IE1, IE2 e IE3 y las CRO son ina_menu, ina_main1, ina_main2 e ina_main3ogre. Se componen las aportaciones de cada objetivo en orden declarado, con conflictos de entrada como error. Se ejecutan SIEMPRE bloqueo.validate, la guardia de contenido y validar/candidata.
 - `verificar(candidata, golden=None)`
 - `instalar(candidata, emulador='azahar', lanzar=False)`
+- Hook de nombres (`ie123kit.servicio.sincronia_usearch`): `construir` deja `usearch.dat` sincronizado con `unitbase.dat` como paso final SIEMPRE (opt-out nombrado `omitir_sincronia_usearch=True` / CLI `--sin-sincronia-usearch`, solo para tests y para reproducir hashes anteriores al hook); `verificar` falla con `USEARCH_DESINCRONIZADO` (o `USEARCH_SIN_DECODIFICADOR`) e `instalar` se niega si no cuadra (también `nucleo.construir.instalar.azahar`, opt-out `comprobar_sincronia_usearch=False`). `candidata.construir(pasos_finales=[…], sincronia_usearch=True)` es el punto de enganche del núcleo: añade el hook por defecto (opt-out `sincronia_usearch=False`), `preparar(base)` antes de copiar, y `pasos_finales` aparece en `build.json` cuando hay alguno. `verificar(golden=…)` evalúa el golden ANTES y aparte de la sincronía (incidencias distintas). La cadena en sitio (`apply.py <copia>`) se cierra con `python -m ie123kit.servicio.sincronia_usearch cerrar <copia>`.
+- **Reproducibilidad con el hook (ronda 3).** Los hashes golden de `probe_ie1_v66`/`probe_ie1_v67` (`72ef7133…fa91`) son ANTERIORES al hook y se reproducen con `build_ui_revision.py` (congelado, sin hook; `golden comprobar --candidata` lo usa) o con `ie123 construir`/`candidata.construir` con el opt-out nombrado. Sin el opt-out la construcción sincroniza `usearch.dat` de los tres juegos (cambia el sha256 del `archive.fa`, no los demás ficheros) y `verificar` de esas candidatas históricas falla con `USEARCH_DESINCRONIZADO` además del resultado del golden. Donde más abajo se dice «`ie123 construir` reproduce 72ef7133…fa91», léase «con `--sin-sincronia-usearch`».
 - `parche(rom_base, rom_parcheada, salida)`
 - `limpiar(borrar=False)`
 - `doctor()`
@@ -271,7 +273,7 @@ API ESTABLE DE NUCLEO (nombres en `__all__`, codecs puros sobre bytes/Path/PIL.I
   - `subtitulos_dat.leer/escribir/a_srt/desde_srt`
   - `audio.inspect_sad/sad_a_wav`
 - construir:
-  - `candidata.construir(base, salida, aportaciones, rehusar_sobrescribir=True) -> build.json`
+  - `candidata.construir(base, salida, aportaciones, rehusar_sobrescribir=True, pasos_finales=None, sincronia_usearch=True) -> build.json` (el hook de `usearch.dat` va por defecto; `sincronia_usearch=False` es el opt-out nombrado)
   - `capas.Capa(__file__).raiz/aqui/extra(rel)/romfs(rel)` y `capas.ejecutar(main)`
   - `instalar.azahar(candidata, title_id='00040000000BB800')`
   - `rom.build_3ds`, `parche.xdelta`, `limpieza.objetivos/limpiar`, `registro_azahar.parse/merge`
@@ -394,7 +396,7 @@ Cinco niveles. Ningún fixture contiene datos extraídos (Norma 2): son sintéti
 
 5) GOLDEN, local con ROM (@requiere_rom, tools/tests/requiere_rom):
 - (a) Regenerar work/ie1/capas/v67/titulo_logo/apply.py, cuya base probe_ie1_v66 existe hoy. Antes se hace copia de seguridad de su extra/ en el temporal del sistema y después se compara sha256 de cada fichero de extra/ con capas_v67.sha256. Si hay diferencia se restaura y el gate falla.
-- (b) Reconstruir la candidata: `python tools/build_ui_revision.py --base work/shared/candidatas/probe_ie1_v66/archive.fa --ui work/ie1/capas/v67/titulo_logo --output <TEMP>/ie123_regen/probe_ie1_v67/archive.fa`. El sha256 debe ser 72ef7133924e981e4736e240368f716140ca35f62a5c131d7f01c1ead9cffa91 (archive_sha256 de probe_ie1_v67/archive.build.json) y la CRO resultante debe coincidir con probe_ie1_v67/romfs/cro/ina_main1.cro. En fase 2 se exige lo mismo con `ie123 construir`.
+- (b) Reconstruir la candidata: `python tools/build_ui_revision.py --base work/shared/candidatas/probe_ie1_v66/archive.fa --ui work/ie1/capas/v67/titulo_logo --output <TEMP>/ie123_regen/probe_ie1_v67/archive.fa`. El sha256 debe ser 72ef7133924e981e4736e240368f716140ca35f62a5c131d7f01c1ead9cffa91 (archive_sha256 de probe_ie1_v67/archive.build.json) y la CRO resultante debe coincidir con probe_ie1_v67/romfs/cro/ina_main1.cro. En fase 2 se exigió lo mismo con `ie123 construir`; desde el hook de `usearch.dat` (ronda 3) eso exige `--sin-sincronia-usearch`, porque sin él la construcción sincroniza los usearch.dat y el sha256 cambia.
 - (c) `ie123 verificar` devuelve el mismo informe que verify_candidate.py (sin campos de tiempo ni rutas absolutas).
 - (d) bloqueo.validar sobre probe_ie1_v67.
 - (e) Round-trips de exportar e importar sin cambios sobre menu/title.arc e inazuma1/data_iz/a_title/title_t.arc: las entradas quedan idénticas.
@@ -560,7 +562,7 @@ Cinco niveles. Ningún fixture contiene datos extraídos (Norma 2): son sintéti
 (1) `python -m pytest tools/tests -m "not requiere_rom" -q` en verde en local y en toolkit.yml (windows-latest y ubuntu-latest).
 (2) `python -m ie123kit.nucleo.compat.importaciones --work work --baseline tools/tests/compat/baseline_importaciones.json` devuelve 0, es decir, cada import de los 186 scripts de work/ resuelve igual que en la línea base.
 (3) `python -m pytest tools/tests/requiere_rom -q` regenera work/ie1/capas/v67/titulo_logo con extra/ byte a byte igual a capas_v67.sha256.
-(4) La reconstrucción con build_ui_revision (shim y paquete) desde probe_ie1_v66 reproduce archive sha256 72ef7133924e981e4736e240368f716140ca35f62a5c131d7f01c1ead9cffa91 y la CRO de probe_ie1_v67.
+(4) La reconstrucción con build_ui_revision (shim y paquete, este último con `sincronia_usearch=False`) desde probe_ie1_v66 reproduce archive sha256 72ef7133924e981e4736e240368f716140ca35f62a5c131d7f01c1ead9cffa91 y la CRO de probe_ie1_v67.
 (5) Clon limpio con `git worktree add`: sha de los 4 bloqueados igual a SOURCE_HASHES y test_dialogue_lock en verde dentro del clon.
 
 ### 7. F2.1: Contrato, tipos, proyecto y servicio sin cabeza (fase2_preparacion_gui)
@@ -581,7 +583,7 @@ Cinco niveles. Ningún fixture contiene datos extraídos (Norma 2): son sintéti
 
 **Gate:** (1) `python -m pytest tools/tests -m "not requiere_rom" -q` en verde, con round-trips de las primitivas nuevas sobre datos sintéticos.
 (2) `python -m ie123kit.nucleo.compat.importaciones --work work --baseline …` devuelve 0.
-(3) `python -m pytest tools/tests/requiere_rom -q`: la regeneración de v67 da extra/ idéntico, el apply_plan equivalente produce los mismos bytes, y `python -m ie123kit.cli construir --base probe_ie1_v66 --capas work/ie1/capas/v67/titulo_logo --salida %TEMP%/ie123_regen2/probe_ie1_v67` da archive sha256 72ef7133…fa91 y la CRO idéntica.
+(3) `python -m pytest tools/tests/requiere_rom -q`: la regeneración de v67 da extra/ idéntico, el apply_plan equivalente produce los mismos bytes, y `python -m ie123kit.cli construir --base probe_ie1_v66 --capas work/ie1/capas/v67/titulo_logo --salida %TEMP%/ie123_regen2/probe_ie1_v67 --sin-sincronia-usearch` da archive sha256 72ef7133…fa91 y la CRO idéntica.
 (4) Con la misma ROM base y ROM parcheada, `ie123 parche` genera un .xdelta byte a byte igual al de tools/build_patch.ps1 (misma versión y flags de xdelta3).
 
 ### 9. F2.3: Paquetes de juego completos, juego_principal y work/juego_principal (fase2_preparacion_gui)
@@ -593,7 +595,7 @@ Cinco niveles. Ningún fixture contiene datos extraídos (Norma 2): son sintéti
 **Gate:** (1) `python -m pytest tools/tests -m "not requiere_rom" -q` en verde: contrato parametrizado sobre los 8 objetivos y esquemas de activos.toml válidos.
 (2) `python -m ie123kit.nucleo.compat.importaciones --work work --baseline …` devuelve 0.
 (3) `python -m pytest tools/tests/requiere_rom -q`: `ie123 juego_principal activos --json` incluye menu/title.arc, menu/common.arc, menu/data_replace, movie/OP.moflex, movie/logo_l5.moflex, cro/ina_menu.cro y SMDH; exportar e importar sin cambios cada textura de menu/title.arc e inazuma1/data_iz/a_title/title_t.arc deja las entradas byte a byte idénticas; exportar e importar textos sin cambios en ie1 produce 0 eventos preparados; la regeneración de v67 es idéntica.
-(4) `ie123 construir --base probe_ie1_v66 --capas work/ie1/capas/v67/titulo_logo --salida %TEMP%/…` reproduce archive sha 72ef7133…fa91.
+(4) `ie123 construir --base probe_ie1_v66 --capas work/ie1/capas/v67/titulo_logo --salida %TEMP%/… --sin-sincronia-usearch` reproduce archive sha 72ef7133…fa91 (sin el opt-out del hook de usearch, el sha256 cambia).
 (5) Existe work/juego_principal/ y `ie123 work limpiar` (sin --borrar) no lista nada de base_3ds, fuentes, ficheros congelados ni candidatas con .conservar.
 
 ### 10. F2.4: CLI `ie123`, scripts finos y retirada de shims de CLI (fase2_preparacion_gui)

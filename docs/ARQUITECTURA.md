@@ -105,6 +105,51 @@ work/<juego>/capas/
 5. **Antes de construir**: ≥ 4 GB libres. **Al instalar**: comprobar el hash del `archive.fa` copiado.
    **Después**: `python tools/limpiar_work.py --borrar`.
 
+## Limpieza automática (hook de espacio)
+
+`python tools/limpiar_work.py --auto` se ejecuta solo al final de cada respuesta de Claude Code (hook `Stop` de
+`.claude/settings.json`, local: `.claude/` está en `.gitignore`). Es silencioso, no falla nunca y deja una línea en
+`logs/limpieza.log` si borra algo. Solo borra:
+
+- cachés regenerables (`__pycache__`, `.pytest_cache`, `.ruff_cache`, `.mypy_cache`) y `tools/src/*.egg-info`;
+- temporales de construcción (`*.partial`, `*.yuv`, `tmp_*.dat`);
+- copias previas del instalado de `work/shared/backups_instalado/` (`archive.fa.antes_*`, `ina_*.cro.antes_*`)
+  salvo la más reciente de cada familia, que es la vuelta atrás.
+
+Garantías: nada se borra si se modificó hace menos de una hora (una construcción en curso), si es un enlace
+simbólico o si queda fuera de la raíz del repositorio. No toca `fuentes/`, `Roms/`, capas, informes, scratchpad ni
+las candidatas. `python tools/limpiar_work.py --informe` lista, sin borrar, los `.fa/.3ds/.cia/.nds` de más de
+200 MB que están fuera de `fuentes/` y de las copias previas (candidatas olvidadas) y lo que el hook borraría ya.
+Lo demás (candidatas, duplicados entre `fuentes/`) sigue siendo decisión manual. Código en
+`ie123kit.nucleo.construir.limpieza`, tests en `tools/tests/unidad/test_limpieza_auto.py`.
+
+## Datos derivados: `usearch.dat` (hook de nombres)
+
+`usearch.dat` (búsqueda por nombre de Ojear/Fichar en IE1/IE2; listas del Registro/Álbum en IE3) es un dato
+**derivado** del nombre de jugador de `unitbase.dat`. Ninguna capa de nombres tiene que acordarse de él: se
+regenera como **paso final de la construcción**, sobre el `unitbase.dat` final.
+
+- Qué se escribe: IE1/IE2, el nombre latino de ancho completo (8 letras como máximo) en `usearch +0x10`; `+0x00`
+  (kana), flags y orden NO se tocan, porque el clasificador de la lista «Por nombre» del Registro lee `+0x00`.
+  IE3, el corto de unitbase en `+0x00` más el orden alfabético por pestaña.
+- Lógica pura: `ie123kit.nucleo.registros.usearch` (IE1/IE2, registros de 48 B) e `ie123kit.ie3.comun.usearch_sincronia`
+  (IE3, 44 B). Orquestación: `ie123kit.servicio.sincronia_usearch`.
+- Enganche (no opcional): `ServicioToolkit.construir`, `ie123 construir`, `candidata.construir` y su
+  `python -m ie123kit.nucleo.construir.candidata` ejecutan el paso SIEMPRE tras las capas (opt-outs nombrados:
+  `omitir_sincronia_usearch=True` / `--sin-sincronia-usearch` / `sincronia_usearch=False`, solo para tests y para
+  reproducir hashes anteriores al hook como el de `probe_ie1_v67`); `candidata.construir` resuelve sus dependencias antes
+  de copiar la base y borra el archive construido si el paso falla. `ServicioToolkit.verificar` falla con
+  `USEARCH_DESINCRONIZADO` (o `USEARCH_SIN_DECODIFICADOR`, incidencia propia) e `instalar` (fachada y
+  `nucleo.construir.instalar.azahar`) se niega. En la cadena en sitio (`apply.py <copia>`) se termina con
+  `python -m ie123kit.servicio.sincronia_usearch cerrar <copia>` (regla exacta en `docs/HARNESS.md` §4).
+- Qué protege cada pieza: la protección fiable es la **validación de la salida** (construir/verificar/instalar), que
+  cubre cualquier capa futura. `CAPAS_NOMBRES_JUGADOR` / `CAPAS_SIN_NOMBRES_DE_JUGADOR` (`servicio/capas_nombres.py`)
+  son documentación con una guardia heurística (`tests/requiere_rom`, solo con `work/`) que pide clasificar capas
+  nuevas sospechosas; no demuestra nada por sí misma.
+- Validación a mano: `python -m ie123kit.servicio.sincronia_usearch verificar <archive.fa>` (código 1 si no cuadra).
+  Necesita `work/` para IE1/IE2 (registro de bigramas): en CI, sin `work/`, el error es explícito
+  (`USEARCH_SIN_DECODIFICADOR`) y los tests usan datos sintéticos. Estado y detalle: `docs/BACKLOG.md`, «Hook de nombres».
+
 ## Reglas de importación de ie123kit
 
 1. `nucleo` no importa ningún juego (`juego_principal`, `ie1`, `ie2`, `ie3`).

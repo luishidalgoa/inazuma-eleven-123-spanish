@@ -58,7 +58,8 @@ def test_candidata_v67_via_paquete(raiz):
     tmp = Path(tempfile.mkdtemp(prefix='ie123_gate4_'))
     try:
         salida = tmp / 'probe_ie1_v67' / 'archive.fa'
-        report = construir(raiz / V66 / 'archive.fa', salida, ui=capa, cro=cro)
+        # v67 es anterior al hook de usearch: su hash se reproduce con el opt-out nombrado del constructor
+        report = construir(raiz / V66 / 'archive.fa', salida, ui=capa, cro=cro, sincronia_usearch=False)
         assert sha(salida) == ARCHIVE_V67
         assert report['archive_sha256'] == ARCHIVE_V67
         cro_out = salida.parent / CRO_REL

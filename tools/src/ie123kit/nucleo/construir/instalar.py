@@ -5,12 +5,17 @@ Traslado de ``work/ie1/legacy/vs_revision/install.py``: se niega a instalar con 
 ``<candidata>/romfs``, vuelve a calcular el sha256 de cada copia instalada y lanza si alguna no
 coincide, y deja ``installation.json`` junto a la candidata.
 
+Antes de copiar nada comprueba que ``usearch.dat`` corresponde al ``unitbase.dat`` de la candidata (hook de nombres,
+``servicio.sincronia_usearch``): una candidata desincronizada, o que no se puede comprobar, no se instala. El único
+opt-out es el argumento nombrado ``comprobar_sincronia_usearch=False``.
+
 Nunca toca la ROM original ni envía entradas al emulador: la QA la hace una persona
 (docs/PROTOCOLO_QA_IE1.md), por eso ``runtime_verified`` siempre sale ``false``.
 """
 
 from __future__ import annotations
 
+import importlib
 import os
 import shutil
 import subprocess
@@ -25,6 +30,8 @@ __all__ = ["TITLE_ID", "azahar", "raiz_mods_por_defecto"]
 TITLE_ID = "00040000000BB800"
 
 _PROCESO = "azahar.exe"
+#: se carga POR NOMBRE al instalar: ``nucleo`` no importa ``servicio`` (misma razón que en ``construir.candidata``)
+_MODULO_SINCRONIA_USEARCH = "ie123kit.servicio.sincronia_usearch"
 
 
 def raiz_mods_por_defecto(entorno: dict[str, str] | None = None) -> Path:
@@ -55,6 +62,23 @@ def _pares(candidata: Path, destino: Path) -> list[tuple[Path, Path]]:
     return pares
 
 
+def _exigir_sincronia_usearch(archive: Path) -> None:
+    """Falla (``ValidacionError``) si ``usearch.dat`` de ``archive`` no corresponde a su ``unitbase.dat``."""
+    verificar_archive = importlib.import_module(_MODULO_SINCRONIA_USEARCH).verificar_archive
+    try:
+        informe = verificar_archive(archive)
+    except Exception as exc:  # un archive ilegible no se da por sincronizado
+        raise ValidacionError(
+            "USEARCH_DESINCRONIZADO", ruta=archive,
+            detalle=f"no se pudo comprobar la sincronía de usearch.dat: {exc}",
+        ) from exc
+    if not informe["ok"]:
+        raise ValidacionError(
+            informe.get("codigo") or "USEARCH_DESINCRONIZADO", ruta=archive,
+            detalle="; ".join(informe["errores"][:5]) + " (python -m ie123kit.servicio.sincronia_usearch cerrar <copia>)",
+        )
+
+
 def azahar(
     candidata,
     *,
@@ -62,11 +86,14 @@ def azahar(
     raiz_mods=None,
     rehusar_si_ejecuta: bool = True,
     limpiar_obsoletos: bool = False,
+    comprobar_sincronia_usearch: bool = True,
 ) -> dict:
     """Instala ``candidata`` en ``<raiz_mods>/<title_id>/romfs`` y devuelve el informe."""
     candidata = Path(candidata).resolve()
     if not candidata.is_dir():
         raise FileNotFoundError(candidata)
+    if comprobar_sincronia_usearch:
+        _exigir_sincronia_usearch(candidata / "archive.fa")
     if rehusar_si_ejecuta and _azahar_en_ejecucion():
         raise ValidacionError(
             "AZAHAR_EN_EJECUCION",

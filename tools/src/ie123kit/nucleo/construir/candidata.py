@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import contextlib
 import hashlib
+import importlib
 import json
 import shutil
 import struct
@@ -30,7 +31,17 @@ from ie123kit.nucleo.errores import ValidacionError
 from ie123kit.nucleo.eventos import ssd as S
 from ie123kit.nucleo.eventos.packnum import parse_index, rebuild
 
-__all__ = ["CRO_CONOCIDAS", "archive_payload", "construir", "digest", "rebuild_events", "replace_entry"]
+__all__ = [
+    "CRO_CONOCIDAS",
+    "MODULO_SINCRONIA_USEARCH",
+    "NOMBRE_PASO_USEARCH",
+    "archive_payload",
+    "construir",
+    "digest",
+    "paso_usearch_por_defecto",
+    "rebuild_events",
+    "replace_entry",
+]
 
 
 def digest(path: Path) -> str:
@@ -340,8 +351,21 @@ def _recoger_cro(ui, cro, aportaciones: list[dict]) -> list[tuple[Path, str]]:
     return fuentes
 
 
+#: módulo del hook de nombres (``usearch.dat`` derivado de ``unitbase.dat``). Se carga POR NOMBRE y solo al construir:
+#: ``nucleo`` no importa ``servicio`` (regla (a) de ``tests/arquitectura``), igual que ``servicio`` carga por nombre el
+#: módulo de IE3. Es el mismo paso que ejecuta ``ServicioToolkit.construir``.
+MODULO_SINCRONIA_USEARCH = "ie123kit.servicio.sincronia_usearch"
+#: ``nombre`` del paso de sincronía (``PasoUsearch.nombre``); evita ejecutarlo dos veces si el llamante ya lo pasó.
+NOMBRE_PASO_USEARCH = "busqueda_usearch"
+
+
+def paso_usearch_por_defecto():
+    """Paso final estándar del hook de ``usearch.dat`` (``servicio.sincronia_usearch.paso_final()``)."""
+    return importlib.import_module(MODULO_SINCRONIA_USEARCH).paso_final()
+
+
 def construir(base, salida, *, ui=None, capas=None, cro=None, aportaciones=None,
-              rehusar_sobrescribir: bool = True) -> dict:
+              rehusar_sobrescribir: bool = True, pasos_finales=None, sincronia_usearch: bool = True) -> dict:
     """Construye la candidata ``salida`` (archive.fa) sobre ``base``; devuelve el report.
 
     ``capas`` son carpetas de ficheros relativos al archive (la última gana). ``aportaciones`` es
@@ -352,6 +376,19 @@ def construir(base, salida, *, ui=None, capas=None, cro=None, aportaciones=None,
     ``ui`` aporta ``extra/`` (si no hay ``capas``), ``events/``, ``events_mch/`` y todas las
     ``romfs/cro/*.cro``; ``cro`` son CRO sueltas que se SUMAN a esas y ganan por nombre. Las
     CRO declaradas que no existan son un error (``CRO_DECLARADA_AUSENTE``), no un salto mudo.
+
+    ``pasos_finales`` son callables ``(ruta_del_archive_construido) -> dict`` que se ejecutan en orden cuando todas las
+    capas ya están escritas (p. ej. ``servicio.sincronia_usearch.paso_final()``, que deja usearch.dat sincronizado
+    con el unitbase final y falla si no lo consigue). Si un paso tiene método ``preparar(base)`` se llama ANTES de copiar
+    nada (para resolver dependencias y fallar sin dejar un archive a medias); si un paso falla se borra el archive
+    construido (no queda una candidata instalable sin su paso final y no se escribe el .build.json). Sus informes
+    quedan en el build.json bajo ``pasos_finales`` SOLO cuando hay alguno.
+
+    ``sincronia_usearch`` (por defecto ``True``) añade como ÚLTIMO paso final el hook de nombres de ``usearch.dat``
+    (``servicio.sincronia_usearch.paso_final()``) si ``pasos_finales`` no lo trae ya: ninguna construcción por esta
+    función deja ``usearch.dat`` desincronizado del ``unitbase.dat`` final sin que el llamante lo pida por su nombre
+    con ``sincronia_usearch=False`` (solo para reproducir un hash anterior al hook: v67, ``verificar --golden``).
+    En un archive sin pares usearch/unitbase el paso no escribe nada.
     """
     base = Path(base).resolve()
     ui = Path(ui).resolve() if ui is not None else None
@@ -404,6 +441,14 @@ def construir(base, salida, *, ui=None, capas=None, cro=None, aportaciones=None,
                 overridden.append(_anotacion(rel, extra, objetivo))
             extra_files[rel] = src.read_bytes()
 
+    pasos_finales = list(pasos_finales or ())
+    if sincronia_usearch and not any(getattr(p, "nombre", None) == NOMBRE_PASO_USEARCH for p in pasos_finales):
+        pasos_finales.append(paso_usearch_por_defecto())
+    for paso in pasos_finales:
+        preparar = getattr(paso, "preparar", None)
+        if preparar is not None:
+            preparar(base)
+
     output.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(base, output)
     with output.open("r+b") as handle:
@@ -415,6 +460,13 @@ def construir(base, salida, *, ui=None, capas=None, cro=None, aportaciones=None,
             replace_entry(handle, arc, RUTA_MCH[1], mch_pkb)
         for rel, payload in sorted(extra_files.items()):
             replace_entry(handle, arc, rel, payload)
+
+    # -- pasos finales: derivados del resultado de todas las capas (usearch.dat desde unitbase.dat…) --
+    try:
+        informes_finales = [paso(output) for paso in pasos_finales]
+    except BaseException:
+        output.unlink(missing_ok=True)
+        raise
 
     # -- CRO: las cuatro de la recopilación, la última capa gana --
     destino_cro = output.parent / "romfs/cro"
@@ -462,6 +514,8 @@ def construir(base, salida, *, ui=None, capas=None, cro=None, aportaciones=None,
             for a in aportes
         ],
     }
+    if informes_finales:
+        report["pasos_finales"] = informes_finales
     output.with_suffix(".build.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     return report
 
@@ -479,5 +533,10 @@ if __name__ == "__main__":
     parser.add_argument("--cro", type=Path, action="append",
                         help="Extra CRO to ship with the candidate (repeatable); added to every "
                              "<ui>/romfs/cro/*.cro and winning by file name")
+    parser.add_argument("--sin-sincronia-usearch", action="store_true", dest="sin_sincronia_usearch",
+                        help="NO sincroniza usearch.dat con unitbase.dat (hook de nombres, activo por defecto). Solo "
+                             "para reproducir un hash anterior al hook; la candidata resultante no pasa verificar/"
+                             "instalar si usearch queda desincronizado")
     args = parser.parse_args()
-    print(json.dumps(construir(args.base, args.output, ui=args.ui, capas=args.extra, cro=args.cro), indent=2))
+    print(json.dumps(construir(args.base, args.output, ui=args.ui, capas=args.extra, cro=args.cro,
+                               sincronia_usearch=not args.sin_sincronia_usearch), indent=2))

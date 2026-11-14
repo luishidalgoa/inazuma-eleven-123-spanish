@@ -20,7 +20,7 @@ def test_instala_y_rehashea(tmp_path, monkeypatch):
     monkeypatch.setattr(instalar, "_azahar_en_ejecucion", lambda: False)
     candidata = _candidata(tmp_path)
     mods = tmp_path / "mods"
-    informe = instalar.azahar(candidata, raiz_mods=mods)
+    informe = instalar.azahar(candidata, raiz_mods=mods, comprobar_sincronia_usearch=False)
     romfs = mods / instalar.TITLE_ID / "romfs"
     assert (romfs / "archive.fa").read_bytes() == b"archive sintetico"
     assert (romfs / "cro" / "ina_menu.cro").read_bytes() == b"cro menu"
@@ -43,7 +43,7 @@ def test_rehash_manipulado_lanza(tmp_path, monkeypatch):
 
     monkeypatch.setattr(instalar.shutil, "copyfile", copia_sucia)
     with pytest.raises(ValidacionError) as err:
-        instalar.azahar(candidata, raiz_mods=tmp_path / "mods")
+        instalar.azahar(candidata, raiz_mods=tmp_path / "mods", comprobar_sincronia_usearch=False)
     assert err.value.codigo == "HASH_TRAS_COPIA"
 
 
@@ -51,11 +51,12 @@ def test_se_niega_con_azahar_abierto(tmp_path, monkeypatch):
     monkeypatch.setattr(instalar, "_azahar_en_ejecucion", lambda: True)
     candidata = _candidata(tmp_path)
     with pytest.raises(ValidacionError) as err:
-        instalar.azahar(candidata, raiz_mods=tmp_path / "mods")
+        instalar.azahar(candidata, raiz_mods=tmp_path / "mods", comprobar_sincronia_usearch=False)
     assert err.value.codigo == "AZAHAR_EN_EJECUCION"
     assert not (tmp_path / "mods").exists()
     # Con rehusar_si_ejecuta=False sí instala (para automatizaciones que ya han cerrado el emulador).
-    informe = instalar.azahar(candidata, raiz_mods=tmp_path / "mods", rehusar_si_ejecuta=False)
+    informe = instalar.azahar(candidata, raiz_mods=tmp_path / "mods", rehusar_si_ejecuta=False,
+                               comprobar_sincronia_usearch=False)
     assert informe["ficheros"]
 
 
@@ -66,7 +67,7 @@ def test_limpiar_obsoletos(tmp_path, monkeypatch):
     viejo = mods / instalar.TITLE_ID / "romfs" / "cro" / "ina_main3ogre.cro"
     viejo.parent.mkdir(parents=True)
     viejo.write_bytes(b"de una candidata anterior")
-    instalar.azahar(candidata, raiz_mods=mods, limpiar_obsoletos=True)
+    instalar.azahar(candidata, raiz_mods=mods, limpiar_obsoletos=True, comprobar_sincronia_usearch=False)
     assert not viejo.exists()
 
 

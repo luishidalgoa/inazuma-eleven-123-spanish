@@ -67,9 +67,14 @@ bloqueo tipográfico · `4` falta una herramienta externa · `5` operación no s
   - `requiere_rom/`: `test_capa_v67.py` (regenera `work/ie1/capas/v67/titulo_logo`),
     `test_candidata_v67.py` (`build_ui_revision.py` y `ie123kit.nucleo.construir.candidata`, desde
     `probe_ie1_v66`, reproducen el `archive.fa` de sha256
-    `72ef7133924e981e4736e240368f716140ca35f62a5c131d7f01c1ead9cffa91` y la CRO de v67) y
+    `72ef7133924e981e4736e240368f716140ca35f62a5c131d7f01c1ead9cffa91` y la CRO de v67; `build_ui_revision.py` lo hace
+    tal cual, y el paquete y `ie123 construir` solo con el opt-out nombrado `sincronia_usearch=False` /
+    `--sin-sincronia-usearch`, porque ese hash es ANTERIOR al hook de `usearch.dat` y, sin el opt-out, la construcción
+    cambia los `usearch.dat` y da otro sha256 (ya sincronizado)) y
     `test_clon_limpio.py` (un `git worktree` limpio conserva los hashes de los bloqueados y pasa
-    `test_dialogue_lock`).
+    `test_dialogue_lock`) y `test_usearch_sincronia_real.py` (hook de nombres: usearch sincronizado con unitbase en
+    IE1/IE2/IE3 sobre un `archive.fa` real, `IE123_ARCHIVE=<ruta>`; clasificación de las capas de `work/` que tocan
+    unitbase; ver `docs/BACKLOG.md`, «Hook de nombres»).
 
 ### CI y guardias
 
@@ -177,7 +182,13 @@ y sustitutos en [`_archivo/README.md`](_archivo/README.md).
   `python tools/harvest_log.py`, `python tools/limpiar_work.py --borrar`, `python tools/blz.py in out`,
   `python tools/patch_smdh_title.py` y `python tools/verify_candidate.py`.
 - `python -m ie123kit.ie1.media.voces [--stage]` (sustituye al archivado `ie1_media.py --stage`).
-- `python -m ie123kit.nucleo.construir.candidata --base … --ui … --output …`.
+- `python -m ie123kit.nucleo.construir.candidata --base … --ui … --output …` (sincroniza `usearch.dat` con `unitbase.dat`
+  como paso final por defecto; `--sin-sincronia-usearch` solo para reproducir un hash anterior al hook, como el de
+  `probe_ie1_v67`, y esa salida no pasa `verificar`/`instalar` si queda desincronizada).
+- `ie123 construir … [--sin-sincronia-usearch]`: igual (el hash `72ef7133…fa91` de v67 se reproduce con el opt-out).
+- Cadena en sitio sobre una copia del `archive.fa` (`apply.py` de capas de nombres) y cierre único:
+  `python -X utf8 -m ie123kit.servicio.sincronia_usearch cerrar <copia>`; comprobación suelta: `… verificar <archive.fa>`
+  (código 1 si `usearch.dat` no corresponde a `unitbase.dat`). Regla exacta en [`docs/HARNESS.md`](../docs/HARNESS.md) §4.
 - Puerta del bloqueo v20 sobre una candidata: `python -m ie123kit.nucleo.validar.bloqueo --candidata
   <archive.fa>` (o su carpeta). Extrae las 5 fuentes de `dialogue_lock.FONT_HASHES` a un temporal que
   borra al terminar y llama a `dialogue_lock.validate`; devuelve 0 si cuadra y 1 si no.

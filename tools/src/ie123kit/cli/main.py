@@ -55,6 +55,10 @@ def construir_parser() -> argparse.ArgumentParser:
     c.add_argument("--objetivos", default="", help="Lista separada por comas (por defecto, ninguno).")
     c.add_argument("--capas", action="append", default=[], metavar="RUTA", help="Capa a aplicar (repetible).")
     c.add_argument("--salida", required=True, help="Candidata de salida (nombre o ruta).")
+    c.add_argument("--sin-sincronia-usearch", action="store_true", dest="sin_sincronia_usearch",
+                   help="NO sincroniza usearch.dat con unitbase.dat al construir (hook de nombres, activo por "
+                        "defecto). Solo para reproducir un hash anterior al hook (p. ej. probe_ie1_v67); la candidata "
+                        "resultante no pasa verificar/instalar si usearch queda desincronizado.")
 
     x = sub.add_parser("parche", help="Genera el .xdelta entre la ROM base y la parcheada.")
     x.add_argument("--rom-base", required=True, dest="rom_base")
@@ -103,6 +107,8 @@ def _ejecutar(args: argparse.Namespace) -> Any:
         solicitud = SolicitudConstruccion(
             base=args.base, objetivos=objetivos, capas=tuple(args.capas), salida=args.salida
         )
+        if args.sin_sincronia_usearch:
+            return servicio.construir(solicitud, omitir_sincronia_usearch=True)
         return servicio.construir(solicitud)
     if args.orden == "parche":
         return servicio.parche(args.rom_base, args.rom_parcheada, args.salida)

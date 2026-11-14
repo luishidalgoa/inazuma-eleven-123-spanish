@@ -95,7 +95,7 @@ de glifos latinos, issue #66) es de IE1.
 | `audit_dialogo_ids.py` | **parámetro** | rutas de entrada/salida fijas a `work/ie1/legacy/audit_dialogo`; añadir `--juego/--nds/--eve/--out` |
 | `ssd_reinsert.py` / `reinsert*.py` | parámetro | rangos protegidos (`92010100..92010509`, `81000040`) son de IE1: localizar los de IE2 |
 | `build_ui_revision.py` | **congelado** (bloqueo v20) | rutas `inazuma1/...eve.pk*` e `ina_main1.cro` fijas; usar `ie123kit.nucleo.construir.candidata` con `RUTA_EVE`/`RUTA_MCH` parametrizados, sin tocar el congelado |
-| `nucleo/construir/candidata.py` | parámetro | `RUTA_EVE`, `RUTA_MCH` y `cro_principal` fijos a IE1 (la CRO ya admite las cuatro) |
+| `nucleo/construir/candidata.py` | parámetro | `RUTA_EVE`, `RUTA_MCH` y `cro_principal` fijos a IE1 (la CRO ya admite las cuatro). Toda construcción con `candidata.construir` (también `python -m ie123kit.nucleo.construir.candidata`) sincroniza `usearch.dat` con `unitbase.dat` como paso final por defecto (opt-out nombrado `sincronia_usearch=False` / `--sin-sincronia-usearch`); ver `docs/HARNESS.md` §4 |
 | `verify_candidate.py` | casi tal cual | comprueba el CRO por nombre; pasar `ina_main2.cro` |
 | `dialogue_lock.py` | **congelado** | solo cubre fuentes IE1 (ver §5) |
 | `qna_regions.py`, `translate_ui_textures.py`, `ctpk_ui.py`, `ui_archive.py`, `legacy_sprite.py` | tal cual | formatos ARCV/CTPK/QNA comunes |

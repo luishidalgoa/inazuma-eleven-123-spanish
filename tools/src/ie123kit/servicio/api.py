@@ -102,6 +102,18 @@ def _comprobar_bloqueo(bloqueo: Any, archive: Path, raiz: Path) -> Incidencia | 
     return None
 
 
+def _codigo_usearch(codigo: Any) -> str:
+    """Código de incidencia del hook de nombres: el propio ``USEARCH_SIN_DECODIFICADOR`` y, para todo lo demás
+    (desincronía, orden, ids huérfanos, archive ilegible…), ``USEARCH_DESINCRONIZADO`` con el detalle en el mensaje."""
+    return "USEARCH_SIN_DECODIFICADOR" if codigo == "USEARCH_SIN_DECODIFICADOR" else "USEARCH_DESINCRONIZADO"
+
+
+def _incidencias_sincronia(sincronia: dict, archive: Path, prefijo: str = "") -> list[Incidencia]:
+    """Incidencias de un ``verificar_archive`` que no está ``ok`` (una por error)."""
+    codigo = _codigo_usearch(sincronia.get("codigo"))
+    return [_incidencia(codigo, f"{prefijo}{e}", ruta=str(archive)) for e in sincronia["errores"]]
+
+
 def _cro_de_aportacion(aporte: Any) -> list[Path]:
     """CRO EXISTENTES que declara una aportación (admite una ruta suelta o una lista)."""
     valor = (aporte.get("cro") if isinstance(aporte, dict) else None) or []
@@ -380,8 +392,16 @@ class ServicioToolkit:
 
     def construir(self, solicitud: SolicitudConstruccion, *,
                   progreso: Callable[[Progreso], None] | None = None,
-                  cancel: CancelToken | None = None) -> Resultado:
-        """Construye la candidata de TODA la recopilación; el bloqueo v20 se comprueba siempre."""
+                  cancel: CancelToken | None = None,
+                  omitir_sincronia_usearch: bool = False) -> Resultado:
+        """Construye la candidata de TODA la recopilación; el bloqueo v20 se comprueba siempre.
+
+        Como paso FINAL se sincroniza ``usearch.dat`` con el ``unitbase.dat`` resultante (hook de nombres, ver
+        ``servicio.sincronia_usearch``) y la construcción falla si no queda sincronizado. No se puede omitir salvo con
+        ``omitir_sincronia_usearch=True`` (CLI: ``--sin-sincronia-usearch``), que existe para los tests de la propia
+        validación y para reproducir un hash anterior al hook (v67); la candidata resultante no pasa ``verificar`` ni
+        ``instalar`` si usearch queda desincronizado.
+        """
         t0 = time.perf_counter()
         try:
             from ie123kit.nucleo.construir import candidata as constructor
@@ -444,6 +464,13 @@ class ServicioToolkit:
             progreso(Progreso("construir", 0, 2, str(dir_salida)))
         kw: dict[str, Any] = {"ui": None, "capas": None, "cro": cro or None,
                               "aportaciones": aportes, "rehusar_sobrescribir": True}
+        if omitir_sincronia_usearch:
+            # sin esto el constructor añadiría él mismo el paso por defecto
+            kw["sincronia_usearch"] = False
+        else:
+            from ie123kit.servicio.sincronia_usearch import paso_final
+
+            kw["pasos_finales"] = [paso_final(raiz=self.ws.raiz)]
         # La incompatibilidad de firma se detecta INSPECCIONANDO la signatura, nunca capturando
         # TypeError: un `except TypeError` alrededor de la llamada también atraparía los errores
         # internos del constructor (p.ej. una aportación mal formada o un reempaquetado roto) y
@@ -460,7 +487,9 @@ class ServicioToolkit:
         try:
             informe = constructor.construir(base, salida, **kw)
         except Exception as exc:
-            return self._cronometrar(t0, Resultado.fallo([_incidencia("NOT_SUPPORTED", f"construir: {exc}")]))
+            codigo_exc = str(getattr(exc, "codigo", ""))
+            codigo = _codigo_usearch(codigo_exc) if codigo_exc.startswith("USEARCH_") else "NOT_SUPPORTED"
+            return self._cronometrar(t0, Resultado.fallo([_incidencia(codigo, f"construir: {exc}")]))
 
         if progreso is not None:
             progreso(Progreso("bloqueo_v20", 1, 2, str(salida)))
@@ -483,11 +512,26 @@ class ServicioToolkit:
             "build_json": str(build_json),
             "candidata": dir_salida.name,
             "informe": informe,
+            "sincronia_usearch": "omitida (opt-out de tests)" if omitir_sincronia_usearch else "ok",
         }
         artefactos = tuple(str(a) for a in (salida, build_json, *cros) if a)
         if progreso is not None:
             progreso(Progreso("construir", 2, 2, "hecha"))
         return self._cronometrar(t0, Resultado.correcto(datos=datos, artefactos=artefactos))
+
+    def _sincronia_usearch(self, archive: Path) -> dict:
+        """Verificación de sincronía usearch/unitbase de un archive.fa (el decodificador sale de la raíz del proyecto).
+
+        Nunca lanza: un archive ilegible o la falta del registro de bigramas (CI) salen como ``ok: False`` con el
+        error explícito, porque no se puede dar por sincronizado lo que no se ha podido comprobar.
+        """
+        from ie123kit.servicio.sincronia_usearch import verificar_archive
+
+        try:
+            return verificar_archive(archive, raiz=self.ws.raiz)
+        except Exception as exc:
+            error = f"USEARCH_ILEGIBLE: no se pudo comprobar la sincronía de {archive.name}: {exc}"
+            return {"ok": False, "errores": [error], "avisos": [], "por_paso": {}}
 
     def verificar(self, candidata: str, golden: bool | str | None = None, *,
                   progreso: Callable[[Progreso], None] | None = None,
@@ -537,18 +581,28 @@ class ServicioToolkit:
                     ),
                 )
 
+        # El golden se evalúa ANTES y por separado de la sincronía de usearch: una candidata histórica anterior al hook
+        # (usearch desincronizado) no debe ocultar si su sha256 sigue siendo el de referencia, ni al revés.
         if golden:
             try:
                 from ie123kit.nucleo.compat.golden import comprobar_grupo
 
                 total, malos = comprobar_grupo("candidatas.sha256", self.ws.raiz)
             except Exception as exc:
-                return self._cronometrar(t0, Resultado.fallo([_incidencia("NOT_SUPPORTED", f"golden: {exc}")]))
-            datos["golden"] = {"total": total, "malos": list(malos)}
-            incidencias.extend(_incidencia("NOT_SUPPORTED", f"golden: {malo}") for malo in malos)
-            if malos:
-                return self._cronometrar(t0, Resultado.fallo(incidencias))
+                incidencias.append(_incidencia("NOT_SUPPORTED", f"golden: {exc}"))
+            else:
+                datos["golden"] = {"total": total, "malos": list(malos)}
+                incidencias.extend(_incidencia("NOT_SUPPORTED", f"golden: {malo}") for malo in malos)
 
+        # Hook de nombres: usearch.dat debe corresponder al unitbase.dat de la candidata (nunca es opcional). Es una
+        # incidencia aparte (USEARCH_DESINCRONIZADO / USEARCH_SIN_DECODIFICADOR), que se suma a las del golden.
+        sincronia = self._sincronia_usearch(archive)
+        datos["sincronia_usearch"] = {k: sincronia[k] for k in ("ok", "errores", "avisos")}
+        if not sincronia["ok"]:
+            incidencias.extend(_incidencias_sincronia(sincronia, archive))
+
+        if any(i.severidad == "error" for i in incidencias):
+            return self._cronometrar(t0, Resultado.fallo(incidencias))
         return self._cronometrar(t0, Resultado.correcto(datos=datos, incidencias=tuple(incidencias)))
 
     def instalar(self, candidata: str, emulador: str = "azahar", lanzar: bool = False, *,
@@ -568,6 +622,11 @@ class ServicioToolkit:
             return self._cronometrar(
                 t0, Resultado.no_soportado(f"instalar: no existe la candidata {candidata!r} ({dir_cand})")
             )
+        archive = dir_cand / "archive.fa" if dir_cand.is_dir() else dir_cand
+        if archive.is_file():
+            sincronia = self._sincronia_usearch(archive)
+            if not sincronia["ok"]:
+                return self._cronometrar(t0, Resultado.fallo(_incidencias_sincronia(sincronia, archive, "instalar: ")))
         try:
             try:
                 salida = instalador.azahar(dir_cand, lanzar=lanzar, ws=self.ws)

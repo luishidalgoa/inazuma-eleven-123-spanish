@@ -114,3 +114,11 @@ def test_modulo_ejecutable_responde_a_help() -> None:
     assert proceso.returncode == 0, proceso.stderr
     for verbo in ("construir", "parche", "doctor"):
         assert verbo in proceso.stdout
+
+
+def test_sin_sincronia_usearch_se_pasa_como_opt_out_nombrado_y_por_defecto_no(falso) -> None:
+    servicio = falso(Resultado.correcto())
+    assert cli.main(["construir", "--base", "v66", "--salida", "v67"]) == 0
+    assert servicio.llamadas[0][2] == {}  # por defecto el hook se aplica: no se pasa nada
+    assert cli.main(["construir", "--base", "v66", "--salida", "v67", "--sin-sincronia-usearch"]) == 0
+    assert servicio.llamadas[1][2] == {"omitir_sincronia_usearch": True}

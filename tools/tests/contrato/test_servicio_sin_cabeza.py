@@ -150,7 +150,7 @@ def _kw_de_construir(servicio, proyecto_sintetico, monkeypatch, capas) -> dict:
     capturado: list[dict] = []
 
     def capturar(base, salida, *, ui=None, capas=None, cro=None, aportaciones=None,
-                 rehusar_sobrescribir=True):
+                 rehusar_sobrescribir=True, pasos_finales=None):
         capturado.append({"base": base, "salida": salida, "ui": ui, "capas": capas, "cro": cro,
                           "aportaciones": aportaciones})
         raise RuntimeError("no se construye de verdad en esta prueba")
